@@ -1,45 +1,23 @@
 package fr.gdd.fedup.summary;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpAsQuery;
-import org.apache.jena.sparql.algebra.OpVisitorBase;
-import org.apache.jena.sparql.algebra.OpWalker;
-import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.core.Quad;
 
-public class HashSummarizer extends Summarizer {
+import java.net.URI;
+import java.net.URISyntaxException;
 
-    private int modulo;
+public class HashSummarizer {
 
-    public HashSummarizer(Integer arg) {
-        super(arg);
-        this.modulo = arg;
-    }
-    
-    @Override
-    public Node summarize(Node node) {
+    public static Node summarize(Node node, int modulo) {
         if (node.isURI()) {
             try {
                 URI uri = new URI(node.getURI());
-                if (this.modulo == 0) {
-                    return NodeFactory.createURI("http://" + uri.getHost());
-                } else {
-                    int hashcode = Math.abs(uri.toString().hashCode());
-                    return NodeFactory.createURI("http://" + uri.getHost() + "/" + (hashcode % this.modulo));
-                }
+                int hashcode = Math.abs(uri.toString().hashCode());
+                return NodeFactory.createURI(uri.getScheme() + "://" + uri.getHost() + "/" + (hashcode % modulo));
             } catch (URISyntaxException e) {
-                return NodeFactory.createURI("http://donotcare.com/whatever");
+                return NodeFactory.createURI("https://donotcare.com/whatever");
             }
         } else if (node.isLiteral()) {
             return NodeFactory.createLiteral("any");
@@ -48,36 +26,22 @@ public class HashSummarizer extends Summarizer {
         }
     }
 
-    @Override
-    public Triple summarize(Triple triple) {
-        Node subject = this.summarize(triple.getSubject());
+    public static Triple summarize(Triple triple, int modulo) {
+        Node subject = summarize(triple.getSubject(), modulo);
         Node predicate = triple.getPredicate();
-        Node object = this.summarize(triple.getObject());
-        // Node object;
-        // if (predicate.isURI() && predicate.getURI().equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
-        //     object = triple.getObject();
-        // } else {
-        //     object = this.summarize(triple.getObject());
-        // }
+        Node object = summarize(triple.getObject(), modulo);
         return Triple.create(subject, predicate, object);
     }
 
-    @Override
-    public Quad summarize(Quad quad) {
+    public static Quad summarize(Quad quad, int modulo) {
         Node graph = quad.getGraph();
-        Node subject = this.summarize(quad.getSubject());
+        Node subject = summarize(quad.getSubject(), modulo);
         Node predicate = quad.getPredicate();
-        Node object = this.summarize(quad.getObject());
-        // Node object;
-        // if (predicate.isURI() && predicate.getURI().equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
-        //     object = quad.getObject();
-        // } else {
-        //     object = this.summarize(quad.getObject());
-        // }
+        Node object = summarize(quad.getObject(), modulo);
         return Quad.create(graph, subject, predicate, object);
     }
 
-    @Override
+    /*
     public Query summarize(Query query) {
         Op op = Algebra.compile(query);
         OpWalker.walk(op, new OpVisitorBase() {
@@ -94,6 +58,6 @@ public class HashSummarizer extends Summarizer {
         queryString = queryString.replaceAll("(FILTER|filter).*", "");
         return QueryFactory.create(queryString);
         // return OpAsQuery.asQuery(op);
-    }
+    }*/
 
 }
