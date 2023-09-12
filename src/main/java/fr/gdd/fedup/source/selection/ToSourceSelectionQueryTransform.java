@@ -1,4 +1,4 @@
-package fr.gdd.fedup.summary;
+package fr.gdd.fedup.source.selection;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
@@ -8,23 +8,21 @@ import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.Vars;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Adds Graph clauses to retrieves the necessary data to perform
  * source selection and create FedQPL expression.
  * TODO change the name to a more specific one
  */
-public class QueryTransformer extends TransformCopy {
+public class ToSourceSelectionQueryTransform extends TransformCopy {
 
     Integer nbGraphs = 0;
     Boolean selectAll = false;
 
-    public QueryTransformer(Boolean selectAll) {
+    public ToSourceSelectionQueryTransform(Boolean selectAll) {
         this.selectAll = selectAll; // (TODO) maybe select only graphs
     }
 

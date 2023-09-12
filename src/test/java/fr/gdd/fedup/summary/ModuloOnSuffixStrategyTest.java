@@ -1,5 +1,6 @@
 package fr.gdd.fedup.summary;
 
+import fr.gdd.fedup.summary.strategies.ModuloOnSuffix;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
@@ -7,12 +8,10 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-class QueryTransformerTest {
+class ModuloOnSuffixStrategyTest {
 
     @Test
-    public void query_transformer_adds_graph_clauses_and_projects_all_variables() {
+    public void query_transformer_adds_graph_clauses_and_projects_all_variables_and_removes_limits() {
         String queryString = """
                 SELECT ?predicate ?object WHERE {
                     {
@@ -25,7 +24,7 @@ class QueryTransformerTest {
         Query query = QueryFactory.create(queryString);
         Op queryOp = Algebra.compile(query);
 
-        QueryTransformer queryTransformer = new QueryTransformer(true);
+        ModuloOnSuffix queryTransformer = new ModuloOnSuffix(1);
         Op transformedQueryOp = Transformer.transform(queryTransformer, queryOp);
 
         System.out.println(transformedQueryOp.toString());
