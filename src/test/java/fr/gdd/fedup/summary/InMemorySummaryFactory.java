@@ -18,6 +18,15 @@ import java.util.List;
  */
 public class InMemorySummaryFactory {
 
+    static Dataset petsDataset;
+
+    /**
+     * /!\ must call summary first (TODO) remove this requirement
+     */
+    public static Dataset getPetsDataset() {
+        return petsDataset;
+    }
+
     public static Summary getSimplePetsSummary() {
         Summary summary = SummaryFactory.createModuloOnSuffix(1);
         Dataset dataset = TDB2Factory.createDataset();
@@ -56,6 +65,9 @@ public class InMemorySummaryFactory {
         }
 
         dataset.end();
+
+        petsDataset = dataset;
+
         return summary;
     }
 }
