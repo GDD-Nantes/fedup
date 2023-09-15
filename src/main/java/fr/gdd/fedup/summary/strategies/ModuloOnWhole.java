@@ -5,6 +5,7 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpFilter;
+import org.apache.jena.sparql.core.Var;
 
 import javax.print.attribute.URISyntax;
 import java.net.URI;
@@ -26,7 +27,7 @@ public class ModuloOnWhole extends LeavePredicateUntouched {
             int hashcode = Math.abs(node.getLiteral().toString().hashCode());
             return NodeFactory.createLiteral(String.valueOf(hashcode));
         } else {
-            return NodeFactory.createVariable(node.getName());
+            return Var.alloc(node.getName());
         }
     }
 

@@ -5,6 +5,7 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpFilter;
+import org.apache.jena.sparql.core.Var;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -32,7 +33,7 @@ public class ModuloOnSuffix extends LeavePredicateUntouched {
         } else if (node.isLiteral()) {
             return NodeFactory.createLiteral("any");
         } else {
-            return NodeFactory.createVariable(node.getName());
+            return Var.alloc(node.getName());
         }
     }
 

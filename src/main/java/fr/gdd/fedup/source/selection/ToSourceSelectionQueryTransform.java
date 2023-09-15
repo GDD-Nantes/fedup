@@ -8,6 +8,7 @@ import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.Var;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,16 +21,16 @@ import java.util.List;
 public class ToSourceSelectionQueryTransform extends TransformCopy {
 
     Integer nbGraphs = 0;
-    Boolean selectAll = false;
+    // Boolean selectAll = false;
 
-    public ToSourceSelectionQueryTransform(Boolean selectAll) {
-        this.selectAll = selectAll; // (TODO) maybe select only graphs
+    public ToSourceSelectionQueryTransform() {
+        // this.selectAll = selectAll; // (TODO) maybe select only graphs
     }
 
     @Override
     public Op transform(OpTriple opTriple) {
         nbGraphs += 1;
-        Node g = NodeFactory.createVariable("g" + nbGraphs);
+        Var g = Var.alloc("g" + nbGraphs);
         Quad quad = new Quad(g, opTriple.getTriple());
         return new OpQuad(quad);
     }
@@ -58,7 +59,7 @@ public class ToSourceSelectionQueryTransform extends TransformCopy {
     }
 
     @Override
-    public Op transform(OpSlice opSlice, Op subOp) {
+    public Op transform(OpSlice opSlice, Op subOp) { // removes LIMITs
         return Transformer.transform(this, subOp);
     }
 }
