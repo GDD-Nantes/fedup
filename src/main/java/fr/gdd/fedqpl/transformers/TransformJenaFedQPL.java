@@ -8,11 +8,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpFilter;
-import org.apache.jena.sparql.algebra.op.OpJoin;
-import org.apache.jena.sparql.algebra.op.OpSlice;
-import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.algebra.op.*;
 
 import fr.gdd.fedqpl.operators.FedQPLOpSet;
 import fr.gdd.fedqpl.operators.Filter;
@@ -21,11 +17,11 @@ import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.operators.Req;
 import fr.gdd.fedqpl.utils.FedQPLUtils;
 
-public class OpTransformJena extends TransformCopy {
+public class TransformJenaFedQPL extends TransformCopy {
 
     private List<String> endpoints;
 
-    public OpTransformJena(List<String> endpoints) {
+    public TransformJenaFedQPL(List<String> endpoints) {
         this.endpoints = endpoints;
     }
 
@@ -94,8 +90,14 @@ public class OpTransformJena extends TransformCopy {
 
     }
 
+    /**
+     * OpProject, i.e, SELECT is where the FedQPL root is.
+     * @param opProject
+     * @param subOp
+     * @return
+     */
     @Override
-    public Op transform(OpSlice opSlice, Op subOp) {
+    public Op transform(OpProject opProject, Op subOp) {
         return new Mu((FedQPLOpSet) Transformer.transform(this, subOp));
     }
 

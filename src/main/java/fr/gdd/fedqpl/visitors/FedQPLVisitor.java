@@ -11,9 +11,8 @@ import fr.gdd.fedqpl.operators.Req;
 /**
  * A visitor of FedQPL expressions with a return type that can
  * be parametrized if need be, in a functional way.
- * @param <T> The return type.
  */
-public abstract class FedQPLVisitor extends OpVisitorBase{
+public abstract class FedQPLVisitor extends OpVisitorBase {
 
     public void visit(Mu mu) {};
 

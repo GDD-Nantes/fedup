@@ -1,29 +1,55 @@
 package fr.gdd.fedqpl.transformers;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
-import fr.gdd.fedqpl.operators.Filter;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.PrinterVisitor;
 
-import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.graph.Triple;
+import fr.gdd.fedup.summary.InMemorySummaryFactory;
+import fr.gdd.fedup.summary.Summary;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpWalker;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.core.BasicPattern;
-import org.apache.jena.sparql.expr.E_GreaterThan;
-import org.apache.jena.sparql.expr.ExprList;
-import org.apache.jena.sparql.expr.ExprVar;
-import org.apache.jena.sparql.expr.nodevalue.NodeValueInteger;
+import org.apache.jena.sparql.core.Quad;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
 import java.util.List;
 
-class OpTransformJenaTest {
+class TransformJenaFedQPLTest {
+
+    Logger log = LoggerFactory.getLogger(TransformJenaFedQPLTest.class);
+
+    @Test
+    public void simple_fedqpl_from_sparql_query_and_dataset () {
+        List<String> endpoints = List.of(
+                "http://localhost:5555/sparql?default-graph-uri=https://graphA.org",
+                "http://localhost:5555/sparql?default-graph-uri=https://graphB.org"
+                );
+
+        Summary ims = InMemorySummaryFactory.getSimplePetsSummary();
+        ims.getSummary().begin(ReadWrite.READ);
+        Iterator<Quad> quads = ims.getSummary().asDatasetGraph().find();
+        while (quads.hasNext()){
+            log.debug("Summary has "+ quads.next());
+        }
+        ims.getSummary().end();
+
+        String queryString = """
+                SELECT * WHERE {
+                    <http://auth/person> <http://auth/named> ?p .
+                    ?p <http://owns> ?a
+                }""";
+
+        Query query = QueryFactory.create(queryString);
+        Op op = Algebra.compile(query);
+
+        TransformJenaFedQPL transform = new TransformJenaFedQPL(endpoints);
+        Mu fedQPLPlan = (Mu) Transformer.transform(transform, op);
+    }
 
     @Test
     public void testNaivePerformSourceSelection () {
@@ -82,7 +108,7 @@ class OpTransformJenaTest {
         Query query = QueryFactory.create(queryString);
         Op op = Algebra.compile(query);
 
-        OpTransformJena transform = new OpTransformJena(endpoints);
+        TransformJenaFedQPL transform = new TransformJenaFedQPL(endpoints);
         Mu fedQPLPlan = (Mu) Transformer.transform(transform, op);
 
         PrinterVisitor pv = new PrinterVisitor();
