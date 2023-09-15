@@ -1,5 +1,8 @@
 package fr.gdd.fedqpl.visitors;
 
+import org.apache.jena.sparql.algebra.OpVisitorBase;
+
+import fr.gdd.fedqpl.operators.Filter;
 import fr.gdd.fedqpl.operators.LeftJoin;
 import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
@@ -10,14 +13,16 @@ import fr.gdd.fedqpl.operators.Req;
  * be parametrized if need be, in a functional way.
  * @param <T> The return type.
  */
-public class FedQPLVisitor<T, U> {
+public abstract class FedQPLVisitor extends OpVisitorBase{
 
-    public T visit(Mu mu, U args) { throw new UnsupportedOperationException(); }
+    public void visit(Mu mu) {};
 
-    public T visit(Mj mj, U args) { throw new UnsupportedOperationException(); }
+    public void visit(Mj mj) {};
 
-    public T visit(Req req, U args) { throw new UnsupportedOperationException(); }
+    public void visit(Req req) {};
 
-    public T visit(LeftJoin lj, U args) { throw new UnsupportedOperationException(); }
+    public void visit(LeftJoin lj) {};
+
+    public void visit(Filter filter) {};
 
 }

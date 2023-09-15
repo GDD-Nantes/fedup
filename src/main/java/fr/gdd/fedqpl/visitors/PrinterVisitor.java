@@ -1,60 +1,77 @@
 package fr.gdd.fedqpl.visitors;
 
-import fr.gdd.fedqpl.operators.*;
+import fr.gdd.fedqpl.operators.FedQPLOperator;
+import fr.gdd.fedqpl.operators.Filter;
+import fr.gdd.fedqpl.operators.LeftJoin;
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
+import fr.gdd.fedqpl.operators.Req;
+import jakarta.json.Json;
+import jakarta.json.JsonObjectBuilder;
 
-/**
- * Write the plan in the standard output.
- */
-public class PrinterVisitor extends FedQPLVisitor<Object, Integer> {
+public class PrinterVisitor extends FedQPLVisitor {
 
-    public PrinterVisitor() {}
+    JsonObjectBuilder json;
+    JsonObjectBuilder current_builder;
 
-    public Object visit(FedQPLOperator op) {
-        return op.visit(this, 0);
+    public PrinterVisitor() {
+        json = Json.createObjectBuilder();
+        current_builder = json;
     }
 
+    public void visit(Mu mu) {
+        JsonObjectBuilder json_children = Json.createObjectBuilder();
+        current_builder.add(mu.getName(), json_children);
 
-    @Override
-    public Object visit(Req req, Integer depth) {
-        printNSpace(depth);
-        System.out.println(String.format("req (%s) @ %s",
-                req.getBgp().getPattern().toString(),
-                req.getSource().toString()));
-        return null;
-    }
-
-    @Override
-    public Object visit(Mj mj, Integer depth) {
-        printNSpace(depth);
-        System.out.println("mj");
-        mj.getChildren().forEach( op -> {
-            op.visit(this, depth+1);
-        });
-        return null;
-    }
-
-    @Override
-    public Object visit(Mu mu, Integer depth) {
-        printNSpace(depth);
-        System.out.println("mu");
-        mu.getChildren().forEach( op -> {
-            op.visit(this, depth+1);
-        });
-        return null;
-    }
-
-    @Override
-    public Object visit(LeftJoin lj, Integer depth) {
-        printNSpace(depth);
-        System.out.println("leftjoin");
-        lj.getLeft().visit(this, depth + 1);
-        lj.getRight().visit(this, depth + 1);
-        return null;
-    }
-
-    public void printNSpace(Integer spaces) {
-        for (int i = 0; i < spaces; ++i) {
-            System.out.print("\t");
+        for (FedQPLOperator child : mu.getChildren()) {
+            JsonObjectBuilder child_builder = Json.createObjectBuilder();
+            json_children.add(child.getName(), child_builder);
+            current_builder = child_builder;
+            child.visit(this);
         }
+    }
+
+    public void visit(Mj mj) {
+        JsonObjectBuilder json_children = Json.createObjectBuilder();
+        current_builder.add(mj.getName(), json_children);
+
+        for (FedQPLOperator child : mj.getChildren()) {
+            JsonObjectBuilder child_builder = Json.createObjectBuilder();
+            json_children.add(child.getName(), child_builder);
+            current_builder = child_builder;
+            child.visit(this);
+        }
+    }
+
+    public void visit(Req req) {
+        current_builder.addNull(req.getName());
+    }
+
+    public void visit(LeftJoin lj) {
+        JsonObjectBuilder join_builder = Json.createObjectBuilder();
+        current_builder.add(lj.getName(), join_builder);
+        JsonObjectBuilder left_builder = Json.createObjectBuilder();
+        join_builder.add("left", left_builder);
+        current_builder = left_builder;
+        lj.getLeft().visit(this);
+
+        JsonObjectBuilder right_builder = Json.createObjectBuilder();
+        join_builder.add("right", right_builder);
+        current_builder = right_builder;
+        lj.getRight().visit(this);
+    }
+
+    public void visit(Filter filter) {
+        JsonObjectBuilder filter_builder = Json.createObjectBuilder();
+        current_builder.add(filter.getName(), filter_builder);
+
+        JsonObjectBuilder subOpBuilder = Json.createObjectBuilder();
+        subOpBuilder.add(filter.getSubOp().getName(), subOpBuilder);
+        current_builder = subOpBuilder;
+        filter.getSubOp().visit(this);
+    }
+
+    public void pprint() {
+        System.out.println(json.build().toString());
     }
 }
