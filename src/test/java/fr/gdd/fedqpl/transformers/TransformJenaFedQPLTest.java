@@ -1,10 +1,10 @@
 package fr.gdd.fedqpl.transformers;
 
-import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.visitors.PrinterVisitor;
-
+import fr.gdd.fedqpl.operators.FedQPLOpSet;
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.summary.SummaryFactory;
+import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
@@ -12,6 +12,7 @@ import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.Quad;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,40 +20,75 @@ import org.slf4j.LoggerFactory;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class TransformJenaFedQPLTest {
 
     Logger log = LoggerFactory.getLogger(TransformJenaFedQPLTest.class);
 
     @Test
-    public void simple_fedqpl_from_sparql_query_and_dataset () {
-        List<String> endpoints = List.of(
-                "http://localhost:5555/sparql?default-graph-uri=https://graphA.org",
-                "http://localhost:5555/sparql?default-graph-uri=https://graphB.org"
-                );
-
+    public void simple_fedqpl_from_sparql_triple_and_summary () {
         Summary ims = InMemorySummaryFactory.getSimplePetsSummary();
-        ims.getSummary().begin(ReadWrite.READ);
-        Iterator<Quad> quads = ims.getSummary().asDatasetGraph().find();
-        while (quads.hasNext()){
-            log.debug("Summary has "+ quads.next());
-        }
-        ims.getSummary().end();
 
         String queryString = """
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?p .
-                    ?p <http://owns> ?a
                 }""";
 
         Query query = QueryFactory.create(queryString);
         Op op = Algebra.compile(query);
 
-        TransformJenaFedQPL transform = new TransformJenaFedQPL(endpoints);
-        Mu fedQPLPlan = (Mu) Transformer.transform(transform, op);
+        op = ims.transform(op);
+        // as if the whole summary was built using random walks
+        TransformJenaFedQPL toFedQPL = new TransformJenaFedQPL(ims.getSummary());
+        FedQPLOpSet fedQPL = (FedQPLOpSet) Transformer.transform(toFedQPL, op);
 
-        // (TODO) (TODO) (TODO) (TODO) (TODO) (TODO) (TODO)
+        assertEquals(2, fedQPL.size()); // 2 graphs found: graphA and graphB
     }
 
+    @Test
+    public void simple_fedqpl_from_sparql_bgp_and_summary () {
+        Summary ims = InMemorySummaryFactory.getSimplePetsSummary();
+        String queryString = """
+                SELECT * WHERE {
+                    <http://auth/person> <http://auth/named> ?p .
+                    ?p <http://auth/owns> ?a
+                }""";
+
+        Query query = QueryFactory.create(queryString);
+        Op op = Algebra.compile(query);
+
+        op = ims.transform(op);
+        // as if the whole summary was built using random walks
+        TransformJenaFedQPL toFedQPL = new TransformJenaFedQPL(ims.getSummary());
+        FedQPLOpSet fedQPL = (FedQPLOpSet) Transformer.transform(toFedQPL, op);
+
+        // Everything joins with everything since all URI are mapped to <http://auth/0>
+        // so we get A x A -- A x B -- B x A -- B x B
+        assertEquals(4, fedQPL.size());
+    }
+
+    @Test
+    public void simple_fedqpl_from_sparql_bgp_and_dataset_id_not_summary () {
+        Dataset id = InMemorySummaryFactory.getPetsDataset();
+        String queryString = """
+                SELECT * WHERE {
+                    <http://auth/person> <http://auth/named> ?p .
+                    ?p <http://auth/owns> ?a
+                }""";
+
+        Query query = QueryFactory.create(queryString);
+        Op op = Algebra.compile(query);
+
+        TransformJenaFedQPL toFedQPL = new TransformJenaFedQPL(id);
+        FedQPLOpSet fedQPL = (FedQPLOpSet) Transformer.transform(toFedQPL, op);
+
+        // Alice@A -> cat@A -- David@B -> dog@B
+        assertEquals(2, fedQPL.size());
+    }
+
+
+    @Disabled
     @Test
     public void testNaivePerformSourceSelection () {
         List<String> endpoints = List.of(
@@ -110,12 +146,12 @@ class TransformJenaFedQPLTest {
         Query query = QueryFactory.create(queryString);
         Op op = Algebra.compile(query);
 
-        TransformJenaFedQPL transform = new TransformJenaFedQPL(endpoints);
+        /*TransformJenaFedQPL transform = new TransformJenaFedQPL(endpoints);
         Mu fedQPLPlan = (Mu) Transformer.transform(transform, op);
 
         PrinterVisitor pv = new PrinterVisitor();
         pv.visit(fedQPLPlan);
-        pv.pprint();
+        pv.pprint();*/
         
         /* 
             TO DO, assertEquals fedQPLPlan to a manually built fedQPLPlan

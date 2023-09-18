@@ -3,7 +3,6 @@ package fr.gdd.fedup.source.selection;
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.raw.RAWConstants;
-import fr.gdd.raw.io.RAWInput;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -14,9 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FedUPEngineTest {
 
@@ -41,11 +41,13 @@ class FedUPEngineTest {
         QueryIterator it = fedup.executeAsFederatedQuery("SELECT * WHERE {?p <http://auth/owns> ?a}",
                 ims.getSummary().asDatasetGraph(), BindingRoot.create(), context);
 
-        for (int i = 0; i < 1002; ++i) {
+        for (int i = 0; i < 1000; ++i) {
             assertTrue(it.hasNext());
             Binding b = it.next();
             log.debug("Found " + b);
         }
+
+        assertFalse(it.hasNext());
 
 
     }

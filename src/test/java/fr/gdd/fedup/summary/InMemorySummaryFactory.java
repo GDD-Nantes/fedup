@@ -1,6 +1,7 @@
 package fr.gdd.fedup.summary;
 
-import org.apache.jena.query.*;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
@@ -12,6 +13,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A simple in memory summary to help with testing.
@@ -19,15 +21,22 @@ import java.util.List;
 public class InMemorySummaryFactory {
 
     static Dataset petsDataset;
+    static Summary simplePetsSumarry;
 
     /**
      * /!\ must call summary first (TODO) remove this requirement
      */
     public static Dataset getPetsDataset() {
+        if (Objects.isNull(petsDataset)) {
+            getSimplePetsSummary();
+        }
         return petsDataset;
     }
 
     public static Summary getSimplePetsSummary() {
+        if (Objects.nonNull(simplePetsSumarry)) {
+            return simplePetsSumarry;
+        }
         Summary summary = SummaryFactory.createModuloOnSuffix(1);
         Dataset dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
@@ -67,7 +76,8 @@ public class InMemorySummaryFactory {
         dataset.end();
 
         petsDataset = dataset;
+        simplePetsSumarry = summary;
 
-        return summary;
+        return simplePetsSumarry;
     }
 }

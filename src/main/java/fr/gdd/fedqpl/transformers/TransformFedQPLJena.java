@@ -1,82 +1,59 @@
 package fr.gdd.fedqpl.transformers;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
-import fr.gdd.fedqpl.operators.Filter;
-import fr.gdd.fedqpl.operators.LeftJoin;
-import fr.gdd.fedqpl.operators.Mj;
-import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.operators.Req;
-
-import java.util.List;
-import java.util.stream.Collectors;
-
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ResultSet;
+import fr.gdd.fedqpl.operators.*;
+import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpFilter;
-import org.apache.jena.sparql.algebra.op.OpGraph;
-import org.apache.jena.sparql.algebra.op.OpJoin;
-import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.algebra.op.OpUnion;
+import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 
+import java.util.Iterator;
+
+/**
+ * Transforms a FedQPL expression into a Jena operator so Jena's engine
+ * can execute it.
+ */
 public class TransformFedQPLJena extends TransformCopy {
-    Query query;
 
-    public TransformFedQPLJena() {
-        query = QueryFactory.create();
+    public TransformFedQPLJena() {}
+
+    public Op transform(Mu mu) {
+        return switch (mu.getChildren().size()) {
+            case 0 -> OpNull.create();
+            case 1 -> Transformer.transform(this, mu.getChildren().iterator().next());
+            default -> {
+                Iterator<FedQPLOperator> ops = mu.getChildren().iterator();
+                Op left = ops.next();
+                while (ops.hasNext()) {
+                    Op right = ops.next();
+                    left = OpUnion.create(left, right);
+                }
+                yield left;
+            }
+        };
     }
 
-    public Op transform(Mu opMu) {
-        List<FedQPLOperator> children = opMu.getChildren().stream().collect(Collectors.toList());
-
-        if (children.size() == 1) {
-            return Transformer.transform(this, children.get(0));
-        } else if (children.size() > 1) {
-            OpUnion opUnion = new OpUnion(
-                    Transformer.transform(this, children.get(0)),
-                    Transformer.transform(this, children.get(1)));
-
-            for (int i = 2; i < children.size(); i++) {
-                opUnion = new OpUnion(opUnion, Transformer.transform(this, children.get(i)));
+    public Op transform(Mj mj) {
+        return switch (mj.getChildren().size()) {
+            case 0 -> OpNull.create();
+            case 1 -> Transformer.transform(this, mj.getChildren().iterator().next());
+            default -> {
+                Iterator<FedQPLOperator> ops = mj.getChildren().iterator();
+                Op left = ops.next();
+                while (ops.hasNext()) {
+                    Op right = ops.next();
+                    left = OpJoin.create(left, right);
+                }
+                yield left;
             }
-            return opUnion;
-        } else {
-            throw new IllegalArgumentException("Could not construct OpUnion from Mu with no child!");
-        }
-
-    }
-
-    public Op transform(Mj opMj) {
-        List<FedQPLOperator> children = opMj.getChildren().stream().collect(Collectors.toList());
-
-        if (children.size() == 1) {
-            return Transformer.transform(this, children.get(0));
-        } else if (children.size() > 1) {
-            Op opJoin = OpJoin.create(
-                    Transformer.transform(this, children.get(0)),
-                    Transformer.transform(this, children.get(1)));
-            
-            for (int i = 2; i < children.size(); i++) {
-                opJoin = OpJoin.create(opJoin, Transformer.transform(this, children.get(i)));
-            }
-            return opJoin;
-        } else {
-            throw new IllegalArgumentException("Could not construct OpUnion from Mj with no child!");
-        }
-
+        };
     }
 
     public Op transform(Req opReq) {
-        OpTriple opTriple = new OpTriple(opReq.getTriple());
-        return opTriple;
+        return new OpQuad(new Quad(opReq.getSource(), opReq.getTriple()));
     }
 
     public Op transform(Filter opFilter) {

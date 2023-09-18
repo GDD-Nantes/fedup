@@ -1,7 +1,6 @@
 package fr.gdd.fedup.source.selection;
 
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVars;
 import org.apache.jena.sparql.algebra.TransformCopy;
@@ -11,7 +10,9 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Adds Graph clauses to retrieves the necessary data to perform
@@ -21,16 +22,22 @@ import java.util.List;
 public class ToSourceSelectionQueryTransform extends TransformCopy {
 
     Integer nbGraphs = 0;
-    // Boolean selectAll = false;
+    Map<Var, Triple> var2Triple = new HashMap<>();
 
-    public ToSourceSelectionQueryTransform() {
-        // this.selectAll = selectAll; // (TODO) maybe select only graphs
+    public ToSourceSelectionQueryTransform() {}
+
+    /**
+     * @return The set of new vars dedicated to graph selection and their associated triple.
+     */
+    public Map<Var, Triple> getVar2Triple() {
+        return var2Triple;
     }
 
     @Override
     public Op transform(OpTriple opTriple) {
         nbGraphs += 1;
         Var g = Var.alloc("g" + nbGraphs);
+        var2Triple.put(g, opTriple.getTriple());
         Quad quad = new Quad(g, opTriple.getTriple());
         return new OpQuad(quad);
     }
