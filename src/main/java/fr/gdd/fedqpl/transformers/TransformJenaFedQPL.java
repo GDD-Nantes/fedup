@@ -6,6 +6,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
+import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
@@ -44,9 +45,8 @@ public class TransformJenaFedQPL extends TransformCopy {
         Op asQuad = Transformer.transform(ssqt, opTriple);
 
         dataset.begin(ReadWrite.READ);
-        Plan plan = engineFactory.create(asQuad, dataset.asDatasetGraph(), BindingRoot.create(), dataset.getContext());
+        QueryIterator iterator = Algebra.exec(asQuad, dataset);
 
-        QueryIterator iterator = plan.iterator();
         Set<String> graphs = new HashSet<>();
         while (iterator.hasNext()) { // iterate over graphs
             Binding b = iterator.next();
@@ -68,9 +68,8 @@ public class TransformJenaFedQPL extends TransformCopy {
         Op asQuads = Transformer.transform(ssqt, opBGP);
 
         dataset.begin(ReadWrite.READ);
-        Plan plan = engineFactory.create(asQuads, dataset.asDatasetGraph(), BindingRoot.create(), dataset.getContext());
+        QueryIterator iterator = Algebra.exec(asQuads, dataset);
 
-        QueryIterator iterator = plan.iterator();
         HashSet<List<String>> graphs = new HashSet<>();
         while (iterator.hasNext()) { // iterate over graphs
             Binding b = iterator.next();
