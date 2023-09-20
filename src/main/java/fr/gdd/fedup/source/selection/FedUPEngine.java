@@ -1,5 +1,6 @@
 package fr.gdd.fedup.source.selection;
 
+import fr.gdd.fedup.source.selection.transforms.ToQuadsTransform;
 import fr.gdd.fedup.summary.strategies.ModuloOnSuffix;
 import fr.gdd.raw.QueryEngineRAW;
 import org.apache.jena.query.Query;
@@ -49,7 +50,7 @@ public class FedUPEngine {
         // #1 create a source selection query using the configured summary
         // (TODO) configurable summary strategy in dataset.getContext() or context
         // QueryExecutionFactory.create()
-        Op sourceSelectionQuery = Transformer.transform(new ToSourceSelectionQueryTransform(), op);
+        Op sourceSelectionQuery = Transformer.transform(new ToQuadsTransform(), op);
         sourceSelectionQuery = Transformer.transform(new ModuloOnSuffix(1), sourceSelectionQuery); // (TODO) change here
         log.debug("Source selection query:\n" + sourceSelectionQuery.toString());
 

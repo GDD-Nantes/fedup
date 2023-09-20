@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection;
+package fr.gdd.fedup.source.selection.asks;
 
 import fr.gdd.raw.io.OpVisitorUnimplemented;
 import org.apache.commons.lang3.tuple.ImmutablePair;

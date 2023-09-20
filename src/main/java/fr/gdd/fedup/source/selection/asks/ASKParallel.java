@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection;
+package fr.gdd.fedup.source.selection.asks;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Triple;

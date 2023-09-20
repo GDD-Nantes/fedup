@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection;
+package fr.gdd.fedup.source.selection.transforms;
 
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
@@ -17,27 +17,40 @@ import java.util.Map;
 /**
  * Adds Graph clauses to retrieves the necessary data to perform
  * source selection and create FedQPL expression.
- * TODO change the name to a more specific one
  */
-public class ToSourceSelectionQueryTransform extends TransformCopy {
+public class ToQuadsTransform extends TransformCopy {
 
     Integer nbGraphs = 0;
     Map<Var, Triple> var2Triple = new HashMap<>();
+    Map<Triple, Var> triple2Var = new HashMap<>();
 
-    public ToSourceSelectionQueryTransform() {}
+    public ToQuadsTransform() {}
+
+    /**
+     * Link variable and triple both ways in maps.
+     * @param var The variable associated to the triple.
+     * @param triple The triple associated to the variable.
+     */
+    private void add(Var var, Triple triple) {
+        var2Triple.put(var, triple);
+        triple2Var.put(triple, var);
+    }
 
     /**
      * @return The set of new vars dedicated to graph selection and their associated triple.
      */
-    public Map<Var, Triple> getVar2Triple() {
-        return var2Triple;
-    }
+    public Map<Var, Triple> getVar2Triple() { return var2Triple; }
+
+    /**
+     * @return The var associated to the triple.
+     */
+    public Map<Triple, Var> getTriple2Var() { return triple2Var; }
 
     @Override
     public Op transform(OpTriple opTriple) {
         nbGraphs += 1;
         Var g = Var.alloc("g" + nbGraphs);
-        var2Triple.put(g, opTriple.getTriple());
+        this.add(g, opTriple.getTriple());
         Quad quad = new Quad(g, opTriple.getTriple());
         return new OpQuad(quad);
     }
@@ -61,8 +74,7 @@ public class ToSourceSelectionQueryTransform extends TransformCopy {
 
     @Override
     public Op transform(OpProject opProject, Op subOp) {
-        Op transformedSubOp = Transformer.transform(this, subOp);
-        return new OpProject(transformedSubOp, new ArrayList<>(OpVars.visibleVars(transformedSubOp)));
+        return Transformer.transform(this, subOp); // no OpProject <=> SELECT * WHERE…
     }
 
     @Override

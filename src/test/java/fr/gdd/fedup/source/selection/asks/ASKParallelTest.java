@@ -1,11 +1,10 @@
-package fr.gdd.fedup.source.selection;
+package fr.gdd.fedup.source.selection.asks;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.QueryExecutionDatasetBuilder;
 import org.apache.jena.sparql.core.Var;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class ParallelASKTest {
+class ASKParallelTest {
 
     @Test
     public void testing_asks_on_one_graph_as_endpoint() {
@@ -46,10 +45,6 @@ class ParallelASKTest {
         ASKParallel pa = new ASKParallel(Set.of(graphA, graphB));
         pa.setDataset(dataset);
 
-        QueryExecutionDatasetBuilder qedb = new QueryExecutionDatasetBuilder();
-        qedb.dataset(dataset);
-        pa.builder = qedb;
-
         Node s = Var.alloc("s");
         Node p = NodeFactory.createURI("http://auth/named");
         Node o = NodeFactory.createURI("http://auth/Alice");
@@ -75,7 +70,7 @@ class ParallelASKTest {
     @Disabled
     @Test
     public void test_on_remote_datasets() {
-
+        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
     }
 
 }

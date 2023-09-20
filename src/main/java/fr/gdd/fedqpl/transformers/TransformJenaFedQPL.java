@@ -1,8 +1,7 @@
 package fr.gdd.fedqpl.transformers;
 
 import fr.gdd.fedqpl.operators.*;
-import fr.gdd.fedup.source.selection.ToSourceSelectionQueryTransform;
-import org.apache.jena.graph.Node;
+import fr.gdd.fedup.source.selection.transforms.ToQuadsTransform;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
@@ -12,11 +11,9 @@ import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 
 import java.util.*;
@@ -41,7 +38,7 @@ public class TransformJenaFedQPL extends TransformCopy {
     public Op transform(OpTriple opTriple) {
         FedQPLOpSet opList = new FedQPLOpSet();
 
-        ToSourceSelectionQueryTransform ssqt = new ToSourceSelectionQueryTransform();
+        ToQuadsTransform ssqt = new ToQuadsTransform();
         Op asQuad = Transformer.transform(ssqt, opTriple);
 
         dataset.begin(ReadWrite.READ);
@@ -64,7 +61,7 @@ public class TransformJenaFedQPL extends TransformCopy {
     @Override
     public Op transform(OpBGP opBGP) {
         FedQPLOpSet opList = new FedQPLOpSet();
-        ToSourceSelectionQueryTransform ssqt = new ToSourceSelectionQueryTransform();
+        ToQuadsTransform ssqt = new ToQuadsTransform();
         Op asQuads = Transformer.transform(ssqt, opBGP);
 
         dataset.begin(ReadWrite.READ);
