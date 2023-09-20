@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * Visitor that collects all triples to perform parallel asks.
  */
-public class ASKVisitor extends OpVisitorUnimplemented {
+public class ASKVisitor extends OpVisitorUnimplemented{
 
     ASKParallel asks;
     List<Triple> triples = new ArrayList<>();
@@ -35,10 +35,17 @@ public class ASKVisitor extends OpVisitorUnimplemented {
 
     public void visit(Op op) {
         op.visit(this);
+        // TODO change triples so when they have the same pattern
+        // TODO but the variable name changes, they are considered the same
         this.asks.execute(triples);
     }
 
     /* ******************************************************* */
+
+    @Override
+    public void visit(OpDistinct opDistinct) {
+        opDistinct.getSubOp().visit(this);
+    }
 
     @Override
     public void visit(OpProject opProject) {
@@ -70,6 +77,18 @@ public class ASKVisitor extends OpVisitorUnimplemented {
     public void visit(OpUnion opUnion) {
         opUnion.getLeft().visit(this);
         opUnion.getRight().visit(this);
+    }
+
+    @Override
+    public void visit(OpLeftJoin opLeftJoin) {
+        opLeftJoin.getLeft().visit(this);
+        opLeftJoin.getRight().visit(this);
+    }
+
+    @Override
+    public void visit(OpConditional opCondition) {
+        opCondition.getLeft().visit(this);
+        opCondition.getRight().visit(this);
     }
 
     @Override

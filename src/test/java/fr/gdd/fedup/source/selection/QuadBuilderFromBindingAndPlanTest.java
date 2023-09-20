@@ -52,7 +52,6 @@ class QuadBuilderFromBindingAndPlanTest {
         assertEquals(4, quads.size());
 
         dataset.end();
-
     }
 
 }

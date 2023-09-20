@@ -55,7 +55,8 @@ public class InMemorySummaryFactory {
                 "<http://auth/person> <http://auth/named> <http://auth/Carol>.",
                 "<http://auth/person> <http://auth/named> <http://auth/David>.",
                 "<http://auth/David>  <http://auth/owns>  <http://auth/dog>.",
-                "<http://auth/David>  <http://auth/nbPets> \"2\"."
+                "<http://auth/David>  <http://auth/nbPets> \"2\".",
+                "<http://auth/dog>    <http://auth/family> <http://auth/canid>."
         );
         statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());
         Model modelB = ModelFactory.createDefaultModel();

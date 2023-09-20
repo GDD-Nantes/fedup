@@ -6,12 +6,10 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.TransformCopy;
+import org.apache.jena.sparql.algebra.OpVars;
+import org.apache.jena.sparql.algebra.TransformSingle;
 import org.apache.jena.sparql.algebra.Transformer;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpProject;
-import org.apache.jena.sparql.algebra.op.OpSequence;
-import org.apache.jena.sparql.algebra.op.OpTable;
+import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.BasicPattern;
@@ -26,7 +24,7 @@ import java.util.*;
  * and reorder BGPs using a variable counting heuristic. When cartesian products
  * arise, redo values then reorder.
  */
-public class ToValuesTransform extends TransformCopy {
+public class ToValuesTransform extends TransformSingle {
 
     ASKVisitor asks;
     Map<Triple, List<String>> triple2Endpoints = new HashMap<>();
@@ -54,7 +52,6 @@ public class ToValuesTransform extends TransformCopy {
         this.asks.setDataset(dataset);
     }
 
-
     public Op transform(Op op) {
         // #1 perform all necessary ASKs
         asks.visit(op);
@@ -69,31 +66,33 @@ public class ToValuesTransform extends TransformCopy {
         }
         triple2Endpoints.forEach((key, value) -> triple2NbEndpoints.put(key, value.size()));
 
-        return Transformer.transform(this, op);
+        return Top2BottomTransformer.transform(this, op);
     }
 
     /* ******************************************************************* */
 
     @Override
     public Op transform(OpBGP opBGP) {
-        /*List<ImmutablePair<Triple, Integer>> sortedByNbEndpoints = opBGP.getPattern().getList().stream().map(
-                triple -> this.triple2NbEndpoints.containsKey(triple) ?
-                            new ImmutablePair<>(triple, this.triple2NbEndpoints.get(triple)):
-                            new ImmutablePair<>(triple, Integer.MAX_VALUE)
-        ).sorted(Comparator.comparingInt(ImmutablePair::getRight)).collect(Collectors.toList());*/
+        List<Triple> candidates = opBGP.getPattern().getList();
         // #1 sort by number of sources; one without sources are implicitly not candidate
-        List<Map.Entry<Triple, Integer>> sortedByNbEndpoints = triple2NbEndpoints.entrySet().stream()
-                .sorted(Comparator.comparingInt(Map.Entry::getValue)).toList();
+
 
         OpSequence sequence = OpSequence.create();
         List<Triple> orderedTriples = new ArrayList<>();
-        List<Triple> candidates = opBGP.getPattern().getList();
+
+        // #2 rebuild the sequence of operators with values at the right position
         while (!candidates.isEmpty()) {
+            List<Triple> sortedByNbEndpoints = triple2NbEndpoints.entrySet().stream()
+                    .sorted(Comparator.comparingInt(Map.Entry::getValue))
+                    .map(Map.Entry::getKey)
+                    .filter(t -> candidates.contains(t))
+                    .toList();
+
             boolean isValues = false;
             Triple candidate = getTripleWithAlreadySetVariable(candidates, tracker);
             if (Objects.isNull(candidate)) { // no candidate, i.e., cartesian product or first variable to set
-                isValues = true;
-                candidate = sortedByNbEndpoints.stream().map(Map.Entry::getKey).findFirst().orElse(null);
+                candidate = sortedByNbEndpoints.stream().findFirst().orElse(null);
+                isValues = Objects.nonNull(candidate);
                 if (Objects.isNull(candidate)) { // no ASK can help us
                     candidate = getBestVariableCounting(candidates);
                 }
@@ -102,11 +101,11 @@ public class ToValuesTransform extends TransformCopy {
             if (isValues) { // BGP VALUES BGP
                 if (!orderedTriples.isEmpty()) { // BGP
                     sequence.add(new OpBGP(BasicPattern.wrap(orderedTriples)));
+                    orderedTriples = new ArrayList<>();
                 }
                 OpTable values = prepareValues(triple2Endpoints.get(candidate)); // VALUES
                 sequence.add(values);
                 values2triple.put(values, candidate);
-                orderedTriples = new ArrayList<>();
             } // BGP
 
             orderedTriples.add(candidate);
@@ -117,7 +116,27 @@ public class ToValuesTransform extends TransformCopy {
         if (!orderedTriples.isEmpty()) { // last one
             sequence.add(new OpBGP(BasicPattern.wrap(orderedTriples)));
         }
-        return sequence;
+        return sequence.size() > 1 ? sequence : sequence.get(0);
+    }
+
+    @Override
+    public Op transform(OpLeftJoin opLeftJoin, Op left, Op right) {
+        VariableUsageTracker tracker = new VariableUsageTracker();
+        tracker.increment(OpVars.visibleVars(opLeftJoin.getLeft()));
+        // We get the variable set on the left side and inform right side
+        return OpLeftJoin.create(Top2BottomTransformer.transform(new ToValuesTransform(this, this.tracker), opLeftJoin.getLeft()),
+                Top2BottomTransformer.transform(new ToValuesTransform(this, tracker), opLeftJoin.getRight()),
+                opLeftJoin.getExprs());
+    }
+
+    @Override
+    public Op transform(OpConditional opCond, Op left, Op right) {
+        // TODO make sure identical to opleftjoin
+        VariableUsageTracker tracker = new VariableUsageTracker();
+        tracker.increment(OpVars.visibleVars(left));
+        // We get the variable set on the left side and inform right side
+        return new OpConditional(left,
+                Transformer.transform(new ToValuesTransform(this, tracker), right));
     }
 
 

@@ -2,14 +2,12 @@ package fr.gdd.fedup.source.selection.transforms;
 
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpVars;
 import org.apache.jena.sparql.algebra.TransformCopy;
-import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.TransformSingle;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,27 +56,16 @@ public class ToQuadsTransform extends TransformCopy {
     @Override
     public Op transform(OpBGP opBGP) {
         List<Op> quads = opBGP.getPattern().getList().stream().map(triple ->
-            Transformer.transform(this, new OpTriple(triple))
+            Top2BottomTransformer.transform(this, new OpTriple(triple))
         ).toList();
 
         if (quads.size() == 1) {
             return quads.get(0);
         } else {
-            Op op = OpJoin.create(quads.get(0), quads.get(1));
-            for (int i = 2; i < quads.size(); i++) {
-                op = OpJoin.create(op, quads.get(i));
-            }
-            return op;
+            OpSequence sequence = OpSequence.create();
+            quads.forEach(sequence::add);
+            return sequence;
         }
     }
 
-    @Override
-    public Op transform(OpProject opProject, Op subOp) {
-        return Transformer.transform(this, subOp); // no OpProject <=> SELECT * WHERE…
-    }
-
-    @Override
-    public Op transform(OpSlice opSlice, Op subOp) { // removes LIMITs
-        return Transformer.transform(this, subOp);
-    }
 }

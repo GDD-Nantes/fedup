@@ -8,7 +8,6 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpSequence;
 import org.apache.jena.sparql.algebra.op.OpTable;
@@ -45,7 +44,7 @@ class ToValuesTransformTest {
 
         ToValuesTransform vt = new ToValuesTransform(endpoints);
         vt.setDataset(dataset);
-        op = Transformer.transform(vt, op);
+        op = vt.transform(op);
 
         Triple triple = Triple.create(Var.alloc("s"),
                 NodeFactory.createURI("http://auth/named"),

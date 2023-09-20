@@ -2,10 +2,8 @@ package fr.gdd.fedup.source.selection.transforms;
 
 import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.Transformer;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
 
@@ -31,7 +29,7 @@ public class ToSourceSelectionTransforms {
         ToValuesWithoutPlaceholderTransform tvwpt = new ToValuesWithoutPlaceholderTransform(tq, tv);
         Op opValues = tv.transform(op);
         Op opQuads = Transformer.transform(tq, opValues);
-        Op opQuadsAndValuesWithoutPlaceholders = Transformer.transform(tvwpt, opQuads);
+        Op opQuadsAndValuesWithoutPlaceholders = Top2BottomTransformer.transform(tvwpt, opQuads);
         return opQuadsAndValuesWithoutPlaceholders;
     }
 
