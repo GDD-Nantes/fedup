@@ -42,7 +42,7 @@ class ToValuesTransformTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToValuesTransform vt = new ToValuesTransform(endpoints);
+        ToValuesAndOrderTransform vt = new ToValuesAndOrderTransform(endpoints);
         vt.setDataset(dataset);
         op = vt.transform(op);
 

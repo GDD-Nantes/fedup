@@ -56,7 +56,7 @@ public class ToQuadsTransform extends TransformCopy {
     @Override
     public Op transform(OpBGP opBGP) {
         List<Op> quads = opBGP.getPattern().getList().stream().map(triple ->
-            Top2BottomTransformer.transform(this, new OpTriple(triple))
+            this.transform(new OpTriple(triple))
         ).toList();
 
         if (quads.size() == 1) {

@@ -70,6 +70,7 @@ class ToSourceSelectionTransformsTest {
         assertEquals(2, opS.size());
         assertTrue(opS.get(0) instanceof OpTable);
         assertTrue(((OpTable)opS.get(0)).getTable().getVars().contains(Var.alloc("g1")));
+        log.debug(op.toString());
     }
 
     @Test
@@ -90,6 +91,7 @@ class ToSourceSelectionTransformsTest {
         OpSequence os1 = (OpSequence) lj.getLeft();
         assertEquals(2, os1.size()); // table + bgp#1
         assertTrue(lj.getRight() instanceof OpQuad); // bgp2
+        log.debug(op.toString());
     }
 
     @Test
@@ -104,13 +106,14 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(endpoints, dataset);
-        op = transforms.transform(op);
+        ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(endpoints, dataset);
+        op = toSS.transform(op);
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
         assertEquals(2, os1.size()); // table + bgp#1
         // despite being a constant, bgp2 does not have a values since it has a shared variable
         assertTrue(lj.getRight() instanceof OpQuad);
+        log.debug(op.toString());
     }
 
     @Test
@@ -130,9 +133,11 @@ class ToSourceSelectionTransformsTest {
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
         assertEquals(2, os1.size()); // table + bgp#1
+        assertEquals(Var.alloc("g1"), ((OpTable) os1.get(0)).getTable().getVars().get(0));
         OpSequence os2 = (OpSequence) lj.getRight();
         // despite being a constant, bgp2 does not have a values since it has a shared variable
         assertEquals(2, os2.size()); // bgp2
+        log.debug(op.toString());
     }
 
     @Disabled
@@ -194,6 +199,9 @@ class ToSourceSelectionTransformsTest {
         ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(endpoints, summary);
         op = tsst.transform(op);
 
+        log.debug(op.toString());
+        // the result is complex to describe,
+        // so we just expect to get g1, g4, and g11 before their respective constant
     }
 
 }

@@ -11,7 +11,7 @@ import org.apache.jena.sparql.algebra.op.*;
 public class Top2BottomTransformer {
 
     public static Op transform(Transform t, Op op) {
-        Op result = switch (op) {
+        return switch (op) {
             case OpTriple o -> t.transform(o);
             case OpQuad o -> t.transform(o);
             case OpBGP o -> t.transform(o);
@@ -20,9 +20,9 @@ public class Top2BottomTransformer {
             case OpLeftJoin o -> t.transform(o, null, null);
             case OpConditional o -> t.transform(o, null, null);
             case OpFilter o -> t.transform(o, null);
+            case OpDistinct o -> t.transform(o, null);
             default -> throw new UnsupportedOperationException(op.toString());
         };
-        return result;
     }
 
 }

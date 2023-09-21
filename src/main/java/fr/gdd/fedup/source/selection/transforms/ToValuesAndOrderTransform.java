@@ -7,8 +7,6 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVars;
-import org.apache.jena.sparql.algebra.TransformSingle;
-import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.algebra.table.TableN;
@@ -24,7 +22,9 @@ import java.util.*;
  * and reorder BGPs using a variable counting heuristic. When cartesian products
  * arise, redo values then reorder.
  */
-public class ToValuesTransform extends TransformSingle {
+public class ToValuesAndOrderTransform extends TransformUnimplemented {
+
+    private static int PLACEHOLDER_NB = 0;
 
     ASKVisitor asks;
     Map<Triple, List<String>> triple2Endpoints = new HashMap<>();
@@ -33,14 +33,14 @@ public class ToValuesTransform extends TransformSingle {
 
     Map<OpTable, Triple> values2triple = new HashMap<>();
 
-    public ToValuesTransform(Set<String> endpoints) {
+    public ToValuesAndOrderTransform(Set<String> endpoints) {
         this.asks = new ASKVisitor(endpoints);
     }
 
     /**
      *  Copies everything but the tracker
      */
-    public ToValuesTransform(ToValuesTransform copy, VariableUsageTracker tracker) {
+    public ToValuesAndOrderTransform(ToValuesAndOrderTransform copy, VariableUsageTracker tracker) {
         this.asks = copy.asks;
         this.triple2NbEndpoints = copy.triple2NbEndpoints;
         this.triple2Endpoints = copy.triple2Endpoints;
@@ -124,21 +124,20 @@ public class ToValuesTransform extends TransformSingle {
         VariableUsageTracker tracker = new VariableUsageTracker();
         tracker.increment(OpVars.visibleVars(opLeftJoin.getLeft()));
         // We get the variable set on the left side and inform right side
-        return OpLeftJoin.create(Top2BottomTransformer.transform(new ToValuesTransform(this, this.tracker), opLeftJoin.getLeft()),
-                Top2BottomTransformer.transform(new ToValuesTransform(this, tracker), opLeftJoin.getRight()),
+        return OpLeftJoin.create(Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, this.tracker), opLeftJoin.getLeft()),
+                Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, tracker), opLeftJoin.getRight()),
                 opLeftJoin.getExprs());
     }
 
     @Override
-    public Op transform(OpConditional opCond, Op left, Op right) {
-        // TODO make sure identical to opleftjoin
+    public Op transform(OpConditional opCond, Op left, Op right) { // same as LeftJoin
         VariableUsageTracker tracker = new VariableUsageTracker();
-        tracker.increment(OpVars.visibleVars(left));
-        // We get the variable set on the left side and inform right side
-        return new OpConditional(left,
-                Transformer.transform(new ToValuesTransform(this, tracker), right));
+        tracker.increment(OpVars.visibleVars(opCond.getLeft()));
+        return new OpConditional(Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, this.tracker), opCond.getLeft()),
+                Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, tracker), opCond.getRight()));
     }
 
+    /* ********************************************************************* */
 
     /**
      * @param candidates The list of triples.
@@ -167,10 +166,11 @@ public class ToValuesTransform extends TransformSingle {
      * @return The VALUES operator comprising the list of sources with a placeholder for the variable name
      */
     public static OpTable prepareValues(List<String> endpoints) {
+        PLACEHOLDER_NB += 1;
         TableN table = new TableN();
         endpoints.forEach(
                 e -> table.addBinding(
-                        Binding.builder().add(Var.alloc("placeholder"),
+                        Binding.builder().add(Var.alloc("placeholder_"+ PLACEHOLDER_NB),
                         NodeFactory.createURI(e)).build()
                 )
         );
