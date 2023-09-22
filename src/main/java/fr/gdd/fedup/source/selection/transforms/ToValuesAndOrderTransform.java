@@ -137,6 +137,11 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
                 Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, tracker), opCond.getRight()));
     }
 
+    @Override
+    public Op transform(OpFilter opFilter, Op op) {
+        return OpFilter.filterBy(opFilter.getExprs(), Top2BottomTransformer.transform(this, opFilter.getSubOp()));
+    }
+
     /* ********************************************************************* */
 
     /**

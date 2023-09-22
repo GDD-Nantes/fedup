@@ -3,6 +3,7 @@ package fr.gdd.fedup.source.selection.transforms;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.op.OpDistinct;
+import org.apache.jena.sparql.algebra.op.OpOrder;
 import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.algebra.op.OpSlice;
 
@@ -26,4 +27,8 @@ public class ToRemoveNoiseTransformer extends TransformCopy {
         return subOp;  // no opProject <=> SELECT *
     }
 
+    @Override
+    public Op transform(OpOrder opOrder, Op subOp) {
+        return subOp; // no ORDER
+    }
 }

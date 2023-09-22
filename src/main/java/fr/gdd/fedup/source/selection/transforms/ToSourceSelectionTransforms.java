@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * Apply transformations that change a query to a source selection query.
  */
-public class ToSourceSelectionTransforms extends TransformCopy {
+public class ToSourceSelectionTransforms {
 
     Set<String> endpoints;
     Dataset dataset;
