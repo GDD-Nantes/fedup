@@ -74,6 +74,7 @@ public class InMemorySummaryFactory {
             summary.add(quads.next());
         }
 
+        dataset.commit();
         dataset.end();
 
         petsDataset = dataset;

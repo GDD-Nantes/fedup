@@ -21,6 +21,8 @@ public class Top2BottomTransformer {
             case OpConditional o -> t.transform(o, null, null);
             case OpFilter o -> t.transform(o, null);
             case OpDistinct o -> t.transform(o, null);
+            case OpUnion o -> t.transform(o, null, null);
+            case OpJoin o -> t.transform(o, null, null);
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }

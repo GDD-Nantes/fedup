@@ -3,7 +3,6 @@ package fr.gdd.fedup.source.selection.transforms;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
-import org.apache.jena.sparql.algebra.TransformSingle;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
@@ -18,11 +17,17 @@ import java.util.Map;
  */
 public class ToQuadsTransform extends TransformCopy {
 
+    public boolean asSequence = true; // join quads with opSequence or opJoin
+
     Integer nbGraphs = 0;
     Map<Var, Triple> var2Triple = new HashMap<>();
     Map<Triple, Var> triple2Var = new HashMap<>();
 
     public ToQuadsTransform() {}
+
+    public ToQuadsTransform(boolean asSequence) {
+        this.asSequence = asSequence;
+    }
 
     /**
      * Link variable and triple both ways in maps.
@@ -56,15 +61,24 @@ public class ToQuadsTransform extends TransformCopy {
     @Override
     public Op transform(OpBGP opBGP) {
         List<Op> quads = opBGP.getPattern().getList().stream().map(triple ->
-            this.transform(new OpTriple(triple))
+                this.transform(new OpTriple(triple))
         ).toList();
 
         if (quads.size() == 1) {
             return quads.get(0);
-        } else {
-            OpSequence sequence = OpSequence.create();
-            quads.forEach(sequence::add);
-            return sequence;
+        } else { // >= 2
+            if (asSequence) {
+                OpSequence sequence = OpSequence.create();
+                quads.forEach(sequence::add);
+                return sequence;
+            } else {
+                Op left = quads.get(0);
+                for (int i = 1; i < quads.size(); ++i) {
+                    Op right = quads.get(i);
+                    left = OpJoin.create(left, right);
+                }
+                return left;
+            }
         }
     }
 

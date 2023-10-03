@@ -95,4 +95,9 @@ public class ASKVisitor extends OpVisitorUnimplemented{
     public void visit(OpSlice opSlice) {
         opSlice.getSubOp().visit(this);
     }
+
+    @Override
+    public void visit(OpFilter opFilter) {
+        opFilter.getSubOp().visit(this);
+    }
 }

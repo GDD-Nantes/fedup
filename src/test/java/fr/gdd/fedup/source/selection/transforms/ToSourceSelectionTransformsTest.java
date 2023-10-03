@@ -142,6 +142,14 @@ class ToSourceSelectionTransformsTest {
 
     @Disabled
     @Test
+    public void a_union_with_constants () {
+        // TODO TODO TODO
+    }
+
+    /* ************************************************************** */
+
+    @Disabled
+    @Test
     public void test_on_h0_batch_9_with_Q07f () {
         Dataset summary = TDB2Factory.connectDataset("./temp/fedup-id");
         summary.begin(ReadWrite.READ);

@@ -9,7 +9,7 @@
 	<packaging>jar</packaging>
 
 	<properties>
-		<jdk.version>20</jdk.version>
+		<jdk.version>21</jdk.version>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
 <!--		<maven-surefire-plugin.version>3.0.0</maven-surefire-plugin.version>-->
 	</properties>
@@ -53,11 +53,10 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven-compiler-plugin.version}</version>
 				<configuration>
-					<source>20</source>
-					<target>20</target>
+					<source>${jdk.version}</source>
+					<target>${jdk.version}</target>
 					<showDeprecation>true</showDeprecation>
 					<showWarnings>true</showWarnings>
-                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
 			</plugin>
 		</plugins>

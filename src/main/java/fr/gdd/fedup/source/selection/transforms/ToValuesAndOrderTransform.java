@@ -29,7 +29,7 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
     ASKVisitor asks;
     Map<Triple, List<String>> triple2Endpoints = new HashMap<>();
     Map<Triple, Integer> triple2NbEndpoints = new HashMap<>();
-    VariableUsageTracker tracker = new VariableUsageTracker();
+    Set<Var> tracker = new HashSet<>();
 
     Map<OpTable, Triple> values2triple = new HashMap<>();
 
@@ -40,11 +40,11 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
     /**
      *  Copies everything but the tracker
      */
-    public ToValuesAndOrderTransform(ToValuesAndOrderTransform copy, VariableUsageTracker tracker) {
+    public ToValuesAndOrderTransform(ToValuesAndOrderTransform copy, Set<Var> tracker) {
         this.asks = copy.asks;
         this.triple2NbEndpoints = copy.triple2NbEndpoints;
         this.triple2Endpoints = copy.triple2Endpoints;
-        this.tracker = tracker;
+        this.tracker = new HashSet<>(tracker);
         this.values2triple = copy.values2triple;
     }
 
@@ -110,7 +110,7 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
 
             orderedTriples.add(candidate);
             candidates.remove(candidate);
-            tracker.increment(VarUtils.getVars(candidate));
+            tracker.addAll(VarUtils.getVars(candidate));
         }
 
         if (!orderedTriples.isEmpty()) { // last one
@@ -121,25 +121,36 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
 
     @Override
     public Op transform(OpLeftJoin opLeftJoin, Op left, Op right) {
-        VariableUsageTracker tracker = new VariableUsageTracker();
-        tracker.increment(OpVars.visibleVars(opLeftJoin.getLeft()));
+        ToValuesAndOrderTransform rightTransform = new ToValuesAndOrderTransform(this, this.tracker);
+        rightTransform.tracker.addAll(OpVars.visibleVars(opLeftJoin.getLeft()));
+
         // We get the variable set on the left side and inform right side
-        return OpLeftJoin.create(Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, this.tracker), opLeftJoin.getLeft()),
-                Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, tracker), opLeftJoin.getRight()),
+        return OpLeftJoin.create(Top2BottomTransformer.transform(this, opLeftJoin.getLeft()),
+                Top2BottomTransformer.transform(rightTransform, opLeftJoin.getRight()),
                 opLeftJoin.getExprs());
     }
 
     @Override
     public Op transform(OpConditional opCond, Op left, Op right) { // same as LeftJoin
-        VariableUsageTracker tracker = new VariableUsageTracker();
-        tracker.increment(OpVars.visibleVars(opCond.getLeft()));
-        return new OpConditional(Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, this.tracker), opCond.getLeft()),
-                Top2BottomTransformer.transform(new ToValuesAndOrderTransform(this, tracker), opCond.getRight()));
+        ToValuesAndOrderTransform rightTransform = new ToValuesAndOrderTransform(this, this.tracker);
+        rightTransform.tracker.addAll(OpVars.visibleVars(opCond.getLeft()));
+
+        // We get the variable set on the left side and inform right side
+        return new OpConditional(Top2BottomTransformer.transform(this, opCond.getLeft()),
+                Top2BottomTransformer.transform(rightTransform, opCond.getRight()));
     }
 
     @Override
     public Op transform(OpFilter opFilter, Op op) {
         return OpFilter.filterBy(opFilter.getExprs(), Top2BottomTransformer.transform(this, opFilter.getSubOp()));
+    }
+
+    @Override
+    public Op transform(OpUnion opUnion, Op op, Op op1) {
+        ToValuesAndOrderTransform rightTransform = new ToValuesAndOrderTransform(this, this.tracker);
+
+        return OpUnion.create(Top2BottomTransformer.transform(this, opUnion.getLeft()),
+                Top2BottomTransformer.transform(rightTransform, opUnion.getRight()));
     }
 
     /* ********************************************************************* */
@@ -149,9 +160,9 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
      * @param tracker The variable tracker of set variables.
      * @return A candidate that already has variables set.
      */
-    public static Triple getTripleWithAlreadySetVariable(List<Triple> candidates, VariableUsageTracker tracker) {
+    public static Triple getTripleWithAlreadySetVariable(List<Triple> candidates, Set<Var> tracker) {
         var filtered = candidates.stream().filter(t -> VarUtils.getVars(t).stream().anyMatch(v ->
-                    tracker.getUsageCount(v) > 0));
+                tracker.contains(v)));
         return filtered.findFirst().orElse(null);
     }
 
@@ -176,11 +187,10 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
         endpoints.forEach(
                 e -> table.addBinding(
                         Binding.builder().add(Var.alloc("placeholder_"+ PLACEHOLDER_NB),
-                        NodeFactory.createURI(e)).build()
+                                NodeFactory.createURI(e)).build()
                 )
         );
         return OpTable.create(table);
     }
-
 
 }

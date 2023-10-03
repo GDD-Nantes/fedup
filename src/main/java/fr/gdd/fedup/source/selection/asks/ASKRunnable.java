@@ -55,6 +55,7 @@ public class ASKRunnable implements Runnable {
                 query.setQueryAskType();
                 dataset.begin(ReadWrite.READ);
                 boolean r = b.query(query).ask(); // dataset must be in read txn
+                dataset.commit();
                 dataset.end();
                 yield r;
             }
