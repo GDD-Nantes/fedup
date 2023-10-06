@@ -53,6 +53,8 @@ public class ToSourceSelectionTransforms {
         // #4 force back graph clauses in the corresponding VALUES when need be
         Op opQuadsAndValuesWithoutPlaceholders = Transformer.transform(tvwpt, opQuads);
 
+        opQuadsAndValuesWithoutPlaceholders = Transformer.transform(new AddFilterForAskedGraphs(tv), opQuadsAndValuesWithoutPlaceholders);
+
         // #5 wraps it in a projection distinct graphs
         if (asDistinctGraphs) {
             List<Var> graphs = tq.var2Triple.keySet().stream().toList();

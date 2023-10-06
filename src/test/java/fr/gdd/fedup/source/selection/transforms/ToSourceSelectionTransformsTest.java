@@ -108,6 +108,8 @@ class ToSourceSelectionTransformsTest {
 
         ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(endpoints, dataset);
         op = toSS.transform(op);
+        log.debug(op.toString());
+
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
         assertEquals(2, os1.size()); // table + bgp#1

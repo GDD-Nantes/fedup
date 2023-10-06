@@ -13,7 +13,10 @@ import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.expr.*;
+import org.apache.jena.sparql.util.ExprUtils;
 import org.apache.jena.sparql.util.VarUtils;
+import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 
@@ -93,19 +96,22 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
             if (Objects.isNull(candidate)) { // no candidate, i.e., cartesian product or first variable to set
                 candidate = sortedByNbEndpoints.stream().findFirst().orElse(null);
                 isValues = Objects.nonNull(candidate);
-                if (Objects.isNull(candidate)) { // no ASK can help us
+                if (!isValues) { // no ASK can help us
                     candidate = getBestVariableCounting(candidates);
                 }
             }
+            // isValues = true;
 
             if (isValues) { // BGP VALUES BGP
                 if (!orderedTriples.isEmpty()) { // BGP
                     sequence.add(new OpBGP(BasicPattern.wrap(orderedTriples)));
                     orderedTriples = new ArrayList<>();
                 }
-                OpTable values = prepareValues(triple2Endpoints.get(candidate)); // VALUES
-                sequence.add(values);
-                values2triple.put(values, candidate);
+                //if (triple2Endpoints.containsKey(candidate) && !triple2Endpoints.get(candidate).isEmpty()) {
+                    OpTable values = prepareValues(triple2Endpoints.get(candidate)); // VALUES
+                    sequence.add(values);
+                    values2triple.put(values, candidate);
+                //}
             } // BGP
 
             orderedTriples.add(candidate);
