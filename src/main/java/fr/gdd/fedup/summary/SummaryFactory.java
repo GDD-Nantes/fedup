@@ -1,7 +1,5 @@
 package fr.gdd.fedup.summary;
 
-import fr.gdd.fedup.summary.strategies.ModuloOnSuffix;
-import fr.gdd.fedup.summary.strategies.ModuloOnWhole;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.sparql.algebra.TransformCopy;
 

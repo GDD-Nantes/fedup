@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection.asks;
+package fr.gdd.fedup.asks;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import org.apache.jena.graph.Node;

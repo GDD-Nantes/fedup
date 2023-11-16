@@ -1,6 +1,5 @@
 package fr.gdd.fedup.summary;
 
-import fr.gdd.fedup.summary.strategies.ModuloOnSuffix;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;

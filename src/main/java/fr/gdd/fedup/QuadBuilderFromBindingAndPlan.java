@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection;
+package fr.gdd.fedup;
 
 import fr.gdd.raw.io.OpVisitorUnimplemented;
 import org.apache.jena.graph.Node;

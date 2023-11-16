@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection.transforms;
+package fr.gdd.fedup.transforms;
 
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
@@ -11,11 +11,15 @@ import org.apache.jena.sparql.expr.Expr;
 import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.util.ExprUtils;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class AddFilterForAskedGraphs extends TransformCopy {
 
     ToValuesAndOrderTransform valuesAndOrder;
+
+    public Set<ExprList> askFilters = new HashSet<>(); // filters that must be kept by the summarizer
 
     public AddFilterForAskedGraphs(ToValuesAndOrderTransform valuesAndOrder) {
         this.valuesAndOrder = valuesAndOrder;
@@ -26,12 +30,14 @@ public class AddFilterForAskedGraphs extends TransformCopy {
         Var g = (Var) opQuad.getQuad().getGraph();
         Triple triple = opQuad.getQuad().asTriple();
 
-        if (valuesAndOrder.values2triple.containsValue(triple) ||
+        if (valuesAndOrder.values2quad.containsValue(opQuad) ||
                 !valuesAndOrder.triple2Endpoints.containsKey(triple)) {
             return opQuad; // do nothing john snow
         }
 
-        return prepareFilter(valuesAndOrder.triple2Endpoints.get(triple), opQuad, g);
+        OpFilter op = (OpFilter) prepareFilter(valuesAndOrder.triple2Endpoints.get(triple), opQuad, g);
+        askFilters.add(op.getExprs());
+        return op;
     }
 
     public static Op prepareFilter(List<String> endpoints, Op op, Var graph) {

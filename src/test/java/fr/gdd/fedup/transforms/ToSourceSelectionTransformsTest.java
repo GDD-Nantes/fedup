@@ -1,6 +1,8 @@
-package fr.gdd.fedup.source.selection.transforms;
+package fr.gdd.fedup.transforms;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
+import fr.gdd.fedup.summary.ModuloOnSuffix;
+import fr.gdd.fedup.summary.Summary;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
@@ -33,18 +35,25 @@ class ToSourceSelectionTransformsTest {
     Logger log = LoggerFactory.getLogger(ToSourceSelectionTransformsTest.class);
 
     static Dataset dataset;
+    static Summary summary;
     static Set<String> endpoints = Set.of("https://graphA.org", "https://graphB.org");
 
     @BeforeAll
     public static void initialize_dataset() {
         dataset = InMemorySummaryFactory.getPetsDataset();
         dataset.begin(ReadWrite.READ);
+        summary = InMemorySummaryFactory.getSimplePetsSummary();
+        summary.getSummary().begin(ReadWrite.READ);
     }
 
     @AfterAll
     public static void drop_dataset() {
+        dataset.commit();
         dataset.abort();
         TDBInternal.expel(dataset.asDatasetGraph());
+        summary.getSummary().commit();
+        summary.getSummary().abort();
+        TDBInternal.expel(summary.getSummary().asDatasetGraph());
     }
 
     @Test
@@ -62,7 +71,7 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
 
         op = transforms.transform(op);
         assertTrue(op instanceof OpSequence);
@@ -85,7 +94,7 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
         op = transforms.transform(op);
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
@@ -106,7 +115,7 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(endpoints, dataset);
+        ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
         op = toSS.transform(op);
         log.debug(op.toString());
 
@@ -130,7 +139,7 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
         op = transforms.transform(op);
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
@@ -206,7 +215,7 @@ class ToSourceSelectionTransformsTest {
         // ModuloOnSuffix mos = new ModuloOnSuffix(1);
         // op = Transformer.transform(mos, op);
 
-        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(endpoints, summary);
+        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
         op = tsst.transform(op);
 
         log.debug(op.toString());

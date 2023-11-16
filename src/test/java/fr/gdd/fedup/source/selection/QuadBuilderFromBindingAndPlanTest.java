@@ -1,6 +1,7 @@
 package fr.gdd.fedup.source.selection;
 
-import fr.gdd.fedup.source.selection.transforms.ToQuadsTransform;
+import fr.gdd.fedup.QuadBuilderFromBindingAndPlan;
+import fr.gdd.fedup.transforms.ToQuadsTransform;
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Algebra;

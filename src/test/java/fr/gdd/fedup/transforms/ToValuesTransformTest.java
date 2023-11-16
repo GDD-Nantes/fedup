@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection.transforms;
+package fr.gdd.fedup.transforms;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import org.apache.jena.graph.NodeFactory;

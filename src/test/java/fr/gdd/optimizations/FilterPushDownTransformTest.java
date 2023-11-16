@@ -1,6 +1,6 @@
 package fr.gdd.optimizations;
 
-import fr.gdd.fedup.source.selection.transforms.ToSourceSelectionTransforms;
+import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.Query;
@@ -18,8 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class FilterPushDownTransformTest {
 
@@ -55,8 +53,6 @@ class FilterPushDownTransformTest {
     Query query = QueryFactory.create(queryAsString);
     Op op = Algebra.compile(query);
 
-    ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(endpoints, dataset);
-    op = tsst.transform(op);
     log.debug(op.toString());
 
     FilterPushDownTransform fpdt = new FilterPushDownTransform();

@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection.asks;
+package fr.gdd.fedup.asks;
 
 import fr.gdd.raw.io.OpVisitorUnimplemented;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * Visitor that collects all triples to perform parallel asks.
  */
-public class ASKVisitor extends OpVisitorUnimplemented{
+public class ASKVisitor extends OpVisitorUnimplemented {
 
     ASKParallel asks;
     List<Triple> triples = new ArrayList<>();
@@ -99,5 +99,10 @@ public class ASKVisitor extends OpVisitorUnimplemented{
     @Override
     public void visit(OpFilter opFilter) {
         opFilter.getSubOp().visit(this);
+    }
+
+    @Override
+    public void visit(OpSequence opSequence) {
+        opSequence.getElements().forEach(op -> op.visit(this));
     }
 }

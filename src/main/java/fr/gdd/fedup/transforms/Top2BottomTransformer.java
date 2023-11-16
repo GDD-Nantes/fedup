@@ -1,4 +1,4 @@
-package fr.gdd.fedup.source.selection.transforms;
+package fr.gdd.fedup.transforms;
 
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transform;

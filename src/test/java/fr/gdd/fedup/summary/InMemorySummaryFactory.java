@@ -21,7 +21,7 @@ import java.util.Objects;
 public class InMemorySummaryFactory {
 
     static Dataset petsDataset;
-    static Summary simplePetsSumarry;
+    static Summary simplePetsSummary;
 
     /**
      * /!\ must call summary first (TODO) remove this requirement
@@ -34,8 +34,8 @@ public class InMemorySummaryFactory {
     }
 
     public static Summary getSimplePetsSummary() {
-        if (Objects.nonNull(simplePetsSumarry)) {
-            return simplePetsSumarry;
+        if (Objects.nonNull(simplePetsSummary)) {
+            return simplePetsSummary;
         }
         Summary summary = SummaryFactory.createModuloOnSuffix(1);
         Dataset dataset = TDB2Factory.createDataset();
@@ -78,8 +78,8 @@ public class InMemorySummaryFactory {
         dataset.end();
 
         petsDataset = dataset;
-        simplePetsSumarry = summary;
+        simplePetsSummary = summary;
 
-        return simplePetsSumarry;
+        return simplePetsSummary;
     }
 }

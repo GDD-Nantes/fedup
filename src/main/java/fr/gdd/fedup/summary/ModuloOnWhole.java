@@ -1,4 +1,4 @@
-package fr.gdd.fedup.summary.strategies;
+package fr.gdd.fedup.summary;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
@@ -6,9 +6,6 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpFilter;
 import org.apache.jena.sparql.core.Var;
-
-import javax.print.attribute.URISyntax;
-import java.net.URI;
 
 public class ModuloOnWhole extends LeavePredicateUntouched {
 

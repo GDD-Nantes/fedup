@@ -1,4 +1,4 @@
-package fr.gdd.fedup.summary.strategies;
+package fr.gdd.fedup.summary;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;

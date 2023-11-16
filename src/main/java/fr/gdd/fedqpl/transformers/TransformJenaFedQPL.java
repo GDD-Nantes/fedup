@@ -1,7 +1,7 @@
 package fr.gdd.fedqpl.transformers;
 
 import fr.gdd.fedqpl.operators.*;
-import fr.gdd.fedup.source.selection.transforms.ToQuadsTransform;
+import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
@@ -45,7 +45,7 @@ public class TransformJenaFedQPL extends TransformCopy {
         QueryIterator iterator = Algebra.exec(asQuad, dataset);
 
         Set<String> graphs = new HashSet<>();
-        while (iterator.hasNext()) { // iterate over graphs
+        /*while (iterator.hasNext()) { // iterate over graphs
             Binding b = iterator.next();
             Var g = ssqt.getVar2Triple().keySet().iterator().next(); // one 1 var in ssqt
             if (!graphs.contains(b.get(g).toString())) {
@@ -53,7 +53,7 @@ public class TransformJenaFedQPL extends TransformCopy {
                 Req req = new Req(opTriple.getTriple(), b.get(g));
                 opList.add(req);
             }
-        }
+        }*/
         dataset.end();
         return opList;
     }
@@ -73,11 +73,11 @@ public class TransformJenaFedQPL extends TransformCopy {
 
             Mj mj = new Mj();
             List<String> mjGraphs = new ArrayList<>();
-            for (Map.Entry<Var, Triple> v2t: ssqt.getVar2Triple().entrySet()) {
+            /*for (Map.Entry<Var, Triple> v2t: ssqt.getVar2Triple().entrySet()) {
                 Req req = new Req(v2t.getValue(), b.get(v2t.getKey()));
                 mj.addChild(req);
                 mjGraphs.add(b.get(v2t.getKey()).toString());
-            }
+            }*/
             if (!graphs.contains(mjGraphs)) {
                 graphs.add(mjGraphs);
                 opList.add(mj);

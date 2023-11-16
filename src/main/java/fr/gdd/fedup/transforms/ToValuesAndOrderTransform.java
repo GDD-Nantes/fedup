@@ -1,6 +1,6 @@
-package fr.gdd.fedup.source.selection.transforms;
+package fr.gdd.fedup.transforms;
 
-import fr.gdd.fedup.source.selection.asks.ASKVisitor;
+import fr.gdd.fedup.asks.ASKVisitor;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
@@ -8,15 +8,10 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVars;
 import org.apache.jena.sparql.algebra.op.*;
-import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.algebra.table.TableN;
-import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.expr.*;
-import org.apache.jena.sparql.util.ExprUtils;
 import org.apache.jena.sparql.util.VarUtils;
-import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 
@@ -27,14 +22,12 @@ import java.util.*;
  */
 public class ToValuesAndOrderTransform extends TransformUnimplemented {
 
-    private static int PLACEHOLDER_NB = 0;
-
     ASKVisitor asks;
     Map<Triple, List<String>> triple2Endpoints = new HashMap<>();
     Map<Triple, Integer> triple2NbEndpoints = new HashMap<>();
     Set<Var> tracker = new HashSet<>();
 
-    Map<OpTable, Triple> values2triple = new HashMap<>();
+    Map<OpTable, OpQuad> values2quad = new HashMap<>(); // to avoid adding a filter when we already have a values
 
     public ToValuesAndOrderTransform(Set<String> endpoints) {
         this.asks = new ASKVisitor(endpoints);
@@ -48,7 +41,7 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
         this.triple2NbEndpoints = copy.triple2NbEndpoints;
         this.triple2Endpoints = copy.triple2Endpoints;
         this.tracker = new HashSet<>(tracker);
-        this.values2triple = copy.values2triple;
+        this.values2quad = copy.values2quad;
     }
 
     public void setDataset(Dataset dataset) {
@@ -75,53 +68,44 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
     /* ******************************************************************* */
 
     @Override
-    public Op transform(OpBGP opBGP) {
-        List<Triple> candidates = opBGP.getPattern().getList();
+    public Op transform(OpSequence opSequence, List<Op> list) {
+        if (opSequence.getElements().stream().anyMatch(op -> !(op instanceof OpQuad))) {
+            return opSequence;
+        }
+        List<OpQuad> candidates = new ArrayList<>(opSequence.getElements().stream().map(op -> (OpQuad) op).toList());
         // #1 sort by number of sources; one without sources are implicitly not candidate
 
-
         OpSequence sequence = OpSequence.create();
-        List<Triple> orderedTriples = new ArrayList<>();
 
         // #2 rebuild the sequence of operators with values at the right position
         while (!candidates.isEmpty()) {
-            List<Triple> sortedByNbEndpoints = triple2NbEndpoints.entrySet().stream()
-                    .sorted(Comparator.comparingInt(Map.Entry::getValue))
-                    .map(Map.Entry::getKey)
-                    .filter(t -> candidates.contains(t))
-                    .toList();
+            candidates.sort((q1, q2) -> {
+                Integer q1NbAsks = triple2NbEndpoints.getOrDefault(q1.getQuad().asTriple(), Integer.MAX_VALUE);
+                Integer q2NbAsks = triple2NbEndpoints.getOrDefault(q2.getQuad().asTriple(), Integer.MAX_VALUE);
+                return Integer.compare(q1NbAsks, q2NbAsks);
+            });
 
             boolean isValues = false;
-            Triple candidate = getTripleWithAlreadySetVariable(candidates, tracker);
+            OpQuad candidate = getOpQuadWithAlreadySetVariable(candidates, tracker);
             if (Objects.isNull(candidate)) { // no candidate, i.e., cartesian product or first variable to set
-                candidate = sortedByNbEndpoints.stream().findFirst().orElse(null);
-                isValues = Objects.nonNull(candidate);
+                candidate = candidates.getFirst();
+                isValues = triple2Endpoints.containsKey(candidate.getQuad().asTriple());
                 if (!isValues) { // no ASK can help us
                     candidate = getBestVariableCounting(candidates);
                 }
             }
-            // isValues = true;
 
-            if (isValues) { // BGP VALUES BGP
-                if (!orderedTriples.isEmpty()) { // BGP
-                    sequence.add(new OpBGP(BasicPattern.wrap(orderedTriples)));
-                    orderedTriples = new ArrayList<>();
-                }
-                //if (triple2Endpoints.containsKey(candidate) && !triple2Endpoints.get(candidate).isEmpty()) {
-                    OpTable values = prepareValues(triple2Endpoints.get(candidate)); // VALUES
-                    sequence.add(values);
-                    values2triple.put(values, candidate);
-                //}
-            } // BGP
-
-            orderedTriples.add(candidate);
+            if (isValues) {
+                OpTable values = prepareValues((Var) candidate.getQuad().getGraph(), triple2Endpoints.get(candidate.getQuad().asTriple())); // TODO: does not support named graphs
+                values2quad.put(values, candidate);
+                sequence.add(values);
+            }
+            sequence.add(candidate);
             candidates.remove(candidate);
-            tracker.addAll(VarUtils.getVars(candidate));
+
+            tracker.addAll(VarUtils.getVars(candidate.getQuad().asTriple()));
         }
 
-        if (!orderedTriples.isEmpty()) { // last one
-            sequence.add(new OpBGP(BasicPattern.wrap(orderedTriples)));
-        }
         return sequence.size() > 1 ? sequence : sequence.get(0);
     }
 
@@ -159,6 +143,16 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
                 Top2BottomTransformer.transform(rightTransform, opUnion.getRight()));
     }
 
+    @Override
+    public Op transform(OpJoin opJoin, Op left, Op right) {
+        ToValuesAndOrderTransform rightTransform = new ToValuesAndOrderTransform(this, this.tracker);
+        rightTransform.tracker.addAll(OpVars.visibleVars(opJoin.getLeft()));
+
+        // We get the variable set on the left side and inform right side
+        return OpJoin.create(Top2BottomTransformer.transform(this, opJoin.getLeft()),
+                Top2BottomTransformer.transform(rightTransform, opJoin.getRight()));
+    }
+
     /* ********************************************************************* */
 
     /**
@@ -166,19 +160,18 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
      * @param tracker The variable tracker of set variables.
      * @return A candidate that already has variables set.
      */
-    public static Triple getTripleWithAlreadySetVariable(List<Triple> candidates, Set<Var> tracker) {
-        var filtered = candidates.stream().filter(t -> VarUtils.getVars(t).stream().anyMatch(v ->
-                tracker.contains(v)));
+    public static OpQuad getOpQuadWithAlreadySetVariable(List<OpQuad> candidates, Set<Var> tracker) {
+        var filtered = candidates.stream().filter(q -> VarUtils.getVars(q.getQuad().asTriple()).stream().anyMatch(tracker::contains));
         return filtered.findFirst().orElse(null);
     }
 
     /**
      * @param candidates The list of triples.
-     * @return A triple the number of variables of which is the smallest.
+     * @return A quad the number of variables of which is the smallest.
      */
-    public static Triple getBestVariableCounting(List<Triple> candidates) {
+    public static OpQuad getBestVariableCounting(List<OpQuad> candidates) {
         var candidate2NbVars = candidates.stream()
-                .map(t -> new ImmutablePair<>(t, VarUtils.getVars(t).size()))
+                .map(q -> new ImmutablePair<>(q, VarUtils.getVars(q.getQuad().asTriple()).size()))
                 .sorted(Comparator.comparingInt(ImmutablePair::getValue)).map(ImmutablePair::getKey);
         return candidate2NbVars.findFirst().orElse(null);
     }
@@ -187,16 +180,13 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
      * @param endpoints The set of endpoints
      * @return The VALUES operator comprising the list of sources with a placeholder for the variable name
      */
-    public static OpTable prepareValues(List<String> endpoints) {
-        PLACEHOLDER_NB += 1;
+    public static OpTable prepareValues(Var graph, List<String> endpoints) {
         TableN table = new TableN();
         endpoints.forEach(
                 e -> table.addBinding(
-                        Binding.builder().add(Var.alloc("placeholder_"+ PLACEHOLDER_NB),
-                                NodeFactory.createURI(e)).build()
+                        Binding.builder().add(graph, NodeFactory.createURI(e)).build()
                 )
         );
         return OpTable.create(table);
     }
-
 }
