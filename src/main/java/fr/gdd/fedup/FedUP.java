@@ -1,13 +1,16 @@
 package fr.gdd.fedup;
 
+import fr.gdd.fedqpl.operators.FedQPLOperator;
+import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
+import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
-import fr.gdd.fedup.summary.ModuloOnSuffix;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
@@ -47,7 +50,7 @@ public class FedUP {
      * @return A SPARQL 1.1 query with SERVICE clauses to query remote endpoints.
      */
     public String query(String queryAsString, Set<String> endpoints) {
-        log.debug("Parsing the query %s", queryAsString);
+        log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
 
 
@@ -61,7 +64,7 @@ public class FedUP {
         summary.begin(ReadWrite.READ);
         QueryIterator iterator = Algebra.exec(ssQueryAsOp, summary);
 
-        List<Map<String, String>> assignments = new ArrayList<>();
+        List<Map<Var, String>> assignments = new ArrayList<>();
         Set<Integer> seen = new TreeSet<>();
         while (iterator.hasNext()) {
             Binding binding = iterator.next();
@@ -74,31 +77,42 @@ public class FedUP {
         summary.commit();
         summary.end();
 
+        log.info("Removing duplicates and inclusions in logical plan…");
+        assignments = removeInclusions(assignments); // TODO double check, can be improved
+
         log.info("Building the SERVICE query…");
+        FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
+        Op asSPARQL = asFedQPL.visit(new FedQPL2SPARQLVisitor());
+        String asSERVICE = OpAsQuery.asQuery(asSPARQL).toString();
 
-
-        return null;
+        log.info("Built the following query:\n{}", asSERVICE);
+        return asSERVICE;
     }
 
-    static Map<String, String> bindingToMap(Binding binding) {
-        Map<String, String> bindingAsMap = new HashMap<>();
+    /**
+     * Convert the binding into a map of [?g -> uri]
+     * @param binding The result mappings.
+     * @return A map containing the same information as the binding in a map form.
+     */
+    static Map<Var, String> bindingToMap(Binding binding) {
+        Map<Var, String> bindingAsMap = new HashMap<>();
         Iterator<Var> vars = binding.vars();
         while (vars.hasNext()) {
-            String varName = vars.next().getName();
-            bindingAsMap.put(varName, binding.get(varName).toString());
+            Var v = vars.next();
+            bindingAsMap.put(v, binding.get(v).toString());
         }
         return bindingAsMap;
     }
 
-    static List<Map<String, String>> removeInclusions(List<Map<String, String>> sourceSelection) {
-        List<Map<String, String>> withoutDuplicates = new ArrayList<>();
-        for (Map<String, String> e1 : sourceSelection) {
+    static List<Map<Var, String>> removeInclusions(List<Map<Var, String>> sourceSelection) {
+        List<Map<Var, String>> withoutDuplicates = new ArrayList<>();
+        for (Map<Var, String> e1 : sourceSelection) {
             if (!(withoutDuplicates.contains(e1))) {
                 withoutDuplicates.add(e1);
             }
         }
 
-        List<Map<String, String>> newSourceSelection = new ArrayList<>();
+        List<Map<Var, String>> newSourceSelection = new ArrayList<>();
         for (int i = 0; i < withoutDuplicates.size(); i++) {
             boolean keep = true;
             for (int j = 0; j < withoutDuplicates.size(); j++) {

@@ -24,6 +24,8 @@ public class ToSourceSelectionTransforms {
 
     public boolean asDistinctGraphs;
 
+    public ToQuadsTransform tqt;
+
     public ToSourceSelectionTransforms(Transform summarizer, boolean asDistinctGraph, Set<String> endpoints, Dataset... datasets) { // default
         this.summarizer = summarizer;
         this.asDistinctGraphs = asDistinctGraph;
@@ -37,13 +39,13 @@ public class ToSourceSelectionTransforms {
             tv.setDataset(dataset); // for testing and debugging purposes
         }
 
-        ToQuadsTransform tq = new ToQuadsTransform();
+        tqt = new ToQuadsTransform();
         // ToValuesWithoutPlaceholderTransform tvwpt = new ToValuesWithoutPlaceholderTransform(tq, tv);
 
         // #1 remove noisy operators
         op = Transformer.transform(new ToRemoveNoiseTransformer(), op);
         // #3 add graph clauses to triple patterns
-        op = Transformer.transform(tq, op);
+        op = Transformer.transform(tqt, op);
         // #2 add VALUES and order triple patterns
         op = tv.transform(op);
 
@@ -59,7 +61,7 @@ public class ToSourceSelectionTransforms {
 
         // #5 wraps it in a projection distinct graphs
         if (asDistinctGraphs) {
-            List<Var> graphs = tq.var2quad.keySet().stream().toList();
+            List<Var> graphs = tqt.var2quad.keySet().stream().toList();
             OpProject opProject = new OpProject(op, graphs);
             return new OpDistinct(opProject);
         } else {

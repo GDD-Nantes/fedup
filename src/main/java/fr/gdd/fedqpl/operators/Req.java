@@ -11,70 +11,37 @@ import org.apache.jena.sparql.syntax.ElementNamedGraph;
 import org.apache.jena.sparql.syntax.ElementTriplesBlock;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
+import java.util.List;
+import java.util.Set;
+
 /**
  * Request.
  */
-public class Req extends FedQPLOperator {
+public class Req implements FedQPLOperator {
 
-    Triple triple;
+    List<Triple> triples;
     Node source;
 
     public Req(Triple triple, Node source) {
-        this.triple = triple;
+        this.triples = List.of(triple);
         this.source = source;
     }
 
-    public Triple getTriple() {
-        return triple;
+    public Req(List<Triple> triples, Node source) {
+        this.triples = triples;
+        this.source = source;
+    }
+
+    public List<Triple> getTriples() {
+        return triples;
     }
 
     public Node getSource() {
         return source;
     }
 
-    public Query toSPARQL(Query query){
-        ElementTriplesBlock elmt_bgp = new ElementTriplesBlock();
-        elmt_bgp.addTriple(triple);
-        ElementNamedGraph elmt_graph = new ElementNamedGraph(source, elmt_bgp);
-
-        if (query.getQueryPattern() == null) {
-            query.setQueryPattern(elmt_graph);
-        } else {
-            ElementGroup elmt = (ElementGroup) query.getQueryPattern();
-            elmt.addElement(elmt_graph);
-            query.setQueryPattern(elmt);
-        }
-
-        return query;
-    }
-
     @Override
-    public void visit(OpVisitor opVisitor) {
-        // TODO Auto-generated method stub
-        if (!(opVisitor instanceof FedQPLVisitor)) {
-            throw new IllegalArgumentException("The visitor should be an instance of FedQPLVisitor");
-        }
-        FedQPLVisitor visitor = (FedQPLVisitor) opVisitor;
-        visitor.visit(this);
-    }
-
-    @Override
-    public String getName() {
-        // TODO Auto-generated method stub
-        return "Req(" + triple.toString() + ", " + source.getURI() + ")";
-    }
-
-    @Override
-    public int hashCode() {
-        return this.triple.hashCode() << 1 ^ this.source.hashCode() ^ getName().hashCode();
-    }
-
-    @Override
-    public boolean equalTo(Op other, NodeIsomorphismMap labelMap) {
-        // TODO Auto-generated method stub
-        if (!(other instanceof Req))
-            return false;
-        Req opJoin = (Req) other;
-        return (opJoin.getTriple().equals(this.triple) && opJoin.getSource().equals(this.source) );
+    public <T> T visit(FedQPLVisitor<T> visitor) {
+        return visitor.visit(this);
     }
 }

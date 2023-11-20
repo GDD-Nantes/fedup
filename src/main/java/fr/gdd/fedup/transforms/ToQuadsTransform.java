@@ -32,7 +32,7 @@ public class ToQuadsTransform extends TransformCopy {
      * @param var The variable associated to the triple.
      * @param quad The quad associated to the variable.
      */
-    private void add(Var var, Quad quad) {
+    public void add(Var var, Quad quad) {
         var2quad.put(var, quad);
         quad2var.put(quad, var);
     }

@@ -5,6 +5,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.sparql.core.Var;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

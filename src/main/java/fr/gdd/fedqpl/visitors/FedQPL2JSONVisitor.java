@@ -1,55 +1,57 @@
 package fr.gdd.fedqpl.visitors;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
-import fr.gdd.fedqpl.operators.Filter;
-import fr.gdd.fedqpl.operators.LeftJoin;
-import fr.gdd.fedqpl.operators.Mj;
-import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.operators.Req;
+import fr.gdd.fedqpl.operators.*;
 import jakarta.json.Json;
 import jakarta.json.JsonObjectBuilder;
+import org.apache.commons.lang3.ObjectUtils;
 
-public class PrinterVisitor extends FedQPLVisitor {
+/**
+ * Builds a JSON version of the plan.
+ */
+public class FedQPL2JSONVisitor implements FedQPLVisitor<ObjectUtils.Null> {
 
     JsonObjectBuilder json;
     JsonObjectBuilder current_builder;
 
-    public PrinterVisitor() {
+    public FedQPL2JSONVisitor() {
         json = Json.createObjectBuilder();
         current_builder = json;
     }
 
-    public void visit(Mu mu) {
+    public ObjectUtils.Null visit(Mu mu) {
         JsonObjectBuilder json_children = Json.createObjectBuilder();
-        current_builder.add(mu.getName(), json_children);
+        current_builder.add(mu.getClass().getSimpleName(), json_children);
 
         for (FedQPLOperator child : mu.getChildren()) {
             JsonObjectBuilder child_builder = Json.createObjectBuilder();
-            json_children.add(child.getName(), child_builder);
+            json_children.add(child.getClass().getSimpleName(), child_builder);
             current_builder = child_builder;
             child.visit(this);
         }
+        return ObjectUtils.NULL;
     }
 
-    public void visit(Mj mj) {
+    public ObjectUtils.Null visit(Mj mj) {
         JsonObjectBuilder json_children = Json.createObjectBuilder();
-        current_builder.add(mj.getName(), json_children);
+        current_builder.add(mj.getClass().getSimpleName(), json_children);
 
         for (FedQPLOperator child : mj.getChildren()) {
             JsonObjectBuilder child_builder = Json.createObjectBuilder();
-            json_children.add(child.getName(), child_builder);
+            json_children.add(child.getClass().getSimpleName(), child_builder);
             current_builder = child_builder;
             child.visit(this);
         }
+        return ObjectUtils.NULL;
     }
 
-    public void visit(Req req) {
-        current_builder.addNull(req.getName());
+    public ObjectUtils.Null visit(Req req) {
+        current_builder.addNull(req.getClass().getSimpleName());
+        return ObjectUtils.NULL;
     }
 
-    public void visit(LeftJoin lj) {
+    public ObjectUtils.Null visit(LeftJoin lj) {
         JsonObjectBuilder join_builder = Json.createObjectBuilder();
-        current_builder.add(lj.getName(), join_builder);
+        current_builder.add(lj.getClass().getSimpleName(), join_builder);
         JsonObjectBuilder left_builder = Json.createObjectBuilder();
         join_builder.add("left", left_builder);
         current_builder = left_builder;
@@ -59,19 +61,18 @@ public class PrinterVisitor extends FedQPLVisitor {
         join_builder.add("right", right_builder);
         current_builder = right_builder;
         lj.getRight().visit(this);
+        return ObjectUtils.NULL;
     }
 
-    public void visit(Filter filter) {
+    public ObjectUtils.Null visit(Filter filter) {
         JsonObjectBuilder filter_builder = Json.createObjectBuilder();
-        current_builder.add(filter.getName(), filter_builder);
+        current_builder.add(filter.getClass().getSimpleName(), filter_builder);
 
         JsonObjectBuilder subOpBuilder = Json.createObjectBuilder();
-        subOpBuilder.add(filter.getSubOp().getName(), subOpBuilder);
+        subOpBuilder.add(filter.getSubOp().getClass().getSimpleName(), subOpBuilder);
         current_builder = subOpBuilder;
         filter.getSubOp().visit(this);
+        return ObjectUtils.NULL;
     }
 
-    public void pprint() {
-        System.out.println(json.build().toString());
-    }
 }

@@ -1,27 +1,17 @@
 package fr.gdd.fedqpl.visitors;
 
-import org.apache.jena.sparql.algebra.OpVisitorBase;
-
-import fr.gdd.fedqpl.operators.Filter;
-import fr.gdd.fedqpl.operators.LeftJoin;
-import fr.gdd.fedqpl.operators.Mj;
-import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.operators.Req;
+import fr.gdd.fedqpl.operators.*;
 
 /**
  * A visitor of FedQPL expressions with a return type that can
  * be parametrized if need be, in a functional way.
+ * Note: Does not need corresponding Router since FedQPLOperator is ours
+ * and implements visit.
  */
-public abstract class FedQPLVisitor extends OpVisitorBase {
-
-    public void visit(Mu mu) {};
-
-    public void visit(Mj mj) {};
-
-    public void visit(Req req) {};
-
-    public void visit(LeftJoin lj) {};
-
-    public void visit(Filter filter) {};
-
+public interface FedQPLVisitor<T> {
+    default T visit(Mu mu) {return mu.visit(this);}
+    default T visit(Mj mj) {return mj.visit(this);}
+    default T visit(Req req) {return req.visit(this);}
+    default T visit(LeftJoin lj) {return lj.visit(this);}
+    default T visit(Filter filter) {return filter.visit(this);}
 }
