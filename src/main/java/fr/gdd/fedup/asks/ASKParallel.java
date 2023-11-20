@@ -68,19 +68,20 @@ public class ASKParallel {
         }
 
         List<Future<Void>> futures = new ArrayList<>();
-        var executor = Executors.newVirtualThreadPerTaskExecutor(); // virtual !
-        for (String endpoint : endpoints) { // one per endpoint per triple
-            for (Triple triple : triples) {
-                ImmutablePair<String, Triple> id = new ImmutablePair<>(endpoint, triple); // id of the ask
-                if (!this.asks.containsKey(id)) {
-                    this.asks.put(id, false);
-                    ASKRunnable runnable = new ASKRunnable(this.asks, endpoint, triple, dataset);
-                    Future future = executor.submit(runnable);
-                    futures.add(future);
-                }
+        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (String endpoint : endpoints) { // one per endpoint per triple
+                for (Triple triple : triples) {
+                    ImmutablePair<String, Triple> id = new ImmutablePair<>(endpoint, triple); // id of the ask
+                    if (!this.asks.containsKey(id)) {
+                        this.asks.put(id, false);
+                        ASKRunnable runnable = new ASKRunnable(this.asks, endpoint, triple, dataset);
+                        Future future = executor.submit(runnable);
+                        futures.add(future);
+                    }
 
+                }
             }
-        }
+        } // virtual !
 
         futures.forEach(f -> { // join threads
             try {

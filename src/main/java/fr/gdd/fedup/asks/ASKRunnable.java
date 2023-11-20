@@ -47,7 +47,11 @@ public class ASKRunnable implements Runnable {
             case QueryExecutionHTTPBuilder b -> { // remote
                 Query query = OpAsQuery.asQuery(new OpTriple(triple));
                 query.setQueryAskType();
-                yield b.query(query).timeout(5000, TimeUnit.MILLISECONDS).ask();
+                try {
+                    yield b.query(query).timeout(5000, TimeUnit.MILLISECONDS).ask();
+                } catch (Exception e) {
+                    yield false; // failed to call the remote server, default to false
+                }
             }
             case QueryExecutionDatasetBuilder b -> { // local
                 Node graph = NodeFactory.createURI(endpoint);

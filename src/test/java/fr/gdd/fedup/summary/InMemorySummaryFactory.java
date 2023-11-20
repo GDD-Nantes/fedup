@@ -82,4 +82,18 @@ public class InMemorySummaryFactory {
 
         return simplePetsSummary;
     }
+
+    public static Dataset getGraph(String name) {
+        getSimplePetsSummary();
+        Model modelA = petsDataset.getNamedModel(name);
+        Dataset dataset = TDB2Factory.createDataset();
+        petsDataset.begin(ReadWrite.READ);
+        dataset.begin(ReadWrite.WRITE);
+        dataset.setDefaultModel(modelA);
+        dataset.commit();
+        dataset.close();
+        petsDataset.commit();
+        petsDataset.close();
+        return dataset;
+    }
 }

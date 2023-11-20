@@ -19,6 +19,7 @@ import java.util.Set;
  */
 public class Req implements FedQPLOperator {
 
+    // TODO Not only List<Triple> but actually List<Op>
     List<Triple> triples;
     Node source;
 

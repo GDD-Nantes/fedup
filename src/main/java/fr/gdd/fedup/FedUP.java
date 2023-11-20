@@ -67,7 +67,7 @@ public class FedUP {
         List<Map<Var, String>> assignments = new ArrayList<>();
         Set<Integer> seen = new TreeSet<>();
         while (iterator.hasNext()) {
-            Binding binding = iterator.next();
+            Binding binding = iterator.next(); // TODO create FedQPL here
             int hashcode = binding.toString().hashCode();
             if (!seen.contains(hashcode)) {
                 seen.add(hashcode);
@@ -79,6 +79,9 @@ public class FedUP {
 
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check, can be improved
+
+        log.info("Optimizing the resulting FedQPL plan…");
+        // TODO TODO TODO
 
         log.info("Building the SERVICE query…");
         FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);

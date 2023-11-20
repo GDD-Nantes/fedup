@@ -1,13 +1,12 @@
 package fr.gdd.fedup.asks;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
+import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.sparql.core.Var;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -68,10 +67,45 @@ class ASKParallelTest {
         assertTrue(pa.get(graphB, triple2));
     }
 
-    @Disabled
     @Test
-    public void test_on_remote_datasets() {
-        // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+    public void test_on_remote_endpoints() {
+        Node s = Var.alloc("s");
+        Node p = NodeFactory.createURI("http://auth/named");
+        Node o = NodeFactory.createURI("http://auth/Alice");
+        Triple triple = Triple.create(s, p, o);
+
+        // create the server
+        FusekiServer serverA = FusekiServer.create()
+                .port(3333)
+                .add("graphA", InMemorySummaryFactory.getGraph("https://graphA.org"))
+                .build();
+
+        FusekiServer serverB = FusekiServer.create()
+                .port(3334)
+                .add("graphB", InMemorySummaryFactory.getGraph("https://graphB.org"))
+                .build();
+
+        String endpointA = "http://localhost:3333/graphA/sparql";
+        String endpointB = "http://localhost:3334/graphB/sparql";
+
+        ASKParallel pa = new ASKParallel(Set.of(endpointA));
+        pa.execute(List.of(triple));
+        assertFalse(pa.get(endpointA, triple)); // server does not run
+
+        serverA.start();
+
+        pa = new ASKParallel(Set.of(endpointA));
+        pa.execute(List.of(triple));
+        assertTrue(pa.get(endpointA, triple)); // server runs now
+
+        serverB.start();
+        pa = new ASKParallel(Set.of(endpointA, endpointB));
+        pa.execute(List.of(triple));
+        assertTrue(pa.get(endpointA, triple)); // still works for endpointA
+        assertFalse(pa.get(endpointB, triple)); // but the endpointB does not have such triple
+
+        serverA.stop();
+        serverB.stop();
     }
 
 }
