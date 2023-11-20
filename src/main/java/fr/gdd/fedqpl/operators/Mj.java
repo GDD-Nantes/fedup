@@ -2,22 +2,23 @@ package fr.gdd.fedqpl.operators;
 
 import fr.gdd.fedqpl.visitors.FedQPLVisitor;
 
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
-
-import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpVisitor;
-import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
 /**
  * Multi-join operator.
  */
 public class Mj implements FedQPLOperator {
-    Set<FedQPLOperator> children = new HashSet<>();
+    /**
+     * Children are in a list even though the order does not necessarily matter,
+     * to keep the possibility of join ordering if need be.
+     */
+    List<FedQPLOperator> children = new ArrayList<>();
 
     public Mj() {}
 
-    public Mj(Set<FedQPLOperator> children) {
+    public Mj(List<FedQPLOperator> children) {
         this.children = children;
     }
 
@@ -29,7 +30,7 @@ public class Mj implements FedQPLOperator {
         this.children.addAll(children);
     }
 
-    public Set<FedQPLOperator> getChildren() {
+    public List<FedQPLOperator> getChildren() {
         return children;
     }
 

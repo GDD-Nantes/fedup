@@ -3,26 +3,28 @@ package fr.gdd.fedqpl.visitors;
 import fr.gdd.fedqpl.operators.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Node;
-import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Create exclusive groups when they are close from each other
+ */
 public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOperator> {
 
     @Override
     public FedQPLOperator visit(Mu mu) {
         // TODO check if union is inside a big Req when Req store List<Op>
-        return FedQPLVisitor.super.visit(mu);
+        return new Mu(mu.getChildren().stream().map(c -> c.visit(this)).collect(Collectors.toList()));
     }
 
     @Override
     public FedQPLOperator visit(Mj mj) {
         ImmutablePair<List<Req>, List<FedQPLOperator>> p = divide(mj.getChildren());
         List<Req> groups = group(p.getLeft());
-        List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).collect(Collectors.toList());
+        List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).toList();
 
-        Set<FedQPLOperator> mjChildren = new HashSet<>();
+        List<FedQPLOperator> mjChildren = new ArrayList<>();
         mjChildren.addAll(groups);
         mjChildren.addAll(ops);
 
@@ -48,7 +50,7 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
 
     /* ********************************************************************** */
 
-    public static ImmutablePair<List<Req>, List<FedQPLOperator>> divide(Set<FedQPLOperator> children) {
+    public static ImmutablePair<List<Req>, List<FedQPLOperator>> divide(List<FedQPLOperator> children) {
         List<Req> reqs = new ArrayList<>();
         List<FedQPLOperator> ops = new ArrayList<>();
         for (FedQPLOperator child : children) {
@@ -70,7 +72,7 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
             groups.get(req.getSource()).add(req);
         }
         return groups.entrySet().stream().map(e->
-            new Req(e.getValue().stream().map(r-> r.getTriples()).flatMap(List::stream).collect(Collectors.toList()),
+            new Req(e.getValue().stream().map(Req::getTriples).flatMap(List::stream).collect(Collectors.toList()),
                     e.getKey())).collect(Collectors.toList());
     }
 

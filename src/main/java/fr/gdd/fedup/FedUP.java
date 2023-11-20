@@ -2,6 +2,7 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedqpl.operators.FedQPLOperator;
 import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
+import fr.gdd.fedqpl.visitors.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
@@ -80,11 +81,13 @@ public class FedUP {
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check, can be improved
 
-        log.info("Optimizing the resulting FedQPL plan…");
-        // TODO TODO TODO
-
-        log.info("Building the SERVICE query…");
+        log.info("Building the FedQPL query…");
         FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
+
+        log.info("Optimizing the resulting FedQPL plan…");
+        asFedQPL = asFedQPL.visit(new FedQPLWithExclusiveGroupsVisitor());
+
+        log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = asFedQPL.visit(new FedQPL2SPARQLVisitor());
         String asSERVICE = OpAsQuery.asQuery(asSPARQL).toString();
 
