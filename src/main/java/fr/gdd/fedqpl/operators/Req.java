@@ -15,26 +15,21 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Request.
+ * Request. The whole `Op` is meant to be executed on a
+ * single remote endpoint.
  */
 public class Req implements FedQPLOperator {
 
-    // TODO Not only List<Triple> but actually List<Op>
-    List<Triple> triples;
+    Op op;
     Node source;
 
-    public Req(Triple triple, Node source) {
-        this.triples = List.of(triple);
+    public Req(Op op, Node source) {
+        this.op = op;
         this.source = source;
     }
 
-    public Req(List<Triple> triples, Node source) {
-        this.triples = triples;
-        this.source = source;
-    }
-
-    public List<Triple> getTriples() {
-        return triples;
+    public Op getOp() {
+        return op;
     }
 
     public Node getSource() {

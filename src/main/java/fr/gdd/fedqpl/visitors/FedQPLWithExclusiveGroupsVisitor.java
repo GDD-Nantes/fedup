@@ -3,6 +3,8 @@ package fr.gdd.fedqpl.visitors;
 import fr.gdd.fedqpl.operators.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Node;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.op.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,18 +16,52 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
 
     @Override
     public FedQPLOperator visit(Mu mu) {
-        // TODO check if union is inside a big Req when Req store List<Op>
-        return new Mu(mu.getChildren().stream().map(c -> c.visit(this)).collect(Collectors.toList()));
+        ImmutablePair<List<Req>, List<FedQPLOperator>> p = divide(mu.getChildren());
+        Map<Node, List<Req>> groups = group(p.getLeft());
+
+        // builds new nested unions
+        List<Req> newGroups = new ArrayList<>();
+        for (Node uri : groups.keySet()) {
+            if (groups.get(uri).size() <= 1) {
+                newGroups.add(groups.get(uri).getFirst());
+            } else {
+                Op left = groups.get(uri).getFirst().getOp();
+                for (int i = 1; i < groups.get(uri).size(); ++i) {
+                    Op right = groups.get(uri).get(i).getOp();
+                    left = OpUnion.create(left, right);
+                }
+                newGroups.add(new Req(left, uri));
+            }
+        }
+
+        List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).toList();
+
+        List<FedQPLOperator> muChildren = new ArrayList<>();
+        muChildren.addAll(newGroups);
+        muChildren.addAll(ops);
+
+        return new Mu(muChildren);
     }
 
     @Override
     public FedQPLOperator visit(Mj mj) {
         ImmutablePair<List<Req>, List<FedQPLOperator>> p = divide(mj.getChildren());
-        List<Req> groups = group(p.getLeft());
+        Map<Node, List<Req>> groups = group(p.getLeft());
+
+        // builds new joins
+        List<Req> newGroups = new ArrayList<>();
+        for (Node uri : groups.keySet()) {
+            if (groups.get(uri).size() <= 1) {
+                newGroups.add(groups.get(uri).getFirst());
+            } else {
+                newGroups.add(new Req(OpSequence.create().copy(groups.get(uri).stream().map(Req::getOp).collect(Collectors.toList())), uri));
+            }
+        }
+
         List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).toList();
 
         List<FedQPLOperator> mjChildren = new ArrayList<>();
-        mjChildren.addAll(groups);
+        mjChildren.addAll(newGroups);
         mjChildren.addAll(ops);
 
         return new Mj(mjChildren);
@@ -38,7 +74,17 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
 
     @Override
     public FedQPLOperator visit(LeftJoin lj) {
-        // TODO check if leftjoin is inside a big Req when Req store List<Op>
+        // check if left and right should be one big `Req` then merge
+        // meaning they should have been simplified to the maximum beforehand.
+        if (lj.getLeft() instanceof Req && lj.getRight() instanceof Req) {
+            Req left = (Req) lj.getLeft();
+            Req right = (Req) lj.getRight();
+
+            if (left.getSource().equals(right.getSource())) {
+                return new Req(new OpConditional(left.getOp(), right.getOp()), left.getSource());
+            }
+        }
+        // otherwise just run the thing inside each branch
         return new LeftJoin(lj.getLeft().visit(this), lj.getRight().visit(this));
     }
 
@@ -64,16 +110,14 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
     }
 
     // careful, the order might be different
-    public static List<Req> group(List<Req> toGroup) {
+    public static Map<Node, List<Req>> group(List<Req> toGroup) {
         Map<Node, List<Req>> groups = new HashMap<>();
         for (Req req: toGroup) {
             if (!groups.containsKey(req.getSource()))
                 groups.put(req.getSource(), new ArrayList<>());
             groups.get(req.getSource()).add(req);
         }
-        return groups.entrySet().stream().map(e->
-            new Req(e.getValue().stream().map(Req::getTriples).flatMap(List::stream).collect(Collectors.toList()),
-                    e.getKey())).collect(Collectors.toList());
+        return groups;
     }
 
 }

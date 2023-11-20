@@ -15,8 +15,7 @@ public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
 
     @Override
     public Op visit(Req req) {
-        OpService service = new OpService(req.getSource(),
-                new OpBGP(BasicPattern.wrap(req.getTriples())),
+        OpService service = new OpService(req.getSource(), req.getOp(),
                 false); // false : if the service returns an error, the whole query fails
         return service;
     }

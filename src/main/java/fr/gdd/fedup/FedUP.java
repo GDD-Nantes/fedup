@@ -11,7 +11,7 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
@@ -32,12 +32,14 @@ public class FedUP {
 
     // The quotient summary to retrieve possibly relevant sources.
     final Dataset summary;
-    final Dataset ds4Asks; // TODO
+    Dataset ds4Asks = null; // mostly for testing purposes
 
     public FedUP (String pathToSummary, String pathToId) {
         log.debug("Loading the summary file %s", pathToSummary);
         this.summary = TDB2Factory.connectDataset(pathToSummary);
-        this.ds4Asks = TDB2Factory.connectDataset(pathToId);
+        if (!pathToId.isEmpty()) {
+            this.ds4Asks = TDB2Factory.connectDataset(pathToId);
+        }
     }
 
     public FedUP (Summary summary, Dataset ds4Asks) {
@@ -85,11 +87,12 @@ public class FedUP {
         FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
 
         log.info("Optimizing the resulting FedQPL plan…");
+        // TODO more optimization and simplification
         asFedQPL = asFedQPL.visit(new FedQPLWithExclusiveGroupsVisitor());
 
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = asFedQPL.visit(new FedQPL2SPARQLVisitor());
-        String asSERVICE = OpAsQuery.asQuery(asSPARQL).toString();
+        String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
 
         log.info("Built the following query:\n{}", asSERVICE);
         return asSERVICE;

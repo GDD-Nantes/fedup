@@ -52,7 +52,7 @@ public class SA2FedQPL extends ReturningOpVisitor<FedQPLOperator> {
         }
         return Objects.isNull(quad)?
                 null:
-                new Req(opTriple.getTriple(), NodeFactory.createURI(assignment.get(quad.getGraph())));
+                new Req(opTriple, NodeFactory.createURI(assignment.get(quad.getGraph())));
     }
 
     @Override
