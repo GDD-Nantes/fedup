@@ -76,16 +76,22 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
     public FedQPLOperator visit(LeftJoin lj) {
         // check if left and right should be one big `Req` then merge
         // meaning they should have been simplified to the maximum beforehand.
-        if (lj.getLeft() instanceof Req && lj.getRight() instanceof Req) {
-            Req left = (Req) lj.getLeft();
-            Req right = (Req) lj.getRight();
+        FedQPLOperator leftOp = lj.getLeft();
+        FedQPLOperator rightOp = lj.getRight();
+
+        leftOp = leftOp.visit(new FedQPLSimplifyVisitor());
+        rightOp = rightOp.visit(new FedQPLSimplifyVisitor());
+
+        if (rightOp instanceof Req && leftOp instanceof Req) {
+            Req left = (Req) rightOp;
+            Req right = (Req) leftOp;
 
             if (left.getSource().equals(right.getSource())) {
                 return new Req(new OpConditional(left.getOp(), right.getOp()), left.getSource());
             }
         }
         // otherwise just run the thing inside each branch
-        return new LeftJoin(lj.getLeft().visit(this), lj.getRight().visit(this));
+        return new LeftJoin(leftOp.visit(this), rightOp.visit(this));
     }
 
     @Override
