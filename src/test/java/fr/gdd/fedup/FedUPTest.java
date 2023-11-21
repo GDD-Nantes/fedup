@@ -77,7 +77,6 @@ class FedUPTest {
         stopServers(servers);
     }
 
-    @Disabled
     @Test
     public void every_person_with_its_OPTIONAL_animal () {
         // The expected FedQPL expression is:
@@ -110,6 +109,65 @@ class FedUPTest {
         log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
         stopServers(servers);
     }
+
+    @Test
+    public void every_person_with_its_OPTIONAL_animal_and_its_number () {
+        String queryAsString = """
+                SELECT * WHERE {
+                    <http://auth/person> <http://auth/named> ?person .
+                    OPTIONAL {
+                        ?person <http://auth/owns> ?animal
+                    }
+                    OPTIONAL {
+                        ?person <http://auth/nbPets> ?nb
+                    }
+                }""";
+        FedUP fedup = new FedUP(summary, dataset);
+
+        String result = fedup.query(queryAsString, endpoints);
+
+        // In the summary, they are placeholder, so we replace the value by the proper
+        // In reality, the summary would have ingested the actual uri, so no problem.
+        String endpointA = "http://localhost:3333/graphA/sparql";
+        String endpointB = "http://localhost:3334/graphB/sparql";
+        result = result.replace("https://graphA.org", endpointA)
+                .replace("https://graphB.org", endpointB);
+
+        List<FusekiServer> servers = startServers();
+        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
+        stopServers(servers);
+    }
+
+    @Test
+    public void every_person_with_its_OPTIONAL_animal_and_its_number_when_the_animal_exists () {
+        // Slightly different query than before. The OPTIONAL is nested inside the
+        // OPTIONAL animal.
+        String queryAsString = """
+                SELECT * WHERE {
+                    <http://auth/person> <http://auth/named> ?person .
+                    OPTIONAL {
+                        ?person <http://auth/owns> ?animal
+                         OPTIONAL {
+                            ?person <http://auth/nbPets> ?nb
+                        }
+                   }
+                }""";
+        FedUP fedup = new FedUP(summary, dataset);
+
+        String result = fedup.query(queryAsString, endpoints);
+
+        // In the summary, they are placeholder, so we replace the value by the proper
+        // In reality, the summary would have ingested the actual uri, so no problem.
+        String endpointA = "http://localhost:3333/graphA/sparql";
+        String endpointB = "http://localhost:3334/graphB/sparql";
+        result = result.replace("https://graphA.org", endpointA)
+                .replace("https://graphB.org", endpointB);
+
+        List<FusekiServer> servers = startServers();
+        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
+        stopServers(servers);
+    }
+
 
     /* ********************************************************************** */
 

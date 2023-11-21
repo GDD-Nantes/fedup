@@ -5,11 +5,13 @@ import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
-import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -18,11 +20,14 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SA2FedQPLTest {
 
     Logger log = LoggerFactory.getLogger(SA2FedQPLTest.class);
+
+    static String SILENT = "SILENT";
 
     @Test
     public void one_triple_and_its_unique_source_assignment () {
@@ -34,7 +39,8 @@ class SA2FedQPLTest {
         );
 
         ToQuadsTransform tqt = new ToQuadsTransform();
-        tqt.add(Var.alloc("g1"), new Quad(Var.alloc("g1"), Var.alloc("s"), Var.alloc("p"), Var.alloc("o")));
+        tqt.transform(new OpBGP(BasicPattern.wrap(List.of(
+                        new Triple(Var.alloc("s"), Var.alloc("p"), Var.alloc("o"))))));
 
         FedQPLOperator fedqpl = SA2FedQPL.build(op, assignments, tqt);
         assertTrue(fedqpl instanceof Mu);
@@ -42,17 +48,12 @@ class SA2FedQPLTest {
         assertTrue(((Mu)fedqpl).getChildren().stream().allMatch(o->
             o instanceof Mj && ((Mj)o).getChildren().size() == 1
         ));
-        /* assertEquals(new Mu(Set.of(new Mj(Set.of(
-                new Req(
-                        new Triple(Var.alloc("s"), Var.alloc("p"), Var.alloc("o")),
-                        NodeFactory.createURI("http://graphA")
-                ))))), fedqpl.toString());*/
 
         FedQPL2SPARQLVisitor toSPARQLVisitor = new FedQPL2SPARQLVisitor();
         Op asSPARQL = fedqpl.visit(toSPARQLVisitor);
 
         log.debug(OpAsQuery.asQuery(asSPARQL).toString());
-        assertEquals("SELECT*WHERE{SERVICE<http://graphA>{?s?p?o}}",
+        assertEquals(String.format("SELECT*WHERE{SERVICE%s<http://graphA>{?s?p?o}}", SILENT),
                 OpAsQuery.asQuery(asSPARQL).toString().replace(" ", "")
                         .replace("\n", "")
         );
@@ -69,7 +70,8 @@ class SA2FedQPLTest {
         );
 
         ToQuadsTransform tqt = new ToQuadsTransform();
-        tqt.add(Var.alloc("g1"), new Quad(Var.alloc("g1"), Var.alloc("s"), Var.alloc("p"), Var.alloc("o")));
+        tqt.transform(new OpBGP(BasicPattern.wrap(List.of(
+                        new Triple(Var.alloc("s"), Var.alloc("p"), Var.alloc("o"))))));
 
         FedQPLOperator fedqpl = SA2FedQPL.build(op, assignments, tqt);
         assertTrue(fedqpl instanceof Mu);
@@ -80,7 +82,7 @@ class SA2FedQPLTest {
 
         FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
         op = fedqpl.visit(toSparql);
-        assertEquals("SELECT*WHERE{{SERVICE<http://graphA>{?s?p?o}}UNION{SERVICE<http://graphB>{?s?p?o}}}",
+        assertEquals(String.format("SELECT*WHERE{{SERVICE%s<http://graphA>{?s?p?o}}UNION{SERVICE%s<http://graphB>{?s?p?o}}}", SILENT, SILENT),
                 OpAsQuery.asQuery(op).toString()
                         .replace(" ", "")
                         .replace("\n", ""));

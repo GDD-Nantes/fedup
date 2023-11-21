@@ -10,67 +10,135 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpLeftJoin;
 import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
+import org.checkerframework.checker.units.qual.A;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * Convert source assignments & logical plan into a service query.
+ * A source assignments is a list of sources that are expected to provide
+ * actual results. By itself, it is not sufficient to provide correct and
+ * complete results of the query.
+ *
+ * Along with the original query plan, this visitor converts the source assignments
+ * into a FedQPL expression that encodes the federated query to perform.
  */
-public class SA2FedQPL extends ReturningOpVisitor<FedQPLOperator> {
+public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
 
     public static FedQPLOperator build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt){
-        Mu mu = new Mu();
-        assignments.forEach(a -> {
-            SA2FedQPL sa2sq = new SA2FedQPL(a, tqt);
-            mu.addChild(ReturningOpVisitorRouter.visit(sa2sq, query));
-        });
-        return mu;
+        return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt), query).stream().toList()); // root mu
     }
 
-    Map<Var, String> assignment;
+    /* *************************************************************** */
+
+    List<Map<Var, String>> assignments;
     ToQuadsTransform toQuads;
 
-    public SA2FedQPL(Map<Var, String> assignment, ToQuadsTransform tqt) {
-        this.assignment = assignment;
+    Map<FedQPLOperator, Map<Var, String>> fedQPL2PartialAssignment = new HashMap<>();
+
+    public SA2FedQPL(List<Map<Var, String>> assignments, ToQuadsTransform tqt) {
+        this.assignments = assignments;
         this.toQuads = tqt;
     }
 
     @Override
-    public FedQPLOperator visit(OpTriple opTriple) {
-        Quad quad = null;
-        for (Var g : assignment.keySet()) {
-            if (toQuads.getQuad2var().containsKey(new Quad(g, opTriple.getTriple()))) {
-                quad = new Quad(g, opTriple.getTriple());
-                break;
+    public Set<FedQPLOperator> visit(OpTriple opTriple) {
+        Set<FedQPLOperator> result = new HashSet<>();
+        Var g = toQuads.findVar(opTriple);
+        for (Map<Var, String> assignment : assignments) {
+            if (assignment.containsKey(g)) {
+                Req req = new Req(opTriple, NodeFactory.createURI(assignment.get(g)));
+                result.add(req);
+                fedQPL2PartialAssignment.put(req, Map.of(g, assignment.get(g)));
             }
         }
-        return Objects.isNull(quad)?
-                null:
-                new Req(opTriple, NodeFactory.createURI(assignment.get(quad.getGraph())));
+        return result;
     }
 
     @Override
-    public FedQPLOperator visit(OpBGP opBGP) {
-        Mj mj = new Mj();
-        for (Triple t : opBGP.getPattern().getList()) {
-            FedQPLOperator child = this.visit(new OpTriple(t));
-            if (Objects.nonNull(child)) {
-                mj.addChild(child);
-            }
+    public Set<FedQPLOperator> visit(OpBGP opBGP) {
+        // Could do all possibilities by calling all sub-triple pattern
+        // then examine which combinations actually checks out. But this would
+        // be very inefficient.
+        // Instead, checking directly which results exist
+        Set<FedQPLOperator> result = new HashSet<>();
+
+        Set<Var> gs = toQuads.findVars(opBGP);
+
+        List<Map<Var, String>> saOfGs = allSourcesAreSet(gs);
+
+        for (Map<Var, String> assignment : saOfGs) {
+            Mj mj = new Mj();
+            assignment.entrySet().forEach(a -> {
+                Req req = new Req(new OpTriple(toQuads.getVar2quad().get(a.getKey()).asTriple()),
+                        NodeFactory.createURI(a.getValue()));
+                mj.addChild(req);
+            });
+            result.add(mj);
+            fedQPL2PartialAssignment.put(mj, assignment);
         }
 
-        return mj.getChildren().isEmpty() ? null : mj;
+        return result;
     }
 
     @Override
-    public FedQPLOperator visit(OpLeftJoin lj) {
-        FedQPLOperator left = ReturningOpVisitorRouter.visit(this, lj.getLeft());
-        FedQPLOperator right = ReturningOpVisitorRouter.visit(this, lj.getRight());
+    public Set<FedQPLOperator> visit(OpLeftJoin lj) {
+        Set<FedQPLOperator> results = new HashSet<>();
 
-        return Objects.isNull(right)? left: new LeftJoin(left, right);
+        Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, lj.getLeft());
+        Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, lj.getRight());
+
+        for (FedQPLOperator left : lefts) {
+            Mu mu = new Mu();
+
+            for (FedQPLOperator right : rights) {
+                Map<Var, String> assignmentToTest = new HashMap<>();
+                assignmentToTest.putAll(fedQPL2PartialAssignment.get(left));
+                assignmentToTest.putAll(fedQPL2PartialAssignment.get(right));
+                if (theResultExists(assignmentToTest)) {
+                    mu.addChild(right);
+                    fedQPL2PartialAssignment.put(mu, assignmentToTest);
+                }
+            }
+
+            if (mu.getChildren().isEmpty()) {
+                results.add(left); // nothing in OPT
+            } else {
+                LeftJoin leftJoin = new LeftJoin(left, mu);
+                results.add(leftJoin);
+                Map<Var, String> assignmentToAdd = new HashMap<>();
+                assignmentToAdd.putAll(fedQPL2PartialAssignment.get(left));
+                assignmentToAdd.putAll(fedQPL2PartialAssignment.get(mu));
+                fedQPL2PartialAssignment.put(leftJoin, assignmentToAdd);
+            }
+        }
+
+        return results;
     }
+
+    /* *************************************************************** */
+
+    public List<Map<Var, String>> allSourcesAreSet(Set<Var> vars) {
+        List<Map<Var, String>> results = new ArrayList<>();
+        for (Map<Var, String> assignment : assignments) {
+            if (vars.stream().allMatch(assignment::containsKey)) {
+                // only keep Var that are in vars
+                Map<Var, String> cutAssignment = assignment.entrySet().stream().filter(e -> vars.contains(e.getKey()) ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                results.add(cutAssignment);
+            }
+        }
+        return results;
+    }
+
+    public boolean theResultExists(Map<Var, String> partialAssignments) {
+        for (Map<Var, String> assignment : assignments) {
+            if (partialAssignments.entrySet().stream()
+                    .allMatch(e -> assignment.containsKey(e.getKey()) && assignment.get(e.getKey()).equals(e.getValue()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

@@ -8,7 +8,7 @@ import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.algebra.op.OpSlice;
 
 /**
- * Rempve operators that are noise to source selection.
+ * Remove operators that are noise to source selection.
  */
 public class ToRemoveNoiseTransformer extends TransformCopy {
 

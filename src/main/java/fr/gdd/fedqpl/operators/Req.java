@@ -12,6 +12,7 @@ import org.apache.jena.sparql.syntax.ElementTriplesBlock;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -39,5 +40,18 @@ public class Req implements FedQPLOperator {
     @Override
     public <T> T visit(FedQPLVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Req req = (Req) o;
+        return Objects.equals(op, req.op) && Objects.equals(source, req.source);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(op, source);
     }
 }

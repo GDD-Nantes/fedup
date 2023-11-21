@@ -7,6 +7,8 @@ import org.apache.jena.sparql.algebra.op.*;
 /**
  * Since `Transformer.transform` starts from the bottom, it's difficult to build
  * meaningful result between operators.
+ *
+ * TODO remove this in favor of {@link fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter}.
  */
 public class Top2BottomTransformer {
 

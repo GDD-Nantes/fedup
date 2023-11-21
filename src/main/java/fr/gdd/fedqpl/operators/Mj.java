@@ -4,6 +4,7 @@ import fr.gdd.fedqpl.visitors.FedQPLVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -37,5 +38,18 @@ public class Mj implements FedQPLOperator {
     @Override
     public <T> T visit(FedQPLVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Mj mj = (Mj) o;
+        return Objects.equals(children, mj.children);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(children);
     }
 }
