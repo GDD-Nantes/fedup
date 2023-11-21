@@ -1,6 +1,7 @@
 package fr.gdd.fedqpl.operators;
 
 import fr.gdd.fedqpl.visitors.FedQPLVisitor;
+import fr.gdd.fedqpl.visitors.FedQPLVisitorArg;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,11 @@ public class Mj implements FedQPLOperator {
     @Override
     public <T> T visit(FedQPLVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public <T,S> T visit(FedQPLVisitorArg<T,S> visitor, S arg) {
+        return visitor.visit(this, arg);
     }
 
     @Override

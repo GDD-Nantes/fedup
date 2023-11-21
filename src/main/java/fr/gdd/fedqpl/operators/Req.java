@@ -1,6 +1,7 @@
 package fr.gdd.fedqpl.operators;
 
 import fr.gdd.fedqpl.visitors.FedQPLVisitor;
+import fr.gdd.fedqpl.visitors.FedQPLVisitorArg;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Query;
@@ -40,6 +41,11 @@ public class Req implements FedQPLOperator {
     @Override
     public <T> T visit(FedQPLVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public <T,S> T visit(FedQPLVisitorArg<T,S> visitor, S arg) {
+        return visitor.visit(this, arg);
     }
 
     @Override

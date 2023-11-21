@@ -4,6 +4,7 @@ import fr.gdd.fedqpl.visitors.FedQPLVisitor;
 
 import java.util.*;
 
+import fr.gdd.fedqpl.visitors.FedQPLVisitorArg;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Op;
@@ -40,6 +41,11 @@ public class Mu implements FedQPLOperator {
     @Override
     public <T> T visit(FedQPLVisitor<T> visitor) {
         return visitor.visit(this);
+    }
+
+    @Override
+    public <T, S> T visit(FedQPLVisitorArg<T,S> visitor, S arg) {
+        return visitor.visit(this, arg);
     }
 
     @Override
