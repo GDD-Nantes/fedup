@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The main class of FedUP that build logical query plans for queries over
@@ -34,14 +35,20 @@ public class FedUP {
     final Dataset summary;
     Dataset ds4Asks = null; // mostly for testing purposes
 
-    public FedUP (String pathToSummary, String pathToId) {
+    public FedUP (String pathToSummary) {
         log.debug("Loading the summary file %s", pathToSummary);
         this.summary = TDB2Factory.connectDataset(pathToSummary);
-        if (!pathToId.isEmpty()) {
-            this.ds4Asks = TDB2Factory.connectDataset(pathToId);
-        }
     }
 
+    public FedUP (Summary summary) {
+        this.summary = summary.getSummary();
+    }
+
+    /**
+     * Mainly for testing purposes.
+     * @param summary The summary of the federation graphs.
+     * @param ds4Asks The full dataset of the federation graphs (to perform ASKS on it).
+     */
     public FedUP (Summary summary, Dataset ds4Asks) {
         this.summary = summary.getSummary();
         this.ds4Asks = ds4Asks;
@@ -82,6 +89,7 @@ public class FedUP {
 
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check, can be improved
+        log.debug("Assignments:\n{}", String.join("\n",assignments.stream().map(e -> e.toString()).collect(Collectors.toList()) ));
 
         log.info("Building the FedQPL query…");
         FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);

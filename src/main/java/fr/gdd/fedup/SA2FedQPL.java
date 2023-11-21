@@ -1,9 +1,6 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
-import fr.gdd.fedqpl.operators.Mj;
-import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.operators.Req;
+import fr.gdd.fedqpl.operators.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
@@ -11,6 +8,7 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.algebra.op.OpLeftJoin;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
@@ -59,8 +57,20 @@ public class SA2FedQPL extends ReturningOpVisitor<FedQPLOperator> {
     public FedQPLOperator visit(OpBGP opBGP) {
         Mj mj = new Mj();
         for (Triple t : opBGP.getPattern().getList()) {
-            mj.addChild(this.visit(new OpTriple(t)));
+            FedQPLOperator child = this.visit(new OpTriple(t));
+            if (Objects.nonNull(child)) {
+                mj.addChild(child);
+            }
         }
-        return mj;
+
+        return mj.getChildren().isEmpty() ? null : mj;
+    }
+
+    @Override
+    public FedQPLOperator visit(OpLeftJoin lj) {
+        FedQPLOperator left = ReturningOpVisitorRouter.visit(this, lj.getLeft());
+        FedQPLOperator right = ReturningOpVisitorRouter.visit(this, lj.getRight());
+
+        return Objects.isNull(right)? left: new LeftJoin(left, right);
     }
 }
