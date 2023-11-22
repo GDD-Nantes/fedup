@@ -143,6 +143,14 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
                 .setChild(new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList())));
     }
 
+    @Override
+    public Set<FedQPLOperator> visit(OpProject project) {
+        // hijack the root, which will be mu(slice(mu(rest))) therefore
+        // getting simplified easily
+        return Set.of(new Project(project.getVars())
+                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
+    }
+
     /* *************************************************************** */
 
     /**

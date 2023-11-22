@@ -111,6 +111,12 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
         return new OrderBy(orderBy.getConditions()).setChild(orderBy.getChild().visit(this));
     }
 
+    @Override
+    public FedQPLOperator visit(Project project) {
+        // TODO PROJECT push down, so it could be part of the query sent to endpoints.
+        return new Project(project.getVars()).setChild(project.getChild().visit(this));
+    }
+
     /* ********************************************************************** */
 
     public static ImmutablePair<List<Req>, List<FedQPLOperator>> divide(List<FedQPLOperator> children) {

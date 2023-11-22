@@ -24,4 +24,5 @@ public class ReturningOpVisitor<T> {
     public T visit(OpDistinct distinct) {throw new UnsupportedOperationException("OpDistinct");}
     public T visit(OpSlice slice) {throw new UnsupportedOperationException("OpSlice");}
     public T visit(OpOrder orderBy)  {throw new UnsupportedOperationException("OpOrder");}
+    public T visit(OpProject project) {throw new UnsupportedOperationException("OpProject");}
 }

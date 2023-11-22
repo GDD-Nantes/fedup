@@ -10,7 +10,6 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class FedUPTest {
 
-    private static Logger log = LoggerFactory.getLogger(FedUPTest.class);
+    private static final Logger log = LoggerFactory.getLogger(FedUPTest.class);
 
     static Dataset dataset;
     static Summary summary;
@@ -141,6 +140,45 @@ class FedUPTest {
                     ?people <http://auth/owns> ?animal
                 } ORDER BY ?animal LIMIT 1
                 """);
+    }
+
+    @Test
+    public void query_with_a_projected_variable () {
+        // should get Alice then David since it's order
+        // by their respective animal.
+        // TODO replace data structure so we can see the order
+        // TODO of arrival of results.
+        // TODO OR get next by next in the execution function
+        checkQueryWithActualEndpoints("""
+                SELECT ?people WHERE {
+                    ?people <http://auth/owns> ?animal
+                } ORDER BY ?animal
+                """);
+    }
+
+    @Test
+    public void query_with_twice_the_same_data () {
+        // twice the same data
+        // TODO this does not work so make it work
+        // TODO probably because we return Sets of FedQPLOperators, so they
+        // TODO are wrongfully fused together.
+        // TODO Need to disambiguate that they are two different triple patterns…
+        checkQueryWithActualEndpoints("""
+                SELECT * WHERE {
+                    { ?people <http://auth/owns> ?animal }
+                    UNION { ?people <http://auth/owns> ?animal }
+                }""");
+    }
+
+    @Test
+    public void query_with_a_distinct_to_remove_duplicates () {
+        // twice the same data but the distinct removes duplicates
+        // TODO implement OpDistinct
+        checkQueryWithActualEndpoints("""
+                SELECT DISTINCT * WHERE {
+                    { ?people <http://auth/owns> ?animal }
+                    UNION { ?people <http://auth/owns> ?animal }
+                }""");
     }
 
     /* ********************************************************************** */

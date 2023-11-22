@@ -79,4 +79,9 @@ public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
     public Op visit(OrderBy orderBy) {
         return new OpOrder(orderBy.getChild().visit(this), orderBy.getConditions());
     }
+
+    @Override
+    public Op visit(Project project) {
+        return new OpProject(project.getChild().visit(this), project.getVars());
+    }
 }

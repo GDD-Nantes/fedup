@@ -19,5 +19,6 @@ public interface FedQPLVisitor<T> {
     // query modifiers
     default T visit(Limit limit) {throw new UnsupportedOperationException("Limit");}
     default T visit(OrderBy orderBy) {throw new UnsupportedOperationException("OrderBy");}
+    default T visit(Project project) {throw new UnsupportedOperationException("Project");}
 }
 
