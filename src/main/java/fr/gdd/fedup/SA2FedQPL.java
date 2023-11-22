@@ -10,6 +10,7 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpLeftJoin;
 import org.apache.jena.sparql.algebra.op.OpTriple;
+import org.apache.jena.sparql.algebra.op.OpUnion;
 import org.apache.jena.sparql.core.Var;
 import org.checkerframework.checker.units.qual.A;
 
@@ -35,6 +36,8 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     List<Map<Var, String>> assignments;
     ToQuadsTransform toQuads;
 
+    // This is a way to save the work that has been done, but could
+    // be returned instead.
     Map<FedQPLOperator, Map<Var, String>> fedQPL2PartialAssignment = new HashMap<>();
 
     public SA2FedQPL(List<Map<Var, String>> assignments, ToQuadsTransform tqt) {
@@ -83,13 +86,23 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     }
 
     @Override
+    public Set<FedQPLOperator> visit(OpUnion union) {
+        Set<FedQPLOperator> results = new HashSet<>();
+        Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
+        Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
+        results.addAll(lefts);
+        results.addAll(rights);
+        return results;
+    }
+
+    @Override
     public Set<FedQPLOperator> visit(OpLeftJoin lj) {
         Set<FedQPLOperator> results = new HashSet<>();
 
         Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, lj.getLeft());
         Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, lj.getRight());
 
-        for (FedQPLOperator left : lefts) {
+        for (FedQPLOperator left : lefts) { // for each mandatory part
             Mu mu = new Mu();
 
             for (FedQPLOperator right : rights) {
@@ -119,6 +132,10 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
 
     /* *************************************************************** */
 
+    /**
+     * @param vars The set of variables to check.
+     * @return All results where the variables are set along with their value.
+     */
     public List<Map<Var, String>> allSourcesAreSet(Set<Var> vars) {
         List<Map<Var, String>> results = new ArrayList<>();
         for (Map<Var, String> assignment : assignments) {
@@ -131,9 +148,13 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
         return results;
     }
 
-    public boolean theResultExists(Map<Var, String> partialAssignments) {
+    /**
+     * @param partialAssignment Variables and their respective value.
+     * @return True if in an assignment, they all exist and are set with the appropriate value
+     */
+    public boolean theResultExists(Map<Var, String> partialAssignment) {
         for (Map<Var, String> assignment : assignments) {
-            if (partialAssignments.entrySet().stream()
+            if (partialAssignment.entrySet().stream()
                     .allMatch(e -> assignment.containsKey(e.getKey()) && assignment.get(e.getKey()).equals(e.getValue()))) {
                 return true;
             }

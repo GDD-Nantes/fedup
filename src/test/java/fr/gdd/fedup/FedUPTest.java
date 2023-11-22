@@ -56,25 +56,11 @@ class FedUPTest {
     public void simple_query_with_two_endpoints () {
         // Alice is a constant, so it gets actually checked using an ASK
         // and since only graphA has it, it means tp#1@A&B, and tp#2@A.
-        String queryAsString = """
+        checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     ?s <http://auth/named> ?o .
                     ?s <http://auth/named> <http://auth/Alice>
-                }""";
-        FedUP fedup = new FedUP(summary, dataset);
-
-        String result = fedup.query(queryAsString, endpoints);
-
-        // In the summary, they are placeholder, so we replace the value by the proper
-        // In reality, the summary would have ingested the actual uri, so no problem.
-        String endpointA = "http://localhost:3333/graphA/sparql";
-        String endpointB = "http://localhost:3334/graphB/sparql";
-        result = result.replace("https://graphA.org", endpointA)
-                .replace("https://graphB.org", endpointB);
-
-        List<FusekiServer> servers = startServers();
-        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
-        stopServers(servers);
+                }""");
     }
 
     @Test
@@ -86,63 +72,30 @@ class FedUPTest {
         // Mu { @1 Lj @1, @1 Lj @2, @2 Lj @2, @2 Lj @1 }
         // Among others, Bob does not own a pet, which is true in @1 Lj @1 and
         // @1 Lj @2, therefore, the prefix is repeated which leads to wrong results.
-
-        String queryAsString = """
+        checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL {
                         ?person <http://auth/owns> ?animal
                     }
-                }""";
-        FedUP fedup = new FedUP(summary, dataset);
-
-        String result = fedup.query(queryAsString, endpoints);
-
-        // In the summary, they are placeholder, so we replace the value by the proper
-        // In reality, the summary would have ingested the actual uri, so no problem.
-        String endpointA = "http://localhost:3333/graphA/sparql";
-        String endpointB = "http://localhost:3334/graphB/sparql";
-        result = result.replace("https://graphA.org", endpointA)
-                .replace("https://graphB.org", endpointB);
-
-        List<FusekiServer> servers = startServers();
-        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
-        stopServers(servers);
+                }""");
     }
 
     @Test
     public void every_person_with_its_OPTIONAL_animal_and_its_number () {
-        String queryAsString = """
+        checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?person .
-                    OPTIONAL {
-                        ?person <http://auth/owns> ?animal
-                    }
-                    OPTIONAL {
-                        ?person <http://auth/nbPets> ?nb
-                    }
-                }""";
-        FedUP fedup = new FedUP(summary, dataset);
-
-        String result = fedup.query(queryAsString, endpoints);
-
-        // In the summary, they are placeholder, so we replace the value by the proper
-        // In reality, the summary would have ingested the actual uri, so no problem.
-        String endpointA = "http://localhost:3333/graphA/sparql";
-        String endpointB = "http://localhost:3334/graphB/sparql";
-        result = result.replace("https://graphA.org", endpointA)
-                .replace("https://graphB.org", endpointB);
-
-        List<FusekiServer> servers = startServers();
-        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
-        stopServers(servers);
+                    OPTIONAL { ?person <http://auth/owns> ?animal }
+                    OPTIONAL { ?person <http://auth/nbPets> ?nb }
+                }""");
     }
 
     @Test
     public void every_person_with_its_OPTIONAL_animal_and_its_number_when_the_animal_exists () {
         // Slightly different query than before. The OPTIONAL is nested inside the
         // OPTIONAL animal.
-        String queryAsString = """
+       checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL {
@@ -151,7 +104,37 @@ class FedUPTest {
                             ?person <http://auth/nbPets> ?nb
                         }
                    }
-                }""";
+                }""");
+    }
+
+    @Test
+    public void retrieve_all_people_and_all_animals_with_a_union () {
+        checkQueryWithActualEndpoints("""
+                SELECT * WHERE {
+                    {<http://auth/person> <http://auth/named> ?person .}
+                    UNION { ?any <http://auth/owns> ?animal }
+                }""");
+    }
+
+    @Test
+    public void retrieve_triples_from_disjoint_sources () {
+        // Alice -> cat @A
+        // David -> dog @B
+        checkQueryWithActualEndpoints("""
+                SELECT * WHERE {
+                    {<http://auth/Alice> <http://auth/owns> ?cat .}
+                    UNION { <http://auth/David> <http://auth/owns> ?dog }
+                }""");
+    }
+
+    /* ********************************************************************** */
+
+    /**
+     * Factorize the code to execute locally and on remote endpoint to check
+     * if everything is ok.
+     * @param queryAsString The normal query to execute (not the service one).
+     */
+    public static void checkQueryWithActualEndpoints(String queryAsString) {
         FedUP fedup = new FedUP(summary, dataset);
 
         String result = fedup.query(queryAsString, endpoints);
@@ -167,7 +150,6 @@ class FedUPTest {
         log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
         stopServers(servers);
     }
-
 
     /* ********************************************************************** */
 

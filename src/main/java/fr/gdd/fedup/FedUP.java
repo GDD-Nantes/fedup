@@ -77,7 +77,9 @@ public class FedUP {
         List<Map<Var, String>> assignments = new ArrayList<>();
         Set<Integer> seen = new TreeSet<>();
         while (iterator.hasNext()) {
-            Binding binding = iterator.next(); // TODO create FedQPL here
+            // TODO create FedQPL here
+            // TODO but it's much more difficult in presence of OPTIONAL
+            Binding binding = iterator.next();
             int hashcode = binding.toString().hashCode();
             if (!seen.contains(hashcode)) {
                 seen.add(hashcode);
@@ -88,7 +90,7 @@ public class FedUP {
         summary.end();
 
         log.info("Removing duplicates and inclusions in logical plan…");
-        assignments = removeInclusions(assignments); // TODO double check, can be improved
+        assignments = removeInclusions(assignments); // TODO double check if it can be improved
         log.debug("Assignments:\n{}", String.join("\n",assignments.stream().map(e -> e.toString()).collect(Collectors.toList()) ));
 
         log.info("Building the FedQPL query…");
