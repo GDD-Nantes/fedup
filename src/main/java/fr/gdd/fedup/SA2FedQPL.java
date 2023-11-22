@@ -5,14 +5,9 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.op.OpBGP;
-import org.apache.jena.sparql.algebra.op.OpLeftJoin;
-import org.apache.jena.sparql.algebra.op.OpTriple;
-import org.apache.jena.sparql.algebra.op.OpUnion;
+import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
-import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -87,6 +82,8 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
 
     @Override
     public Set<FedQPLOperator> visit(OpUnion union) {
+        // nothing to register in `fedQPL2PartialAssignment`
+        // since everything is already set on visit of left and right
         Set<FedQPLOperator> results = new HashSet<>();
         Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
         Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
@@ -128,6 +125,22 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
         }
 
         return results;
+    }
+
+    @Override
+    public Set<FedQPLOperator> visit(OpSlice slice) {
+        // hijack the root, which will be mu(slice(mu(rest))) therefore
+        // getting simplified easily
+        return Set.of(new Limit(slice.getStart(), slice.getLength())
+                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, slice.getSubOp()).stream().toList())));
+    }
+
+    @Override
+    public Set<FedQPLOperator> visit(OpOrder orderBy) {
+        // hijack the root, which will be mu(slice(mu(rest))) therefore
+        // getting simplified easily
+        return Set.of(new OrderBy(orderBy.getConditions())
+                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList())));
     }
 
     /* *************************************************************** */

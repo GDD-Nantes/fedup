@@ -99,6 +99,17 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
         return new Filter(filter.getExprs(), filter.getSubOp().visit(this));
     }
 
+    @Override
+    public FedQPLOperator visit(Limit limit) {
+        // TODO LIMIT push down, so it could be part of the query sent to endpoints.
+        return new Limit(limit.getStart(), limit.getLength()).setChild(limit.getChild().visit(this));
+    }
+
+    @Override
+    public FedQPLOperator visit(OrderBy orderBy) {
+        // TODO ORDERBY push down, so it could be part of the query sent to endpoints.
+        return new OrderBy(orderBy.getConditions()).setChild(orderBy.getChild().visit(this));
+    }
 
     /* ********************************************************************** */
 

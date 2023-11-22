@@ -69,4 +69,14 @@ public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
                 filter.getExprs(),
                 filter.getSubOp().visit(this));
     }
+
+    @Override
+    public Op visit(Limit limit) {
+        return new OpSlice(limit.getChild().visit(this), limit.getStart(), limit.getLength());
+    }
+
+    @Override
+    public Op visit(OrderBy orderBy) {
+        return new OpOrder(orderBy.getChild().visit(this), orderBy.getConditions());
+    }
 }

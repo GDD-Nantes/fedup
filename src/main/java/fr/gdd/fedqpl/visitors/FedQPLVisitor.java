@@ -9,10 +9,15 @@ import fr.gdd.fedqpl.operators.*;
  * and implements visit.
  */
 public interface FedQPLVisitor<T> {
+    // operators
     default T visit(Mu mu) {throw new UnsupportedOperationException("Mu");}
     default T visit(Mj mj) {throw new UnsupportedOperationException("Mj");}
     default T visit(Req req) {throw new UnsupportedOperationException("Req");}
     default T visit(LeftJoin lj) {throw new UnsupportedOperationException("LeftJoin");}
     default T visit(Filter filter) {throw new UnsupportedOperationException("Filter");}
+
+    // query modifiers
+    default T visit(Limit limit) {throw new UnsupportedOperationException("Limit");}
+    default T visit(OrderBy orderBy) {throw new UnsupportedOperationException("OrderBy");}
 }
 

@@ -20,6 +20,10 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Testing the whole process from getting a query to the retrieving the results
+ * over the federation of SPARQL endpoints.
+ */
 class FedUPTest {
 
     private static Logger log = LoggerFactory.getLogger(FedUPTest.class);
@@ -125,6 +129,18 @@ class FedUPTest {
                     {<http://auth/Alice> <http://auth/owns> ?cat .}
                     UNION { <http://auth/David> <http://auth/owns> ?dog }
                 }""");
+    }
+
+    @Test
+    public void query_with_a_limit_and_order_by () {
+        // should only get Alice -> cat or David -> dog, but with ORDER BY
+        // should only get Alice -> cat since "dog" is after "cat" in
+        // lexicographical order.
+        checkQueryWithActualEndpoints("""
+                SELECT * WHERE {
+                    ?people <http://auth/owns> ?animal
+                } ORDER BY ?animal LIMIT 1
+                """);
     }
 
     /* ********************************************************************** */
