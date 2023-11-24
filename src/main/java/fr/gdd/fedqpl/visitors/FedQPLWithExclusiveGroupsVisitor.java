@@ -4,6 +4,7 @@ import fr.gdd.fedqpl.operators.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.op.*;
 
 import java.util.*;
@@ -12,31 +13,34 @@ import java.util.stream.Collectors;
 /**
  * Create exclusive groups when they are close from each other
  */
-public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOperator> {
+public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpVisitor<Op> {
+
+    public static boolean SILENT = true;
 
     @Override
-    public FedQPLOperator visit(Mu mu) {
-        ImmutablePair<List<Req>, List<FedQPLOperator>> p = divide(mu.getChildren());
-        Map<Node, List<Req>> groups = group(p.getLeft());
+    public Op visit(Mu mu) {
+        ImmutablePair<List<OpService>, List<Op>> p = divide(mu.getElements());
+        Map<Node, List<OpService>> groups = group(p.getLeft());
 
         // builds new nested unions
-        List<Req> newGroups = new ArrayList<>();
+        List<OpService> newGroups = new ArrayList<>();
         for (Node uri : groups.keySet()) {
             if (groups.get(uri).size() <= 1) {
                 newGroups.add(groups.get(uri).getFirst());
             } else {
-                Op left = groups.get(uri).getFirst().getOp();
+                Op left = groups.get(uri).getFirst().getSubOp();
                 for (int i = 1; i < groups.get(uri).size(); ++i) {
-                    Op right = groups.get(uri).get(i).getOp();
+                    Op right = groups.get(uri).get(i).getSubOp();
                     left = OpUnion.create(left, right);
                 }
-                newGroups.add(new Req(left, uri));
+                newGroups.add(new OpService(uri, left, SILENT));
             }
         }
 
-        List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).toList();
+        List<Op> ops = p.getRight().stream().map(o ->
+                ReturningOpVisitorRouter.visit(this, o)).toList();
 
-        List<FedQPLOperator> muChildren = new ArrayList<>();
+        List<Op> muChildren = new ArrayList<>();
         muChildren.addAll(newGroups);
         muChildren.addAll(ops);
 
@@ -44,23 +48,26 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
     }
 
     @Override
-    public FedQPLOperator visit(Mj mj) {
-        ImmutablePair<List<Req>, List<FedQPLOperator>> p = divide(mj.getChildren());
-        Map<Node, List<Req>> groups = group(p.getLeft());
+    public Op visit(Mj mj) {
+        ImmutablePair<List<OpService>, List<Op>> p = divide(mj.getElements());
+        Map<Node, List<OpService>> groups = group(p.getLeft());
 
         // builds new joins
-        List<Req> newGroups = new ArrayList<>();
+        List<OpService> newGroups = new ArrayList<>();
         for (Node uri : groups.keySet()) {
             if (groups.get(uri).size() <= 1) {
                 newGroups.add(groups.get(uri).getFirst());
             } else {
-                newGroups.add(new Req(OpSequence.create().copy(groups.get(uri).stream().map(Req::getOp).collect(Collectors.toList())), uri));
+                newGroups.add(new OpService(uri,
+                        OpSequence.create().copy(groups.get(uri).stream().map(Op1::getSubOp).collect(Collectors.toList())),
+                        SILENT));
             }
         }
 
-        List<FedQPLOperator> ops = p.getRight().stream().map(o -> o.visit(this)).toList();
+        List<Op> ops = p.getRight().stream().map(o ->
+                ReturningOpVisitorRouter.visit(this, o)).toList();
 
-        List<FedQPLOperator> mjChildren = new ArrayList<>();
+        List<Op> mjChildren = new ArrayList<>();
         mjChildren.addAll(newGroups);
         mjChildren.addAll(ops);
 
@@ -68,63 +75,73 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
     }
 
     @Override
-    public FedQPLOperator visit(Req req) {
+    public Op visit(OpService req) {
         return req; // do nothing
     }
 
     @Override
-    public FedQPLOperator visit(LeftJoin lj) {
+    public Op visit(OpConditional lj) {
         // check if left and right should be one big `Req` then merge
         // meaning they should have been simplified to the maximum beforehand.
-        FedQPLOperator leftOp = lj.getLeft();
-        FedQPLOperator rightOp = lj.getRight();
+        Op leftOp = lj.getLeft();
+        Op rightOp = lj.getRight();
 
-        leftOp = leftOp.visit(new FedQPLSimplifyVisitor());
-        rightOp = rightOp.visit(new FedQPLSimplifyVisitor());
+        leftOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), leftOp);
+        rightOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), rightOp);
 
-        if (rightOp instanceof Req && leftOp instanceof Req) {
-            Req left = (Req) rightOp;
-            Req right = (Req) leftOp;
+        if (rightOp instanceof OpService && leftOp instanceof OpService) {
+            OpService left = (OpService) rightOp;
+            OpService right = (OpService) leftOp;
 
-            if (left.getSource().equals(right.getSource())) {
-                return new Req(new OpConditional(left.getOp(), right.getOp()), left.getSource());
+            if (left.getService().equals(right.getService())) {
+                return new OpService(left.getService(),
+                        new OpConditional(left.getSubOp(), right.getSubOp()),
+                        SILENT);
             }
         }
         // otherwise just run the thing inside each branch
-        return new LeftJoin(leftOp.visit(this), rightOp.visit(this));
+        leftOp = ReturningOpVisitorRouter.visit(this, leftOp);
+        rightOp = ReturningOpVisitorRouter.visit(this, rightOp);
+        return new OpConditional(leftOp, rightOp);
     }
 
     @Override
-    public FedQPLOperator visit(Filter filter) {
-        return new Filter(filter.getExprs(), filter.getSubOp().visit(this));
+    public Op visit(OpFilter filter) {
+        return filter; // TODO filter push down in SERVICE
     }
 
     @Override
-    public FedQPLOperator visit(Limit limit) {
+    public Op visit(OpSlice limit) {
         // TODO LIMIT push down, so it could be part of the query sent to endpoints.
-        return new Limit(limit.getStart(), limit.getLength()).setChild(limit.getChild().visit(this));
+        return limit;
     }
 
     @Override
-    public FedQPLOperator visit(OrderBy orderBy) {
+    public Op visit(OpGroup orderBy) {
         // TODO ORDERBY push down, so it could be part of the query sent to endpoints.
-        return new OrderBy(orderBy.getConditions()).setChild(orderBy.getChild().visit(this));
+        return orderBy;
     }
 
     @Override
-    public FedQPLOperator visit(Project project) {
+    public Op visit(OpProject project) {
         // TODO PROJECT push down, so it could be part of the query sent to endpoints.
-        return new Project(project.getVars()).setChild(project.getChild().visit(this));
+        return project;
+    }
+
+    @Override
+    public Op visit(OpDistinct distinct) {
+        // TODO PROJECT push down, so it could be part of the query sent to endpoints.
+        return distinct;
     }
 
     /* ********************************************************************** */
 
-    public static ImmutablePair<List<Req>, List<FedQPLOperator>> divide(List<FedQPLOperator> children) {
-        List<Req> reqs = new ArrayList<>();
-        List<FedQPLOperator> ops = new ArrayList<>();
-        for (FedQPLOperator child : children) {
-            if (child instanceof Req) {
-                reqs.add((Req) child);
+    public static ImmutablePair<List<OpService>, List<Op>> divide(List<Op> children) {
+        List<OpService> reqs = new ArrayList<>();
+        List<Op> ops = new ArrayList<>();
+        for (Op child : children) {
+            if (child instanceof OpService) {
+                reqs.add((OpService) child);
             } else {
                 ops.add(child);
             }
@@ -133,12 +150,12 @@ public class FedQPLWithExclusiveGroupsVisitor implements FedQPLVisitor<FedQPLOpe
     }
 
     // careful, the order might be different
-    public static Map<Node, List<Req>> group(List<Req> toGroup) {
-        Map<Node, List<Req>> groups = new HashMap<>();
-        for (Req req: toGroup) {
-            if (!groups.containsKey(req.getSource()))
-                groups.put(req.getSource(), new ArrayList<>());
-            groups.get(req.getSource()).add(req);
+    public static Map<Node, List<OpService>> group(List<OpService> toGroup) {
+        Map<Node, List<OpService>> groups = new HashMap<>();
+        for (OpService req: toGroup) {
+            if (!groups.containsKey(req.getService()))
+                groups.put(req.getService(), new ArrayList<>());
+            groups.get(req.getService()).add(req);
         }
         return groups;
     }

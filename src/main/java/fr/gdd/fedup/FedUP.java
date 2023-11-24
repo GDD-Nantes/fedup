@@ -1,8 +1,8 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
 import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
 import fr.gdd.fedqpl.visitors.FedQPLWithExclusiveGroupsVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
@@ -94,14 +94,14 @@ public class FedUP {
         log.debug("Assignments:\n{}", String.join("\n",assignments.stream().map(e -> e.toString()).collect(Collectors.toList()) ));
 
         log.info("Building the FedQPL query…");
-        FedQPLOperator asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
+        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
 
         log.info("Optimizing the resulting FedQPL plan…");
         // TODO more optimization and simplification
-        asFedQPL = asFedQPL.visit(new FedQPLWithExclusiveGroupsVisitor());
+        asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
 
         log.info("Building the SPARQL SERVICE query…");
-        Op asSPARQL = asFedQPL.visit(new FedQPL2SPARQLVisitor());
+        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQLVisitor(), asFedQPL);
         String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
 
         log.info("Built the following query:\n{}", asSERVICE);

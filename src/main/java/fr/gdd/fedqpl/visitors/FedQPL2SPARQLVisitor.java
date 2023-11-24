@@ -2,6 +2,7 @@ package fr.gdd.fedqpl.visitors;
 
 import fr.gdd.fedqpl.operators.*;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.BasicPattern;
 
@@ -11,26 +12,24 @@ import java.util.Iterator;
  * Converts a FedQPL expression into a SPARQL {@link Op} service query. To get its
  * String version, please consider using `OpAsQuery.asQuery(op).toString()`.
  */
-public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
+public class FedQPL2SPARQLVisitor extends ReturningOpVisitor<Op> {
 
     @Override
-    public Op visit(Req req) {
-        OpService service = new OpService(req.getSource(), req.getOp(),
-                true); // false : if the service returns an error, the whole query fails
-        return service;
+    public Op visit(OpService req) {
+        return req;
     }
 
     @Override
     public Op visit(Mu mu) {
-        return switch (mu.getChildren().size()) {
+        return switch (mu.getElements().size()) {
             case 0 -> OpNull.create();
-            case 1 -> mu.getChildren().iterator().next().visit(this);
+            case 1 -> ReturningOpVisitorRouter.visit(this, mu.getElements().iterator().next());
             default -> {
                 // wrote as nested unions
-                Iterator<FedQPLOperator> ops = mu.getChildren().iterator();
-                Op left = ops.next().visit(this);
+                Iterator<Op> ops = mu.getElements().iterator();
+                Op left = ReturningOpVisitorRouter.visit(this, ops.next());
                 while (ops.hasNext()) {
-                    Op right = ops.next().visit(this);
+                    Op right = ReturningOpVisitorRouter.visit(this, ops.next());
                     left = OpUnion.create(left, right);
                 }
                 yield left;
@@ -40,15 +39,15 @@ public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
 
     @Override
     public Op visit(Mj mj) {
-        return switch (mj.getChildren().size()) {
+        return switch (mj.getElements().size()) {
             case 0 -> OpNull.create();
-            case 1 -> mj.getChildren().iterator().next().visit(this);
+            case 1 -> ReturningOpVisitorRouter.visit(this, mj.getElements().iterator().next());
             default -> {
                 // as nested joins
-                Iterator<FedQPLOperator> ops = mj.getChildren().iterator();
-                Op left = ops.next().visit(this);
+                Iterator<Op> ops = mj.getElements().iterator();
+                Op left = ReturningOpVisitorRouter.visit(this, ops.next());
                 while (ops.hasNext()) {
-                    Op right = ops.next().visit(this);
+                    Op right = ReturningOpVisitorRouter.visit(this, ops.next());
                     left = OpJoin.create(left, right);
                 }
                 yield left;
@@ -57,31 +56,33 @@ public class FedQPL2SPARQLVisitor implements FedQPLVisitor<Op> {
     }
 
     @Override
-    public Op visit(LeftJoin lj) {
-        return new OpConditional(
-                lj.getLeft().visit(this),
-                lj.getRight().visit(this));
+    public Op visit(OpConditional lj) {
+        return new OpConditional(ReturningOpVisitorRouter.visit(this, lj.getLeft()),
+                ReturningOpVisitorRouter.visit(this, lj.getRight()));
     }
 
     @Override
-    public Op visit(Filter filter) {
-        return OpFilter.filterBy(
-                filter.getExprs(),
-                filter.getSubOp().visit(this));
+    public Op visit(OpFilter filter) {
+        return OpCloningUtil.clone(filter, ReturningOpVisitorRouter.visit(this, filter.getSubOp()));
     }
 
     @Override
-    public Op visit(Limit limit) {
-        return new OpSlice(limit.getChild().visit(this), limit.getStart(), limit.getLength());
+    public Op visit(OpSlice limit) {
+        return OpCloningUtil.clone(limit, ReturningOpVisitorRouter.visit(this, limit.getSubOp()));
     }
 
     @Override
-    public Op visit(OrderBy orderBy) {
-        return new OpOrder(orderBy.getChild().visit(this), orderBy.getConditions());
+    public Op visit(OpOrder orderBy) {
+        return OpCloningUtil.clone(orderBy, ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()));
     }
 
     @Override
-    public Op visit(Project project) {
-        return new OpProject(project.getChild().visit(this), project.getVars());
+    public Op visit(OpProject project) {
+        return OpCloningUtil.clone(project, ReturningOpVisitorRouter.visit(this, project.getSubOp()));
+    }
+
+    @Override
+    public Op visit(OpDistinct distinct) {
+        return OpCloningUtil.clone(distinct, ReturningOpVisitorRouter.visit(this, distinct.getSubOp()));
     }
 }

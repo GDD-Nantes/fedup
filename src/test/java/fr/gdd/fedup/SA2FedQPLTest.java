@@ -1,9 +1,9 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.operators.FedQPLOperator;
 import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.QueryFactory;
@@ -42,15 +42,15 @@ class SA2FedQPLTest {
         tqt.transform(new OpBGP(BasicPattern.wrap(List.of(
                         new Triple(Var.alloc("s"), Var.alloc("p"), Var.alloc("o"))))));
 
-        FedQPLOperator fedqpl = SA2FedQPL.build(op, assignments, tqt);
+        Op fedqpl = SA2FedQPL.build(op, assignments, tqt);
         assertTrue(fedqpl instanceof Mu);
-        assertTrue(((Mu)fedqpl).getChildren().size() == 1);
-        assertTrue(((Mu)fedqpl).getChildren().stream().allMatch(o->
-            o instanceof Mj && ((Mj)o).getChildren().size() == 1
+        assertTrue(((Mu)fedqpl).getElements().size() == 1);
+        assertTrue(((Mu)fedqpl).getElements().stream().allMatch(o->
+            o instanceof Mj && ((Mj)o).getElements().size() == 1
         ));
 
         FedQPL2SPARQLVisitor toSPARQLVisitor = new FedQPL2SPARQLVisitor();
-        Op asSPARQL = fedqpl.visit(toSPARQLVisitor);
+        Op asSPARQL = ReturningOpVisitorRouter.visit(toSPARQLVisitor, fedqpl);
 
         log.debug(OpAsQuery.asQuery(asSPARQL).toString());
         assertEquals(String.format("SELECT*WHERE{SERVICE%s<http://graphA>{?s?p?o}}", SILENT),
@@ -73,15 +73,15 @@ class SA2FedQPLTest {
         tqt.transform(new OpBGP(BasicPattern.wrap(List.of(
                         new Triple(Var.alloc("s"), Var.alloc("p"), Var.alloc("o"))))));
 
-        FedQPLOperator fedqpl = SA2FedQPL.build(op, assignments, tqt);
+        Op fedqpl = SA2FedQPL.build(op, assignments, tqt);
         assertTrue(fedqpl instanceof Mu);
-        assertTrue(((Mu)fedqpl).getChildren().size() == 2);
-        assertTrue(((Mu)fedqpl).getChildren().stream().allMatch(o->
-                o instanceof Mj && ((Mj)o).getChildren().size() == 1
+        assertTrue(((Mu)fedqpl).getElements().size() == 2);
+        assertTrue(((Mu)fedqpl).getElements().stream().allMatch(o->
+                o instanceof Mj && ((Mj)o).getElements().size() == 1
         ));
 
         FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
-        op = fedqpl.visit(toSparql);
+        op = ReturningOpVisitorRouter.visit(toSparql, fedqpl);
         assertEquals(String.format("SELECT*WHERE{{SERVICE%s<http://graphA>{?s?p?o}}UNION{SERVICE%s<http://graphB>{?s?p?o}}}", SILENT, SILENT),
                 OpAsQuery.asQuery(op).toString()
                         .replace(" ", "")

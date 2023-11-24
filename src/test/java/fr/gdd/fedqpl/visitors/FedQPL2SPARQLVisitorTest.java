@@ -1,12 +1,12 @@
 package fr.gdd.fedqpl.visitors;
 
 import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.operators.Req;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.algebra.op.OpBGP;
+import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.BasicPattern;
 import org.apache.jena.sparql.core.Var;
@@ -24,9 +24,10 @@ class FedQPL2SPARQLVisitorTest {
 
     @Test
     public void simple_req_writes_as_a_service() {
-        Req r = new Req(new OpTriple(new Triple(Var.alloc("s"),
+        OpService r = new OpService(NodeFactory.createURI("http://graphA"),
+                new OpTriple(new Triple(Var.alloc("s"),
                 Var.alloc("p"),
-                Var.alloc("o"))), NodeFactory.createURI("http://graphA"));
+                Var.alloc("o"))), false);
 
         FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
         Op op = toSparql.visit(r);
@@ -39,13 +40,16 @@ class FedQPL2SPARQLVisitorTest {
 
     @Test
     public void req_with_two_triples_in_it() {
-        Req r = new Req(new OpBGP(BasicPattern.wrap(List.of(new Triple(Var.alloc("s"),
+        OpService r = new OpService(
+                NodeFactory.createURI("http://graphA"),
+                new OpBGP(BasicPattern.wrap(List.of(new Triple(Var.alloc("s"),
                 Var.alloc("p"),
                 Var.alloc("o")),
                 new Triple(Var.alloc("s2"),
                         Var.alloc("p2"),
                         Var.alloc("o2"))))),
-                NodeFactory.createURI("http://graphA"));
+                false
+                );
 
         FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
         Op op = toSparql.visit(r);
@@ -58,14 +62,16 @@ class FedQPL2SPARQLVisitorTest {
 
     @Test
     public void simple_union_of_two_req() {
-        Req r1 = new Req(new OpTriple(new Triple(Var.alloc("s"),
+        OpService r1 = new OpService(
+                NodeFactory.createURI("http://graphA"),
+                new OpTriple(new Triple(Var.alloc("s"),
                 Var.alloc("p"),
-                Var.alloc("o"))),
-                NodeFactory.createURI("http://graphA"));
-        Req r2 = new Req(new OpTriple(new Triple(Var.alloc("s"),
+                Var.alloc("o"))), false);
+        OpService r2 = new OpService(
+                NodeFactory.createURI("http://graphB"),
+                new OpTriple(new Triple(Var.alloc("s"),
                 Var.alloc("p"),
-                Var.alloc("o"))),
-                NodeFactory.createURI("http://graphB"));
+                Var.alloc("o"))), false);
         Mu mu = new Mu(List.of(r1, r2));
 
         FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();

@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
  * Along with the original query plan, this visitor converts the source assignments
  * into a FedQPL expression that encodes the federated query to perform.
  */
-public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
+public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
 
-    public static FedQPLOperator build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt){
+    public static Op build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt){
         return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt), query).stream().toList()); // root mu
     }
 
@@ -31,9 +31,11 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     List<Map<Var, String>> assignments;
     ToQuadsTransform toQuads;
 
+    public static boolean SILENT = true;
+
     // This is a way to save the work that has been done, but could
     // be returned instead.
-    Map<FedQPLOperator, Map<Var, String>> fedQPL2PartialAssignment = new HashMap<>();
+    Map<Op, Map<Var, String>> fedQPL2PartialAssignment = new HashMap<>();
 
     public SA2FedQPL(List<Map<Var, String>> assignments, ToQuadsTransform tqt) {
         this.assignments = assignments;
@@ -41,12 +43,12 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpTriple opTriple) {
-        Set<FedQPLOperator> result = new HashSet<>();
+    public Set<Op> visit(OpTriple opTriple) {
+        Set<Op> result = new HashSet<>();
         Var g = toQuads.findVar(opTriple);
         for (Map<Var, String> assignment : assignments) {
             if (assignment.containsKey(g)) {
-                Req req = new Req(opTriple, NodeFactory.createURI(assignment.get(g)));
+                OpService req = new OpService(NodeFactory.createURI(assignment.get(g)), opTriple, SILENT);
                 result.add(req);
                 fedQPL2PartialAssignment.put(req, Map.of(g, assignment.get(g)));
             }
@@ -55,12 +57,12 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpBGP opBGP) {
+    public Set<Op> visit(OpBGP opBGP) {
         // Could do all possibilities by calling all sub-triple pattern
         // then examine which combinations actually checks out. But this would
         // be very inefficient.
         // Instead, checking directly which results exist
-        Set<FedQPLOperator> result = new HashSet<>();
+        Set<Op> result = new HashSet<>();
 
         Set<Var> gs = toQuads.findVars(opBGP);
 
@@ -69,8 +71,10 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
         for (Map<Var, String> assignment : saOfGs) {
             Mj mj = new Mj();
             assignment.entrySet().forEach(a -> {
-                Req req = new Req(new OpTriple(toQuads.getVar2quad().get(a.getKey()).asTriple()),
-                        NodeFactory.createURI(a.getValue()));
+                OpService req = new OpService(NodeFactory.createURI(a.getValue()),
+                        new OpTriple(toQuads.getVar2quad().get(a.getKey()).asTriple()),
+                        SILENT
+                        );
                 mj.addChild(req);
             });
             result.add(mj);
@@ -81,28 +85,28 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpUnion union) {
+    public Set<Op> visit(OpUnion union) {
         // nothing to register in `fedQPL2PartialAssignment`
         // since everything is already set on visit of left and right
-        Set<FedQPLOperator> results = new HashSet<>();
-        Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
-        Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
+        Set<Op> results = new HashSet<>();
+        Set<Op> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
+        Set<Op> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
         results.addAll(lefts);
         results.addAll(rights);
         return results;
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpLeftJoin lj) {
-        Set<FedQPLOperator> results = new HashSet<>();
+    public Set<Op> visit(OpLeftJoin lj) {
+        Set<Op> results = new HashSet<>();
 
-        Set<FedQPLOperator> lefts = ReturningOpVisitorRouter.visit(this, lj.getLeft());
-        Set<FedQPLOperator> rights = ReturningOpVisitorRouter.visit(this, lj.getRight());
+        Set<Op> lefts = ReturningOpVisitorRouter.visit(this, lj.getLeft());
+        Set<Op> rights = ReturningOpVisitorRouter.visit(this, lj.getRight());
 
-        for (FedQPLOperator left : lefts) { // for each mandatory part
+        for (Op left : lefts) { // for each mandatory part
             Mu mu = new Mu();
 
-            for (FedQPLOperator right : rights) {
+            for (Op right : rights) {
                 Map<Var, String> assignmentToTest = new HashMap<>();
                 assignmentToTest.putAll(fedQPL2PartialAssignment.get(left));
                 assignmentToTest.putAll(fedQPL2PartialAssignment.get(right));
@@ -112,10 +116,10 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
                 }
             }
 
-            if (mu.getChildren().isEmpty()) {
+            if (mu.getElements().isEmpty()) {
                 results.add(left); // nothing in OPT
             } else {
-                LeftJoin leftJoin = new LeftJoin(left, mu);
+                OpConditional leftJoin = new OpConditional(left, mu);
                 results.add(leftJoin);
                 Map<Var, String> assignmentToAdd = new HashMap<>();
                 assignmentToAdd.putAll(fedQPL2PartialAssignment.get(left));
@@ -128,27 +132,35 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<FedQPLOperator>> {
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpSlice slice) {
+    public Set<Op> visit(OpSlice slice) {
         // hijack the root, which will be mu(slice(mu(rest))) therefore
         // getting simplified easily
-        return Set.of(new Limit(slice.getStart(), slice.getLength())
-                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, slice.getSubOp()).stream().toList())));
+        return Set.of(new OpSlice(
+                new Mu(ReturningOpVisitorRouter.visit(this, slice.getSubOp()).stream().toList()),
+                slice.getStart(),
+                slice.getLength()));
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpOrder orderBy) {
+    public Set<Op> visit(OpOrder orderBy) {
         // hijack the root, which will be mu(slice(mu(rest))) therefore
         // getting simplified easily
-        return Set.of(new OrderBy(orderBy.getConditions())
-                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList())));
+        return Set.of(new OpOrder(
+                new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList()),
+                orderBy.getConditions()));
     }
 
     @Override
-    public Set<FedQPLOperator> visit(OpProject project) {
+    public Set<Op> visit(OpProject project) {
         // hijack the root, which will be mu(slice(mu(rest))) therefore
         // getting simplified easily
-        return Set.of(new Project(project.getVars())
-                .setChild(new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
+        return Set.of(new OpProject(new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList()),
+                project.getVars()));
+    }
+
+    @Override
+    public Set<Op> visit(OpDistinct distinct) {
+        return Set.of(new OpDistinct(new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()).stream().toList())));
     }
 
     /* *************************************************************** */

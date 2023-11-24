@@ -1,5 +1,7 @@
 package fr.gdd.fedqpl.visitors;
 
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
 import org.apache.jena.sparql.algebra.op.*;
 
 /**
@@ -10,6 +12,10 @@ import org.apache.jena.sparql.algebra.op.*;
  * @param <T> The type of the object returned.
  */
 public class ReturningOpVisitor<T> {
+    public T visit(Mu mu) {throw new UnsupportedOperationException("Mu");}
+    public T visit(Mj mj) {throw new UnsupportedOperationException("Mj");}
+    public T visit(OpService req) {throw new UnsupportedOperationException("Req");}
+
     public T visit(OpTriple triple) {throw new UnsupportedOperationException("OpTriple");}
     public T visit(OpQuad quad) {throw new UnsupportedOperationException("OpQuad");}
     public T visit(OpBGP bgp) {throw new UnsupportedOperationException("OpBGP");}
@@ -25,4 +31,5 @@ public class ReturningOpVisitor<T> {
     public T visit(OpSlice slice) {throw new UnsupportedOperationException("OpSlice");}
     public T visit(OpOrder orderBy)  {throw new UnsupportedOperationException("OpOrder");}
     public T visit(OpProject project) {throw new UnsupportedOperationException("OpProject");}
+    public T visit(OpGroup groupBy) {throw new UnsupportedOperationException("OpGroup");}
 }

@@ -1,6 +1,11 @@
 package fr.gdd.fedqpl.visitors;
 
 import fr.gdd.fedqpl.operators.*;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpVisitor;
+import org.apache.jena.sparql.algebra.op.OpConditional;
+import org.apache.jena.sparql.algebra.op.OpService;
+import org.apache.jena.sparql.algebra.op.OpSlice;
 
 import java.util.List;
 import java.util.Objects;
@@ -9,16 +14,17 @@ import java.util.stream.Collectors;
 /**
  * Apply basic rewrittings to simplify the FedQPL expression.
  */
-public class FedQPLSimplifyVisitor implements FedQPLVisitor<FedQPLOperator> {
+public class FedQPLSimplifyVisitor extends ReturningOpVisitor<Op> {
 
     @Override
-    public FedQPLOperator visit(Req req) {
+    public Op visit(OpService req) {
         return req; //nothing
     }
 
     @Override
-    public FedQPLOperator visit(Mj mj) {
-        List<FedQPLOperator> children = mj.getChildren().stream().map(c -> c.visit(this)).collect(Collectors.toList());
+    public Op visit(Mj mj) {
+        List<Op> children = mj.getElements().stream().map(c ->
+                ReturningOpVisitorRouter.visit(this, c)).collect(Collectors.toList());
         if (children.isEmpty()) {
             return null;
         } else if (children.size() == 1) {
@@ -29,8 +35,9 @@ public class FedQPLSimplifyVisitor implements FedQPLVisitor<FedQPLOperator> {
     }
 
     @Override
-    public FedQPLOperator visit(Mu mu) {
-        List<FedQPLOperator> children = mu.getChildren().stream().map(c -> c.visit(this)).collect(Collectors.toList());
+    public Op visit(Mu mu) {
+        List<Op> children = mu.getElements().stream().map(c ->
+                ReturningOpVisitorRouter.visit(this, c)).collect(Collectors.toList());
         if (children.isEmpty()) {
             return null;
         } else if (children.size() == 1) {
@@ -41,9 +48,9 @@ public class FedQPLSimplifyVisitor implements FedQPLVisitor<FedQPLOperator> {
     }
 
     @Override
-    public FedQPLOperator visit(LeftJoin lj) {
-        FedQPLOperator left = lj.getLeft().visit(this);
-        FedQPLOperator right = lj.getRight().visit(this);
+    public Op visit(OpConditional lj) {
+        Op left = ReturningOpVisitorRouter.visit(this, lj.getLeft());
+        Op right = ReturningOpVisitorRouter.visit(this, lj.getRight());
 
         if (Objects.isNull(left)) {
             return null;
@@ -51,6 +58,6 @@ public class FedQPLSimplifyVisitor implements FedQPLVisitor<FedQPLOperator> {
         if (Objects.isNull(right)) {
             return left;
         }
-        return new LeftJoin(left, right);
+        return new OpConditional(left, right);
     }
 }

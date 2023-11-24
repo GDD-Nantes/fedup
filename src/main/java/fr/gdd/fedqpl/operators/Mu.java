@@ -9,55 +9,62 @@ import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitor;
+import org.apache.jena.sparql.algebra.Transform;
+import org.apache.jena.sparql.algebra.op.OpN;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
 /**
  * Multi-union operator.
  */
-public class Mu implements FedQPLOperator {
+public class Mu extends OpN {
 
-    private List<FedQPLOperator> children;
+    public Mu() {}
 
-    public Mu() {
-        this.children = new ArrayList();
+    public Mu(List<Op> children) {
+        this.addChildren(children);
     }
 
-    public Mu(List<FedQPLOperator> children) {
-        this.children = children;
+    public Mu addChild(Op child) {
+        this.getElements().add(child);
+        return this;
     }
 
-    public void addChild(FedQPLOperator child) {
-        this.children.add(child);
-    }
-
-    public void addChildren(Set<FedQPLOperator> children) {
-        this.children.addAll(children);
-    }
-
-    public List<FedQPLOperator> getChildren() {
-        return children;
-    }
-
-    @Override
-    public <T> T visit(FedQPLVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public <T, S> T visit(FedQPLVisitorArg<T,S> visitor, S arg) {
-        return visitor.visit(this, arg);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Mu mu = (Mu) o;
-        return Objects.equals(children, mu.children);
+    public Mu addChildren(List<Op> children) {
+        children.forEach(this::addChild);
+        return this;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(children);
+        return Objects.hash(getName() + getElements().stream().map(Op::hashCode)
+                .reduce(0, Integer::sum));
     }
+
+    @Override
+    public boolean equalTo(Op other, NodeIsomorphismMap labelMap) {
+        if ( ! ( other instanceof Mu) ) return false;
+        Mu otherMu = (Mu) other;
+        return super.equalsSubOps(otherMu, labelMap);
+    }
+
+    @Override
+    public String getName() {
+        return "mu";
+    }
+
+    @Override
+    public void visit(OpVisitor opVisitor) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Op apply(Transform transform, List<Op> elts) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public OpN copy(List<Op> elts) {
+        return new Mu(elts);
+    }
+
 }

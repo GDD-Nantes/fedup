@@ -1,5 +1,7 @@
 package fr.gdd.fedqpl.visitors;
 
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 
@@ -11,6 +13,10 @@ import org.apache.jena.sparql.algebra.op.*;
 public class ReturningOpVisitorRouter {
     public static <T> T visit(ReturningOpVisitor<T> t, Op op) {
         return switch (op) {
+            case Mu o -> t.visit(o);
+            case Mj o -> t.visit(o);
+            case OpService o -> t.visit(o);
+
             case OpTriple o -> t.visit(o);
             case OpQuad o -> t.visit(o);
             case OpBGP o -> t.visit(o);
@@ -26,6 +32,7 @@ public class ReturningOpVisitorRouter {
             case OpSlice o -> t.visit(o);
             case OpOrder o -> t.visit(o);
             case OpProject o -> t.visit(o);
+            case OpGroup o -> t.visit(o);
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }

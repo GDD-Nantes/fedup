@@ -1,6 +1,7 @@
 package fr.gdd.fedqpl.visitors;
 
 import fr.gdd.fedqpl.operators.*;
+import org.apache.jena.sparql.algebra.op.*;
 
 /**
  * A visitor of FedQPL expressions with a return type that can
@@ -12,13 +13,13 @@ public interface FedQPLVisitor<T> {
     // operators
     default T visit(Mu mu) {throw new UnsupportedOperationException("Mu");}
     default T visit(Mj mj) {throw new UnsupportedOperationException("Mj");}
-    default T visit(Req req) {throw new UnsupportedOperationException("Req");}
-    default T visit(LeftJoin lj) {throw new UnsupportedOperationException("LeftJoin");}
-    default T visit(Filter filter) {throw new UnsupportedOperationException("Filter");}
+    default T visit(OpService req) {throw new UnsupportedOperationException("Req");}
+    default T visit(OpConditional lj) {throw new UnsupportedOperationException("LeftJoin");}
+    default T visit(OpFilter filter) {throw new UnsupportedOperationException("Filter");}
 
     // query modifiers
-    default T visit(Limit limit) {throw new UnsupportedOperationException("Limit");}
-    default T visit(OrderBy orderBy) {throw new UnsupportedOperationException("OrderBy");}
-    default T visit(Project project) {throw new UnsupportedOperationException("Project");}
+    default T visit(OpSlice limit) {throw new UnsupportedOperationException("Limit");}
+    default T visit(OpOrder orderBy) {throw new UnsupportedOperationException("OrderBy");}
+    default T visit(OpProject project) {throw new UnsupportedOperationException("Project");}
 }
 
