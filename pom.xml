@@ -11,10 +11,32 @@
 	<properties>
 		<jdk.version>21</jdk.version>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+		<rdf4j.version>4.3.8</rdf4j.version>
 <!--		<maven-surefire-plugin.version>3.0.0</maven-surefire-plugin.version>-->
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-model</artifactId>
+			<version>${rdf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-tools</artifactId>
+			<version>${rdf4j.version}</version>
+			<type>pom</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.eclipse.rdf4j</groupId>
+			<artifactId>rdf4j-tools-federation</artifactId>
+			<version>${rdf4j.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+
 		<dependency>
 			<groupId>fr.gdd.sage</groupId>
 			<artifactId>raw-jena-volcano</artifactId>
