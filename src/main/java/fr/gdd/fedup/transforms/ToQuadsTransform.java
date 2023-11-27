@@ -21,8 +21,6 @@ import java.util.*;
  */
 public class ToQuadsTransform extends TransformCopy {
 
-    public final boolean asSequence = false; // join quads with opSequence or opJoin
-
     Integer nbGraphs = 0;
     Map<Var, Quad> var2quad = new HashMap<>();
     Map<Quad, Var> quad2var = new HashMap<>();

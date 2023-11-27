@@ -49,26 +49,66 @@ public class FedXTest {
     }
 
     @Test
-    public void fedx_query_with_optional() {
-        executeWithFedX("""
+    public void fedup_to_fedx_with_optional() {
+        executeFedUPThenFedX("""
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL { ?person <http://auth/owns> ?animal }
                 }""");
     }
 
+    @Test
+    public void fedx_with_filter() {
+        // filters are effectively pushed down. BUT limit and distinct aren't…
+        executeWithFedX("""
+                SELECT DISTINCT  *
+                WHERE
+                  {   { SERVICE SILENT <http://localhost:3333/graphA/sparql>
+                          { ?people  <http://auth/owns>  ?animal}
+                      }
+                    UNION
+                      { SERVICE SILENT <http://localhost:3334/graphB/sparql>
+                          { ?people  <http://auth/owns>  ?animal}
+                      }
+                    FILTER ( ?animal = <http://auth/dog> )
+                  }
+                  """);
+        // QueryRoot
+        //   Distinct
+        //      Projection
+        //         ProjectionElemList
+        //            ProjectionElem "people"
+        //            ProjectionElem "animal"
+        //         NUnion
+        //            ExclusiveStatement
+        //               Var (name=people)
+        //               Var (name=_const_4ea587e2_uri, value=http://auth/owns, anonymous)
+        //               Var (name=animal, value=http://auth/dog)
+        //               StatementSource (id=sparql_localhost:3333_graphA_sparql, type=REMOTE)
+        //               BoundFilters (animal=http://auth/dog)
+        //            ExclusiveStatement
+        //               Var (name=people)
+        //               Var (name=_const_4ea587e2_uri, value=http://auth/owns, anonymous)
+        //               Var (name=animal, value=http://auth/dog)
+        //               StatementSource (id=sparql_localhost:3334_graphB_sparql, type=REMOTE)
+        //               BoundFilters (animal=http://auth/dog)
+    }
+
     /* ***************************************************************** */
+
+    public void executeFedUPThenFedX(String queryAsString) {
+        FedUP fedup = new FedUP(summary, dataset);
+        String result = fedup.query(queryAsString, new HashSet<>(graphs));
+        // so we need to replace
+        result = result.replace(graphs.get(0), endpoints.get(0))
+                .replace(graphs.get(1), endpoints.get(1));
+        executeWithFedX(result);
+    }
+
 
     public void executeWithFedX(String queryAsString) {
         // still need dataset since the dataset refers to <graphA> and not
         // endpoint remote address.
-        FedUP fedup = new FedUP(summary, dataset);
-        String result = fedup.query(queryAsString, new HashSet<>(graphs));
-
-        // so we need to replace
-        result = result.replace(graphs.get(0), endpoints.get(0))
-                .replace(graphs.get(1), endpoints.get(1));
-
         List<FusekiServer> servers = FedUPTest.startServers();
 
         FedXConfig config = new FedXConfig();
@@ -78,7 +118,7 @@ public class FedXTest {
                 .withSparqlEndpoints(endpoints).create();
 
         try (RepositoryConnection conn = fedx.getConnection()) {
-            TupleQuery tq = conn.prepareTupleQuery(result);
+            TupleQuery tq = conn.prepareTupleQuery(queryAsString);
 
             try (TupleQueryResult tqRes = tq.evaluate()) {
 

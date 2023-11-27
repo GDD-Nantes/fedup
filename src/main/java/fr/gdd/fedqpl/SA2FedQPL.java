@@ -1,6 +1,8 @@
 package fr.gdd.fedqpl;
 
-import fr.gdd.fedqpl.operators.*;
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
+import fr.gdd.fedqpl.visitors.OpCloningUtil;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
@@ -8,6 +10,7 @@ import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.expr.ExprList;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,7 +23,7 @@ import java.util.stream.Collectors;
  * Along with the original query plan, this visitor converts the source assignments
  * into a FedQPL expression that encodes the federated query to perform.
  */
-public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
+public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     public static Op build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt){
         return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt), query).stream().toList()); // root mu
@@ -43,8 +46,8 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
     }
 
     @Override
-    public Set<Op> visit(OpTriple opTriple) {
-        Set<Op> result = new HashSet<>();
+    public List<Op> visit(OpTriple opTriple) {
+        List<Op> result = new ArrayList<>();
         Var g = toQuads.findVar(opTriple);
         for (Map<Var, String> assignment : assignments) {
             if (assignment.containsKey(g)) {
@@ -57,12 +60,12 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
     }
 
     @Override
-    public Set<Op> visit(OpBGP opBGP) {
+    public List<Op> visit(OpBGP opBGP) {
         // Could do all possibilities by calling all sub-triple pattern
         // then examine which combinations actually checks out. But this would
         // be very inefficient.
         // Instead, checking directly which results exist
-        Set<Op> result = new HashSet<>();
+        List<Op> result = new ArrayList<>();
 
         Set<Var> gs = toQuads.findVars(opBGP);
 
@@ -85,23 +88,24 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
     }
 
     @Override
-    public Set<Op> visit(OpUnion union) {
+    public List<Op> visit(OpUnion union) {
         // nothing to register in `fedQPL2PartialAssignment`
         // since everything is already set on visit of left and right
-        Set<Op> results = new HashSet<>();
-        Set<Op> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
-        Set<Op> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
+        List<Op> results = new ArrayList<>();
+        List<Op> lefts = ReturningOpVisitorRouter.visit(this, union.getLeft());
+        List<Op> rights = ReturningOpVisitorRouter.visit(this, union.getRight());
         results.addAll(lefts);
         results.addAll(rights);
         return results;
     }
 
     @Override
-    public Set<Op> visit(OpLeftJoin lj) {
-        Set<Op> results = new HashSet<>();
+    public List<Op> visit(OpLeftJoin lj) {
+        List<Op> results = new ArrayList<>();
 
-        Set<Op> lefts = ReturningOpVisitorRouter.visit(this, lj.getLeft());
-        Set<Op> rights = ReturningOpVisitorRouter.visit(this, lj.getRight());
+        // we want to examine each possibility once
+        List<Op> lefts = new HashSet<>(ReturningOpVisitorRouter.visit(this, lj.getLeft())).stream().toList();
+        List<Op> rights = new HashSet<>(ReturningOpVisitorRouter.visit(this, lj.getRight())).stream().toList();
 
         for (Op left : lefts) { // for each mandatory part
             Mu mu = new Mu();
@@ -119,7 +123,7 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
             if (mu.getElements().isEmpty()) {
                 results.add(left); // nothing in OPT
             } else {
-                OpConditional leftJoin = new OpConditional(left, mu);
+                OpLeftJoin leftJoin = OpCloningUtil.clone(lj, left, mu);
                 results.add(leftJoin);
                 Map<Var, String> assignmentToAdd = new HashMap<>();
                 assignmentToAdd.putAll(fedQPL2PartialAssignment.get(left));
@@ -132,35 +136,40 @@ public class SA2FedQPL extends ReturningOpVisitor<Set<Op>> {
     }
 
     @Override
-    public Set<Op> visit(OpSlice slice) {
-        // hijack the root, which will be mu(slice(mu(rest))) therefore
-        // getting simplified easily
-        return Set.of(new OpSlice(
-                new Mu(ReturningOpVisitorRouter.visit(this, slice.getSubOp()).stream().toList()),
-                slice.getStart(),
-                slice.getLength()));
+    public List<Op> visit(OpConditional cond) {
+        return this.visit(OpLeftJoin.createLeftJoin(cond.getLeft(), cond.getRight(), ExprList.emptyList));
     }
 
     @Override
-    public Set<Op> visit(OpOrder orderBy) {
+    public List<Op> visit(OpSlice slice) {
         // hijack the root, which will be mu(slice(mu(rest))) therefore
         // getting simplified easily
-        return Set.of(new OpOrder(
-                new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList()),
-                orderBy.getConditions()));
+        return List.of(OpCloningUtil.clone(slice,
+                new Mu(ReturningOpVisitorRouter.visit(this, slice.getSubOp()).stream().toList())));
     }
 
     @Override
-    public Set<Op> visit(OpProject project) {
-        // hijack the root, which will be mu(slice(mu(rest))) therefore
-        // getting simplified easily
-        return Set.of(new OpProject(new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList()),
-                project.getVars()));
+    public List<Op> visit(OpOrder orderBy) { // hijack too
+        return List.of(OpCloningUtil.clone(orderBy,
+                new Mu(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()).stream().toList())));
     }
 
     @Override
-    public Set<Op> visit(OpDistinct distinct) {
-        return Set.of(new OpDistinct(new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()).stream().toList())));
+    public List<Op> visit(OpProject project) { // hijack too
+        return List.of(OpCloningUtil.clone(project,
+                new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
+    }
+
+    @Override
+    public List<Op> visit(OpDistinct distinct) {
+        return List.of(OpCloningUtil.clone(distinct,
+                new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()).stream().toList())));
+    }
+
+    @Override
+    public List<Op> visit(OpFilter filter) {
+        return List.of(OpCloningUtil.clone(filter,
+                new Mu(ReturningOpVisitorRouter.visit(this, filter.getSubOp()).stream().toList())));
     }
 
     /* *************************************************************** */

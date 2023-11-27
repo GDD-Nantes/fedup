@@ -40,6 +40,8 @@ public class Summary {
         return summary;
     }
 
+    public Transform getStrategy() { return strategy; }
+
     public Op transform(Op query) {
         return Transformer.transform(strategy, query);
     }

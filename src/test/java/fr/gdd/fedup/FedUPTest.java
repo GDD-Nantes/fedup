@@ -159,10 +159,6 @@ class FedUPTest {
     @Test
     public void query_with_twice_the_same_data () {
         // twice the same data
-        // TODO this does not work so make it work
-        // TODO probably because we return Sets of FedQPLOperators, so they
-        // TODO are wrongfully fused together.
-        // TODO Need to disambiguate that they are two different triple patterns…
         checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     { ?people <http://auth/owns> ?animal }
@@ -173,11 +169,19 @@ class FedUPTest {
     @Test
     public void query_with_a_distinct_to_remove_duplicates () {
         // twice the same data but the distinct removes duplicates
-        // TODO implement OpDistinct
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     UNION { ?people <http://auth/owns> ?animal }
+                }""");
+    }
+
+    @Test
+    public void query_with_a_filter_clause () {
+        checkQueryWithActualEndpoints("""
+                SELECT DISTINCT * WHERE {
+                    { ?people <http://auth/owns> ?animal }
+                    FILTER ( ?animal = <http://auth/dog> )
                 }""");
     }
 

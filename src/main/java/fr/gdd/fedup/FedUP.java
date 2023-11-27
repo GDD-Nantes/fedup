@@ -1,7 +1,7 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.SA2FedQPL;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
+import fr.gdd.fedqpl.SA2FedQPL;
 import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
@@ -10,9 +10,11 @@ import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
+import org.apache.jena.reasoner.rulesys.builtins.Sum;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
+import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
@@ -33,16 +35,11 @@ public class FedUP {
     Logger log = LoggerFactory.getLogger(FedUP.class);
 
     // The quotient summary to retrieve possibly relevant sources.
-    final Dataset summary;
+    final Summary summary;
     Dataset ds4Asks = null; // mostly for testing purposes
 
-    public FedUP (String pathToSummary) {
-        log.debug("Loading the summary file %s", pathToSummary);
-        this.summary = TDB2Factory.connectDataset(pathToSummary);
-    }
-
     public FedUP (Summary summary) {
-        this.summary = summary.getSummary();
+        this.summary = summary;
     }
 
     /**
@@ -51,9 +48,11 @@ public class FedUP {
      * @param ds4Asks The full dataset of the federation graphs (to perform ASKS on it).
      */
     public FedUP (Summary summary, Dataset ds4Asks) {
-        this.summary = summary.getSummary();
+        this.summary = summary;
         this.ds4Asks = ds4Asks;
     }
+
+    /* ************************************************************** */
 
     /**
      * @param queryAsString The federated query to execute.
@@ -66,20 +65,21 @@ public class FedUP {
 
 
         log.info("Start making ASK queries…");
-        ModuloOnSuffix hs = new ModuloOnSuffix(1); // TODO builder
         // TODO use summary as first filter for ASKS
-        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(hs, true, endpoints, ds4Asks);
+        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints, ds4Asks);
         Op ssQueryAsOp = tsst.transform(queryAsOp);
 
         log.info("Start executing the source selection query…");
-        summary.begin(ReadWrite.READ);
-        QueryIterator iterator = Algebra.exec(ssQueryAsOp, summary);
+        summary.getSummary().begin(ReadWrite.READ);
+        QueryIterator iterator = Algebra.exec(ssQueryAsOp, summary.getSummary());
 
+        // TODO could be processed using a provenance query
         List<Map<Var, String>> assignments = new ArrayList<>();
         Set<Integer> seen = new TreeSet<>();
         while (iterator.hasNext()) {
             // TODO create FedQPL here
             // TODO but it's much more difficult in presence of OPTIONAL
+            // TODO but could get faster time for first result when things are sure
             Binding binding = iterator.next();
             int hashcode = binding.toString().hashCode();
             if (!seen.contains(hashcode)) {
@@ -87,18 +87,18 @@ public class FedUP {
                 assignments.add(bindingToMap(binding));
             }
         }
-        summary.commit();
-        summary.end();
+        summary.getSummary().commit();
+        summary.getSummary().end();
 
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check if it can be improved
-        log.debug("Assignments:\n{}", String.join("\n",assignments.stream().map(e -> e.toString()).collect(Collectors.toList()) ));
+        log.debug("Assignments:\n{}", assignments.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
         log.info("Building the FedQPL query…");
         Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
 
         log.info("Optimizing the resulting FedQPL plan…");
-        // TODO more optimization and simplification
+        // TODO more optimizations and simplifications, if need be
         asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
 
         log.info("Building the SPARQL SERVICE query…");
