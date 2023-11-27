@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Multi-join operator, basically a sequence operator.
+ * Multi-join operator, basically a sequence operator {@link org.apache.jena.sparql.algebra.op.OpSequence}.
  * Children are in a list even though the order does not necessarily matter,
  * to keep the possibility of join ordering if need be.
  */

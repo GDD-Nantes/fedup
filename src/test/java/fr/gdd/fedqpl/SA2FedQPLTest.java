@@ -1,8 +1,7 @@
-package fr.gdd.fedup;
+package fr.gdd.fedqpl;
 
 import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
-import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.jena.graph.Triple;
@@ -49,7 +48,7 @@ class SA2FedQPLTest {
             o instanceof Mj && ((Mj)o).getElements().size() == 1
         ));
 
-        FedQPL2SPARQLVisitor toSPARQLVisitor = new FedQPL2SPARQLVisitor();
+        FedQPL2SPARQL toSPARQLVisitor = new FedQPL2SPARQL();
         Op asSPARQL = ReturningOpVisitorRouter.visit(toSPARQLVisitor, fedqpl);
 
         log.debug(OpAsQuery.asQuery(asSPARQL).toString());
@@ -80,7 +79,7 @@ class SA2FedQPLTest {
                 o instanceof Mj && ((Mj)o).getElements().size() == 1
         ));
 
-        FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
+        FedQPL2SPARQL toSparql = new FedQPL2SPARQL();
         op = ReturningOpVisitorRouter.visit(toSparql, fedqpl);
         assertEquals(String.format("SELECT*WHERE{{SERVICE%s<http://graphA>{?s?p?o}}UNION{SERVICE%s<http://graphB>{?s?p?o}}}", SILENT, SILENT),
                 OpAsQuery.asQuery(op).toString()

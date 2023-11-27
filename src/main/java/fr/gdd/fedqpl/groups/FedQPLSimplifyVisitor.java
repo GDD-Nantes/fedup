@@ -1,25 +1,22 @@
-package fr.gdd.fedqpl.visitors;
+package fr.gdd.fedqpl.groups;
 
-import fr.gdd.fedqpl.operators.*;
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
+import fr.gdd.fedqpl.visitors.ReturningOpBaseVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.op.OpConditional;
 import org.apache.jena.sparql.algebra.op.OpService;
-import org.apache.jena.sparql.algebra.op.OpSlice;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * Apply basic rewrittings to simplify the FedQPL expression.
+ * Apply basic rewritings to simplify the FedQPL expression.
  */
-public class FedQPLSimplifyVisitor extends ReturningOpVisitor<Op> {
-
-    @Override
-    public Op visit(OpService req) {
-        return req; //nothing
-    }
+public class FedQPLSimplifyVisitor extends ReturningOpBaseVisitor {
 
     @Override
     public Op visit(Mj mj) {

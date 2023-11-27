@@ -1,19 +1,26 @@
-package fr.gdd.fedqpl.visitors;
+package fr.gdd.fedqpl.groups;
 
 import fr.gdd.fedqpl.operators.*;
+import fr.gdd.fedqpl.visitors.ReturningOpBaseVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.op.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Create exclusive groups when they are close from each other
+ * Create exclusive groups when they are close from each other. It pushes
+ * operators inside SERVICE clauses, so endpoints execute them themselves.
+ * Execution and data are close from each other.
+ *
+ * TODO push-down FILTER, LIMIT, GROUP_BY etc.
+ * TODO depending on an interface.
  */
-public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpVisitor<Op> {
+public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
 
     public static boolean SILENT = true;
 
@@ -75,11 +82,6 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpVisitor<Op> {
     }
 
     @Override
-    public Op visit(OpService req) {
-        return req; // do nothing
-    }
-
-    @Override
     public Op visit(OpConditional lj) {
         // check if left and right should be one big `Req` then merge
         // meaning they should have been simplified to the maximum beforehand.
@@ -103,35 +105,6 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpVisitor<Op> {
         leftOp = ReturningOpVisitorRouter.visit(this, leftOp);
         rightOp = ReturningOpVisitorRouter.visit(this, rightOp);
         return new OpConditional(leftOp, rightOp);
-    }
-
-    @Override
-    public Op visit(OpFilter filter) {
-        return filter; // TODO filter push down in SERVICE
-    }
-
-    @Override
-    public Op visit(OpSlice limit) {
-        // TODO LIMIT push down, so it could be part of the query sent to endpoints.
-        return limit;
-    }
-
-    @Override
-    public Op visit(OpGroup orderBy) {
-        // TODO ORDERBY push down, so it could be part of the query sent to endpoints.
-        return orderBy;
-    }
-
-    @Override
-    public Op visit(OpProject project) {
-        // TODO PROJECT push down, so it could be part of the query sent to endpoints.
-        return project;
-    }
-
-    @Override
-    public Op visit(OpDistinct distinct) {
-        // TODO PROJECT push down, so it could be part of the query sent to endpoints.
-        return distinct;
     }
 
     /* ********************************************************************** */

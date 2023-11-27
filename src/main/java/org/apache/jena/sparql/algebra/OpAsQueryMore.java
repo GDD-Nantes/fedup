@@ -3,6 +3,7 @@ package org.apache.jena.sparql.algebra;
 import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.op.OpNull;
 import org.apache.jena.sparql.algebra.op.OpQuad;
+import org.apache.jena.sparql.algebra.op.OpQuadPattern;
 
 /**
  * Small extension of {@link OpAsQuery} to add missing behavior.
@@ -27,8 +28,14 @@ public class OpAsQueryMore extends OpAsQuery {
 
         @Override
         public void visit(OpQuad opQuad) {
-            // this is important, but it is not implemented in Apache Jena yet
-            super.visit(opQuad); // TODO TODO TODO
+            // TODO this is important, but it is not implemented in Apache Jena yet
+            super.visit(opQuad);
+        }
+
+        @Override
+        public void visit(OpQuadPattern quadPattern) {
+            // TODO this is important, but it is not implemented in Apache Jena yet
+            super.visit(quadPattern);
         }
     }
 

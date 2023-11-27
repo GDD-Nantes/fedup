@@ -14,7 +14,9 @@ import org.apache.jena.sparql.algebra.op.OpN;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
 /**
- * Multi-union operator.
+ * Multi-union operator that does not seem to exist in Apache Jena's list of `Op`.
+ * The children is a list to keep the possibility of ordering. It may improve the
+ * query execution efficiency in presence of LIMIT.
  */
 public class Mu extends OpN {
 

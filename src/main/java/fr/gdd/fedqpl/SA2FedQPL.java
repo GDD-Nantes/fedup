@@ -1,4 +1,4 @@
-package fr.gdd.fedup;
+package fr.gdd.fedqpl;
 
 import fr.gdd.fedqpl.operators.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;

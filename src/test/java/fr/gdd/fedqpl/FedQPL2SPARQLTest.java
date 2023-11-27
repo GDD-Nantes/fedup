@@ -1,4 +1,4 @@
-package fr.gdd.fedqpl.visitors;
+package fr.gdd.fedqpl;
 
 import fr.gdd.fedqpl.operators.Mu;
 import org.apache.jena.graph.NodeFactory;
@@ -18,9 +18,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FedQPL2SPARQLVisitorTest {
+class FedQPL2SPARQLTest {
 
-    Logger log = LoggerFactory.getLogger(FedQPL2SPARQLVisitorTest.class);
+    Logger log = LoggerFactory.getLogger(FedQPL2SPARQLTest.class);
 
     @Test
     public void simple_req_writes_as_a_service() {
@@ -29,7 +29,7 @@ class FedQPL2SPARQLVisitorTest {
                 Var.alloc("p"),
                 Var.alloc("o"))), false);
 
-        FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
+        FedQPL2SPARQL toSparql = new FedQPL2SPARQL();
         Op op = toSparql.visit(r);
 
         assertEquals("SELECT*WHERE{SERVICE<http://graphA>{?s?p?o}}",
@@ -51,7 +51,7 @@ class FedQPL2SPARQLVisitorTest {
                 false
                 );
 
-        FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
+        FedQPL2SPARQL toSparql = new FedQPL2SPARQL();
         Op op = toSparql.visit(r);
 
         assertEquals("SELECT*WHERE{SERVICE<http://graphA>{?s?p?o.?s2?p2?o2}}",
@@ -74,7 +74,7 @@ class FedQPL2SPARQLVisitorTest {
                 Var.alloc("o"))), false);
         Mu mu = new Mu(List.of(r1, r2));
 
-        FedQPL2SPARQLVisitor toSparql = new FedQPL2SPARQLVisitor();
+        FedQPL2SPARQL toSparql = new FedQPL2SPARQL();
         Op op = toSparql.visit(mu);
 
         assertEquals("SELECT*WHERE{{SERVICE<http://graphA>{?s?p?o}}UNION{SERVICE<http://graphB>{?s?p?o}}}",

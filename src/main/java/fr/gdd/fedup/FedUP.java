@@ -1,7 +1,8 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.visitors.FedQPL2SPARQLVisitor;
-import fr.gdd.fedqpl.visitors.FedQPLWithExclusiveGroupsVisitor;
+import fr.gdd.fedqpl.SA2FedQPL;
+import fr.gdd.fedqpl.FedQPL2SPARQL;
+import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
@@ -101,7 +102,7 @@ public class FedUP {
         asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
 
         log.info("Building the SPARQL SERVICE query…");
-        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQLVisitor(), asFedQPL);
+        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
         String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
 
         log.info("Built the following query:\n{}", asSERVICE);
