@@ -62,15 +62,20 @@ public class FedUP {
     public String query(String queryAsString, Set<String> endpoints) {
         log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
+        return this.query(queryAsOp, endpoints);
+    }
 
-
+    public String query(Op queryAsOp, Set<String> endpoints) {
         log.info("Start making ASK queries…");
         // TODO use summary as first filter for ASKS
         ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints, ds4Asks);
         Op ssQueryAsOp = tsst.transform(queryAsOp);
 
         log.info("Start executing the source selection query…");
-        summary.getSummary().begin(ReadWrite.READ);
+
+        boolean inTxn = summary.getSummary().isInTransaction(); // TODO ugly, maybe there is a better way
+
+        if (!inTxn) summary.getSummary().begin(ReadWrite.READ);
         QueryIterator iterator = Algebra.exec(ssQueryAsOp, summary.getSummary());
 
         // TODO could be processed using a provenance query
@@ -87,8 +92,10 @@ public class FedUP {
                 assignments.add(bindingToMap(binding));
             }
         }
-        summary.getSummary().commit();
-        summary.getSummary().end();
+        if (!inTxn) {
+            summary.getSummary().commit();
+            summary.getSummary().end();
+        }
 
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check if it can be improved

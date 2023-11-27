@@ -18,6 +18,11 @@ public class Summary {
     Dataset summary;
     Transform strategy;
 
+    public Summary(Transform strategy, Dataset dataset) {
+        this.strategy = strategy;
+        this.summary = dataset;
+    }
+
     public Summary(Transform strategy, Location... location) {
         this.strategy = strategy;
         if (Objects.nonNull(location) && location.length > 0) {

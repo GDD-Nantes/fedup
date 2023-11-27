@@ -56,6 +56,17 @@ class FedUPTest {
     }
 
     @Test
+    public void a_query_with_only_one_tp () {
+        String queryAsString = """
+                SELECT * WHERE {
+                    ?s <http://something/that/doesnot/exist> ?o .
+                }""";
+        FedUP fedup = new FedUP(summary, dataset);
+        String result = fedup.query(queryAsString, endpoints);
+        // assertEquals("SELECT*WHERE{}", result.replace("\n", "").replace(" ", ""));
+    }
+
+    @Test
     public void simple_query_with_two_endpoints () {
         // Alice is a constant, so it gets actually checked using an ASK
         // and since only graphA has it, it means tp#1@A&B, and tp#2@A.
@@ -178,6 +189,9 @@ class FedUPTest {
 
     @Test
     public void query_with_a_filter_clause () {
+        // remove one of the solution, keeping David and his dog.
+        // however, endpointA still appears in the logical plan since
+        // FedUP removes filter to operate.
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }

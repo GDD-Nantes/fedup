@@ -68,6 +68,11 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
     /* ******************************************************************* */
 
     @Override
+    public Op transform(OpQuad opQuad) {
+        return opQuad;
+    }
+
+    @Override
     public Op transform(OpSequence opSequence, List<Op> list) {
         if (opSequence.getElements().stream().anyMatch(op -> !(op instanceof OpQuad))) {
             return opSequence;
