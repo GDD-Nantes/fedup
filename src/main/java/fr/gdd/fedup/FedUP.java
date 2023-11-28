@@ -4,25 +4,28 @@ import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
 import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
-import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
-import org.apache.jena.reasoner.rulesys.builtins.Sum;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
-import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -32,14 +35,18 @@ import java.util.stream.Collectors;
  */
 public class FedUP {
 
-    Logger log = LoggerFactory.getLogger(FedUP.class);
+    private static final Logger log = LoggerFactory.getLogger(FedUP.class);
 
     // The quotient summary to retrieve possibly relevant sources.
     final Summary summary;
+    Set<String> endpoints;
+    Function<String, String> modifierOfEndpoints = null;
+
     Dataset ds4Asks = null; // mostly for testing purposes
 
     public FedUP (Summary summary) {
         this.summary = summary;
+        this.endpoints = loadEndpoints(this.summary);
     }
 
     /**
@@ -50,9 +57,56 @@ public class FedUP {
     public FedUP (Summary summary, Dataset ds4Asks) {
         this.summary = summary;
         this.ds4Asks = ds4Asks;
+        this.endpoints = loadEndpoints(this.summary);
+    }
+
+    /**
+     * @return The list of endpoints extracted from the summary
+     */
+    private static Set<String> loadEndpoints(Summary summary) {
+        Set<String> endpoints = new HashSet<>();
+        Query getGraphQuery = QueryFactory.create("SELECT DISTINCT ?g WHERE {GRAPH ?g {?s ?p ?o}}");
+
+        boolean inTxn = summary.getSummary().isInTransaction();
+
+        if (!inTxn) summary.getSummary().begin(ReadWrite.READ); // TODO less ugly way ?
+        Plan plan = QueryEngineTDB.getFactory().create(Algebra.compile(getGraphQuery),
+                summary.getSummary().asDatasetGraph(),
+                BindingRoot.create(),
+                summary.getSummary().getContext().copy());
+        QueryIterator iterator = plan.iterator();
+        while (iterator.hasNext()) {
+            Binding b = iterator.next();
+            endpoints.add(b.get(Var.alloc("g")).getURI());
+        }
+        if (!inTxn) {
+            summary.getSummary().commit();
+            summary.getSummary().end();
+        }
+        log.debug("List of endpoints: {}", endpoints);
+        return endpoints;
+    }
+
+    /**
+     * Sometimes, the ingested summary does not reflect the current state
+     * of endpoints. To alleviate this issue, this function applies a lambda
+     * expression to every element of the list of endpoints.
+     * @param lambda The lambda function working on a string and producing a string.
+     */
+    public FedUP modifyEndpoints(Function<String, String> lambda){
+        this.modifierOfEndpoints = lambda;
+        return this;
     }
 
     /* ************************************************************** */
+
+    public String query(Op queryAsOp) {
+        return this.query(queryAsOp, this.endpoints);
+    }
+
+    public String query(String queryAsString) {
+        return this.query(queryAsString, this.endpoints);
+    }
 
     /**
      * @param queryAsString The federated query to execute.
@@ -66,17 +120,25 @@ public class FedUP {
     }
 
     public String query(Op queryAsOp, Set<String> endpoints) {
-        log.info("Start making ASK queries…");
+        if (Objects.nonNull(this.modifierOfEndpoints)) {
+            endpoints = endpoints.stream().map(this.modifierOfEndpoints).collect(Collectors.toSet());
+        }
+        log.info("Start making ASK queries on {} endpoints…", endpoints.size());
         // TODO use summary as first filter for ASKS
         ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints, ds4Asks);
         Op ssQueryAsOp = tsst.transform(queryAsOp);
 
         log.info("Start executing the source selection query…");
+        log.debug(ssQueryAsOp.toString());
 
         boolean inTxn = summary.getSummary().isInTransaction(); // TODO ugly, maybe there is a better way
-
         if (!inTxn) summary.getSummary().begin(ReadWrite.READ);
-        QueryIterator iterator = Algebra.exec(ssQueryAsOp, summary.getSummary());
+        // TODO make sure it does not loop with {@link FedUPServer} and {@link FedUPEngine}
+        Plan plan = QueryEngineTDB.getFactory().create(ssQueryAsOp,
+                summary.getSummary().asDatasetGraph(),
+                BindingRoot.create(),
+                summary.getSummary().getContext().copy());
+        QueryIterator iterator = plan.iterator();
 
         // TODO could be processed using a provenance query
         List<Map<Var, String>> assignments = new ArrayList<>();
@@ -97,9 +159,18 @@ public class FedUP {
             summary.getSummary().end();
         }
 
+        // replacing found endpoints by their updated version
+        if (Objects.nonNull(this.modifierOfEndpoints)) {
+            assignments = assignments.stream()
+                    .map(a -> a.entrySet().stream()
+                            .map(e -> Map.entry(e.getKey(),modifierOfEndpoints.apply(e.getValue())))
+                            .collect(Collectors.toMap(Map.Entry<Var, String>::getKey, Map.Entry<Var, String>::getValue)))
+                    .toList();
+        }
+
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments = removeInclusions(assignments); // TODO double check if it can be improved
-        log.debug("Assignments:\n{}", assignments.stream().map(Object::toString).collect(Collectors.joining("\n")));
+        log.debug("Assignments comprising {} elements:\n{}", assignments.size(), assignments.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
         log.info("Building the FedQPL query…");
         Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);

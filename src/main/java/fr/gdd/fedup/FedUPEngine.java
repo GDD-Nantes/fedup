@@ -3,26 +3,20 @@ package fr.gdd.fedup;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveGraphsTransform;
-import org.apache.jena.query.*;
+import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Query;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraph;
-import org.apache.jena.sparql.core.DatasetGraphFactory;
 import org.apache.jena.sparql.core.DatasetImpl;
 import org.apache.jena.sparql.engine.*;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
-import org.apache.jena.sparql.engine.iterator.QueryIter1;
-import org.apache.jena.sparql.engine.iterator.QueryIteratorCloseable;
-import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
-
-import java.util.List;
-import java.util.Set;
 
 public class FedUPEngine extends QueryEngineTDB {
 
@@ -44,18 +38,15 @@ public class FedUPEngine extends QueryEngineTDB {
 
     @Override
     public QueryIterator eval(Op op, DatasetGraph dsg, Binding input, Context context) {
-        System.out.println("meow?");
         op = Transformer.transform(new RemoveGraphsTransform(), op);
 
-        FedUP fedup = new FedUP(new Summary( new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)));
+        FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)));
 
-        String serviceQuery = fedup.query(op, Set.of("a")); // TODO read graphs from summary
+        String serviceQuery = fedup.query(op); // TODO read graphs from summary
 
-        Op serviceQueryAsOp = Algebra.parse(serviceQuery);
+        Op serviceQueryAsOp = Algebra.compile(QueryFactory.create(serviceQuery));
 
-        // TODO this calls eval, need to find a way to create a query iterator from Op;
-        // QueryEngineBase qeb = new Quer
-        return super.eval(op, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), context);
+        return super.eval(serviceQueryAsOp, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
     }
 
     /* ******************** Factory ********************** */

@@ -53,7 +53,9 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
         asks.visit(op);
         // #2 <endpoint, triple> -> boolean to triple -> list<endpoint>
         for (var entry : asks.getAsks().entrySet()) {
-            if (!triple2Endpoints.containsKey(entry.getKey().getValue()) && entry.getValue()) {
+
+            if (!triple2Endpoints.containsKey(entry.getKey().getValue())) {
+            // if (!triple2Endpoints.containsKey(entry.getKey().getValue()) && entry.getValue()) {
                 triple2Endpoints.put(entry.getKey().getValue(), new ArrayList<>());
             }
             if (entry.getValue()) {

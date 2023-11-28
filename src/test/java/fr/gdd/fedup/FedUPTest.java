@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -199,6 +200,8 @@ class FedUPTest {
                 }""");
     }
 
+
+
     /* ********************************************************************** */
 
     /**
@@ -209,14 +212,20 @@ class FedUPTest {
     public static void checkQueryWithActualEndpoints(String queryAsString) {
         FedUP fedup = new FedUP(summary, dataset);
 
+        // before, had to replace manually (see below), now we have a convenience function
+        // to do that instead.
+        fedup.modifyEndpoints(e ->
+            e.contains("graphA") ? "http://localhost:3333/graphA/sparql": "http://localhost:3334/graphB/sparql"
+        );
+
         String result = fedup.query(queryAsString, endpoints);
 
         // In the summary, they are placeholder, so we replace the value by the proper
         // In reality, the summary would have ingested the actual uri, so no problem.
-        String endpointA = "http://localhost:3333/graphA/sparql";
-        String endpointB = "http://localhost:3334/graphB/sparql";
-        result = result.replace("https://graphA.org", endpointA)
-                .replace("https://graphB.org", endpointB);
+        // String endpointA = "http://localhost:3333/graphA/sparql";
+        // String endpointB = "http://localhost:3334/graphB/sparql";
+        // result = result.replace("https://graphA.org", endpointA)
+        //         .replace("https://graphB.org", endpointB);
 
         List<FusekiServer> servers = startServers();
         log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
