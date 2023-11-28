@@ -23,9 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -120,12 +118,14 @@ public class FedUP {
     }
 
     public String query(Op queryAsOp, Set<String> endpoints) {
-        if (Objects.nonNull(this.modifierOfEndpoints)) {
-            endpoints = endpoints.stream().map(this.modifierOfEndpoints).collect(Collectors.toSet());
-        }
+        //if (Objects.nonNull(this.modifierOfEndpoints)) {
+        //    endpoints = endpoints.stream().map(this.modifierOfEndpoints).collect(Collectors.toSet());
+        // }
         log.info("Start making ASK queries on {} endpoints…", endpoints.size());
         // TODO use summary as first filter for ASKS
-        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints, ds4Asks);
+        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints)
+                .setDataset(ds4Asks) // for testing
+                .setModifierOfEndpoints(modifierOfEndpoints); // for difference between ingested graph and remote endpoint
         Op ssQueryAsOp = tsst.transform(queryAsOp);
 
         log.info("Start executing the source selection query…");

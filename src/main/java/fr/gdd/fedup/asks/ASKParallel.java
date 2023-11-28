@@ -9,7 +9,9 @@ import org.apache.jena.sparql.exec.http.QueryExecutionHTTPBuilder;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Perform ASK queries in parallel to check if triple patterns exist
@@ -22,6 +24,7 @@ public class ASKParallel {
      */
     ConcurrentHashMap<ImmutablePair<String, Triple>, Boolean> asks = new ConcurrentHashMap<>();
     Set<String> endpoints;
+    Map<String, String> new2oldEndpoints = null;
     Predicate<Triple>[] filters;
 
     /**
@@ -43,24 +46,51 @@ public class ASKParallel {
         }
     }
 
-    public void setTimeout(Long timeout) {
-        this.timeout = timeout;
+    public ASKParallel setModifierOfEndpoints(Function<String, String> lambda) {
+        if (Objects.isNull(lambda) || Objects.nonNull(dataset)) return this;
+
+        this.new2oldEndpoints = endpoints.stream().map(e -> Map.entry(lambda.apply(e), e))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        this.endpoints = new2oldEndpoints.keySet();
+
+        return this;
     }
 
-    public Map<ImmutablePair<String, Triple>, Boolean> getAsks() {
-        return this.asks;
+    public ASKParallel setTimeout(Long timeout) {
+        this.timeout = timeout;
+        return this;
     }
 
     /**
      * Means local execution.
      * @param dataset The local dataset to perform asks on.
      */
-    public void setDataset(Dataset dataset) {
+    public ASKParallel setDataset(Dataset dataset) {
+        if (Objects.isNull(dataset)) return this;
+
+        if (Objects.nonNull(new2oldEndpoints)) { // nullifies the modifier since it performs on graphs
+            this.endpoints = new2oldEndpoints.keySet();
+            new2oldEndpoints = null;
+        }
+
         QueryExecutionDatasetBuilder qedb = new QueryExecutionDatasetBuilder();
         qedb.dataset(dataset);
         this.dataset = dataset;
         this.builder = qedb;
+        return this;
     }
+
+    public Map<ImmutablePair<String, Triple>, Boolean> getAsks() {
+        if (Objects.isNull(new2oldEndpoints)) {
+            return asks;
+        }
+        return this.asks.entrySet().stream().map(e -> Map.entry(new ImmutablePair<>(
+                        new2oldEndpoints.get(e.getKey().getLeft()), // modified endpoint names
+                        e.getKey().getRight()),
+                e.getValue()) ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    /* ********************************************************************** */
 
     public void execute(List<Triple> triples) {
         for (Predicate<Triple> filter : this.filters) {

@@ -14,6 +14,7 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.util.VarUtils;
 
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * Places a VALUES clause on top of quads that contain a meaningful constant;
@@ -44,8 +45,14 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
         this.values2quad = copy.values2quad;
     }
 
-    public void setDataset(Dataset dataset) {
+    public ToValuesAndOrderTransform setModifierOfEndpoints(Function<String, String> lambda) {
+        this.asks.setModifierOfEndpoints(lambda);
+        return this;
+    }
+
+    public ToValuesAndOrderTransform setDataset(Dataset dataset) {
         this.asks.setDataset(dataset);
+        return this;
     }
 
     public Op transform(Op op) {

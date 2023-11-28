@@ -210,13 +210,14 @@ class FedUPTest {
      * @param queryAsString The normal query to execute (not the service one).
      */
     public static void checkQueryWithActualEndpoints(String queryAsString) {
-        FedUP fedup = new FedUP(summary, dataset);
-
         // before, had to replace manually (see below), now we have a convenience function
-        // to do that instead.
-        fedup.modifyEndpoints(e ->
-            e.contains("graphA") ? "http://localhost:3333/graphA/sparql": "http://localhost:3334/graphB/sparql"
-        );
+        // `modifyEndpoints` to do that instead.
+        FedUP fedup = new FedUP(summary, dataset)
+                .modifyEndpoints(e ->
+                        e.contains("graphA") ?
+                                "http://localhost:3333/graphA/sparql":
+                                "http://localhost:3334/graphB/sparql"
+                );
 
         String result = fedup.query(queryAsString, endpoints);
 

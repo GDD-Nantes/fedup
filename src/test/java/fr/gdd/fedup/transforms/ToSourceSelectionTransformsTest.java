@@ -71,7 +71,8 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints)
+                .setDataset(dataset);
 
         op = transforms.transform(op);
         assertTrue(op instanceof OpSequence);
@@ -94,7 +95,8 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints)
+                .setDataset(dataset);
         op = transforms.transform(op);
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
@@ -115,7 +117,8 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
+        ToSourceSelectionTransforms toSS = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints)
+                .setDataset(dataset);
         op = toSS.transform(op);
         log.debug(op.toString());
 
@@ -139,7 +142,8 @@ class ToSourceSelectionTransformsTest {
         Query query = QueryFactory.create(queryAsString);
         Op op = Algebra.compile(query);
 
-        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
+        ToSourceSelectionTransforms transforms = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints)
+                .setDataset(dataset);
         op = transforms.transform(op);
         OpLeftJoin lj = (OpLeftJoin) op;
         OpSequence os1 = (OpSequence) lj.getLeft();
@@ -215,7 +219,8 @@ class ToSourceSelectionTransformsTest {
         // ModuloOnSuffix mos = new ModuloOnSuffix(1);
         // op = Transformer.transform(mos, op);
 
-        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints, dataset);
+        ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(new ModuloOnSuffix(1), true, endpoints)
+                .setDataset(dataset);
         op = tsst.transform(op);
 
         log.debug(op.toString());

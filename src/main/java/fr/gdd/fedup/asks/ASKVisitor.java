@@ -11,9 +11,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
- * Visitor that collects all triples to perform parallel asks.
+ * Visitor that collects all triples to perform parallel asks on a set of
+ * remote endpoints.
  */
 public class ASKVisitor extends OpVisitorUnimplemented {
 
@@ -24,6 +26,11 @@ public class ASKVisitor extends OpVisitorUnimplemented {
         this.asks = new ASKParallel(endpoints); // default filter: only constants subject || object
     }
 
+    public ASKVisitor setModifierOfEndpoints(Function<String, String> lambda) {
+        this.asks.setModifierOfEndpoints(lambda);
+        return this;
+    }
+
     public void setDataset(Dataset dataset) {
         this.asks.setDataset(dataset);
     }
@@ -31,7 +38,6 @@ public class ASKVisitor extends OpVisitorUnimplemented {
     public Map<ImmutablePair<String, Triple>, Boolean> getAsks() {
         return this.asks.getAsks();
     }
-
 
     public void visit(Op op) {
         op.visit(this);

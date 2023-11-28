@@ -12,6 +12,7 @@ import org.apache.jena.sparql.core.Var;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Apply transformations that change a query to a source selection query.
@@ -20,38 +21,46 @@ public class ToSourceSelectionTransforms {
 
     Transform summarizer;
     Set<String> endpoints;
-    Dataset dataset;
+    Dataset dataset = null;
+    Function<String, String> modifierOfEndpoints = null;
 
     public boolean asDistinctGraphs;
 
     public ToQuadsTransform tqt;
 
-    public ToSourceSelectionTransforms(Transform summarizer, boolean asDistinctGraph, Set<String> endpoints, Dataset... datasets) { // default
+    public ToSourceSelectionTransforms(Transform summarizer, boolean asDistinctGraph, Set<String> endpoints) { // default
         this.summarizer = summarizer;
         this.asDistinctGraphs = asDistinctGraph;
         this.endpoints = endpoints;
-        this.dataset = (Objects.nonNull(datasets) && datasets.length > 0) ? datasets[0] : null;
+    }
+
+    public ToSourceSelectionTransforms setDataset(Dataset dataset) {
+        this.dataset = dataset;
+        return this;
+    }
+
+    public ToSourceSelectionTransforms setModifierOfEndpoints(Function<String, String> modifierOfEndpoints) {
+        this.modifierOfEndpoints = modifierOfEndpoints;
+        return this;
     }
 
     public Op transform(Op op) {
-        ToValuesAndOrderTransform tv = new ToValuesAndOrderTransform(endpoints);
-        if (Objects.nonNull(dataset)) {
-            tv.setDataset(dataset); // for testing and debugging purposes
-        }
-
-        tqt = new ToQuadsTransform();
-        // ToValuesWithoutPlaceholderTransform tvwpt = new ToValuesWithoutPlaceholderTransform(tq, tv);
+        // #0 performs ASKs
+        ToValuesAndOrderTransform tv = new ToValuesAndOrderTransform(endpoints)
+                .setDataset(dataset)
+                .setModifierOfEndpoints(modifierOfEndpoints);
 
         // #1 remove noisy operators
         op = Transformer.transform(new ToRemoveNoiseTransformer(), op);
         // #3 add graph clauses to triple patterns
+        tqt = new ToQuadsTransform();
         op = Transformer.transform(tqt, op);
         // #2 add VALUES and order triple patterns
         op = tv.transform(op);
 
         AddFilterForAskedGraphs affag = new AddFilterForAskedGraphs(tv);
 
-        if (summarizer instanceof ModuloOnSuffix) {
+        if (summarizer instanceof ModuloOnSuffix) { // TODO fix ugliness
             ((ModuloOnSuffix) summarizer).setAffag(affag);
         }
 
