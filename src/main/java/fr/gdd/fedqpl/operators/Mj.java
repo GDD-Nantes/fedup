@@ -1,5 +1,6 @@
 package fr.gdd.fedqpl.operators;
 
+import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.Transform;
@@ -16,8 +17,6 @@ import java.util.Objects;
  * to keep the possibility of join ordering if need be.
  */
 public class Mj extends OpN {
-
-    List<Op> children = new ArrayList<>();
 
     public Mj() {}
 
@@ -51,6 +50,12 @@ public class Mj extends OpN {
     @Override
     public String getName() {
         return "mj";
+    }
+
+    @Override
+    public String toString(PrefixMapping pmap) {
+        return String.format("({}\n{})", getName(),
+                String.join("\n", getElements().stream().map(c -> c.toString(pmap)).toList()));
     }
 
     @Override

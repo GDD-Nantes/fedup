@@ -1,36 +1,45 @@
 package fr.gdd.fedup;
 
+import fr.gdd.fedqpl.FedQPL2FedX;
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.file.Location;
-import org.apache.jena.query.DatasetFactory;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
-import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.*;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
+import org.eclipse.rdf4j.federated.repository.FedXRepository;
+import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
+import org.eclipse.rdf4j.federated.structures.FedXTupleQuery;
+import org.eclipse.rdf4j.model.ValueFactory;
+import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
+import org.eclipse.rdf4j.query.QueryLanguage;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
-import org.eclipse.rdf4j.repository.Repository;
-import org.eclipse.rdf4j.repository.RepositoryConnection;
+import org.eclipse.rdf4j.query.algebra.*;
+import org.eclipse.rdf4j.query.parser.ParsedQuery;
+import org.eclipse.rdf4j.query.parser.ParsedTupleQuery;
+import org.eclipse.rdf4j.query.parser.QueryParserUtil;
+import org.eclipse.rdf4j.repository.sail.SailTupleQuery;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.logging.LogManager;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * Simple test by running on FedShop.
@@ -51,8 +60,12 @@ public class FedShopTest {
             Location.create("/Users/nedelec-b-2/Desktop/Projects/fedup/temp/fedup-h0" )))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
-    Repository fedx = FedXFactory.newFederation()
-            .withConfig(new FedXConfig())
+    FedXRepository fedx = FedXFactory.newFederation()
+            .withConfig(new FedXConfig() // same as FedUP-experiment
+                    .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
+                    .withJoinWorkerThreads(20)
+                    .withUnionWorkerThreads(20)
+                    .withDebugQueryPlan(true))
             .withSparqlEndpoints(List.of()).create();
 
     // (TODO) conditional run
@@ -201,8 +214,10 @@ public class FedShopTest {
 
         long elapsed = -1;
 
-        try (RepositoryConnection conn = fedx.getConnection()) {
+
+        try (FedXRepositoryConnection conn = fedx.getConnection()) {
             long current = System.currentTimeMillis();
+            // parsing may take a long long time…
             TupleQuery tq = conn.prepareTupleQuery(serviceQuery);
             try (TupleQueryResult tqRes = tq.evaluate()) {
                 while (tqRes.hasNext()) {
@@ -216,6 +231,57 @@ public class FedShopTest {
         if (serviceResults.size() <= PRINTRESULTTHRESHOLD) {
             log.debug("Results:\n{}", String.join("\n", serviceResults.entrySet().stream().map(Object::toString).toList()));
         }
+        return elapsed;
+    }
+
+    @Test
+    public void quick () {
+       // ParsedQuery pq = QueryParserUtil.parseQuery(QueryLanguage.SPARQL, "SELECT ?s WHERE {SERVICE <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr> {?s <http://meow> ?o.}} GROUP BY ?s", null);
+       // System.out.println(pq.toString());
+/*
+        // measuredExecuteWithFedXWithByPassParser("", pq.getTupleExpr());
+
+        ValueFactory vf = SimpleValueFactory.getInstance();
+        Var uri = new Var("_my_anon", vf.createIRI("http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr"));
+
+        TupleExpr toExecute = new QueryRoot( new Projection(
+                new Service(uri,
+                        new StatementPattern(new Var("s"), new Var("p"), new Var("o")),
+                        "?s ?p ?o", Map.of(), "", false),
+                new ProjectionElemList(new ProjectionElem("s"), new ProjectionElem("p"), new ProjectionElem("o"))
+        ));*/
+
+        Op serviceQueryAsOp = Algebra.compile(QueryFactory.create("""
+        SELECT ?s ?p ?o WHERE {SERVICE <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr> {?s ?p ?o FILTER (?s = "12")}}
+        """));
+
+
+
+        TupleExpr toExecute = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), serviceQueryAsOp);
+
+        System.out.println(toExecute);
+
+        measuredExecuteWithFedXWithByPassParser("", toExecute);
+    }
+
+    public long measuredExecuteWithFedXWithByPassParser(String serviceQuery, TupleExpr fedXExpr) {
+        MultiSet<BindingSet> serviceResults = new HashMultiSet<>();
+
+        long elapsed = -1;
+
+        try (FedXRepositoryConnection conn = fedx.getConnection()) {
+            long current = System.currentTimeMillis();
+            TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery(serviceQuery, fedXExpr), conn));
+            try (TupleQueryResult tqRes = tq.evaluate()) {
+                while (tqRes.hasNext()) {
+                    serviceResults.add(tqRes.next());
+                }
+            }
+            elapsed = System.currentTimeMillis() - current;
+            log.info("FedX took {} ms to get {} results.", elapsed, serviceResults.size());
+            log.info(serviceResults.toString());
+        }
+
         return elapsed;
     }
 

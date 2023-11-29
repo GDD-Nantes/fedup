@@ -7,6 +7,7 @@ import java.util.*;
 import fr.gdd.fedqpl.visitors.FedQPLVisitorArg;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.Transform;
@@ -52,6 +53,12 @@ public class Mu extends OpN {
     @Override
     public String getName() {
         return "mu";
+    }
+
+    @Override
+    public String toString(PrefixMapping pmap) {
+        return String.format("({}\n{})", getName(),
+                String.join("\n", getElements().stream().map(c -> c.toString(pmap)).toList()));
     }
 
     @Override

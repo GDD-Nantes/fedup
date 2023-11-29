@@ -2,6 +2,7 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
+import fr.gdd.fedqpl.groups.FedQPLSimplifyVisitor;
 import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.Summary;
@@ -18,6 +19,7 @@ import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.util.NodeIsomorphismMap;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +179,13 @@ public class FedUP {
 
         log.info("Optimizing the resulting FedQPL plan…");
         // TODO more optimizations and simplifications, if need be
-        asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
+        Op before = null;
+        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
+            before = asFedQPL;
+            asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), asFedQPL);
+            asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
+        }
+        // log.debug("FedUP plan:\n{}", asFedQPL.toString());
 
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
