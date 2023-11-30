@@ -19,6 +19,7 @@ import org.eclipse.rdf4j.query.parser.QueryParserUtil;
 import org.eclipse.rdf4j.query.parser.sparql.ast.ASTQueryContainer;
 import org.eclipse.rdf4j.query.parser.sparql.ast.SyntaxTreeBuilder;
 
+import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -73,6 +74,24 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
                 TupleExpr left = ReturningOpVisitorRouter.visit(this, new OpTriple(ops.next()));
                 while (ops.hasNext()) {
                     TupleExpr right = ReturningOpVisitorRouter.visit(this, new OpTriple(ops.next()));
+                    left = new Join(left, right);
+                }
+                yield left;
+            }
+        };
+    }
+
+    @Override
+    public TupleExpr visit(OpSequence sequence) {
+        return switch (sequence.getElements().size()) {
+            case 0 -> new EmptySet();
+            case 1 -> ReturningOpVisitorRouter.visit(this, sequence.getElements().get(0));
+            default -> {
+                // wrote as nested unions
+                Iterator<Op> ops = sequence.getElements().iterator();
+                TupleExpr left = ReturningOpVisitorRouter.visit(this, ops.next());
+                while (ops.hasNext()) {
+                    TupleExpr right = ReturningOpVisitorRouter.visit(this, ops.next());
                     left = new Join(left, right);
                 }
                 yield left;
@@ -149,27 +168,53 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     }
 
     @Override
+    public TupleExpr visit(OpSlice slice) {
+        return new Slice(ReturningOpVisitorRouter.visit(this, slice.getSubOp()),
+                slice.getStart(),
+                slice.getLength());
+    }
+
+    @Override
     public TupleExpr visit(OpFilter filter) {
-        // need ValueExpr
-        String meowParse = ExprUtils.fmtSPARQL(filter.getExprs());
-
-        ParsedQuery qp = QueryParserUtil.parseQuery(QueryLanguage.SPARQL,
-                "SELECT * WHERE {?s ?p ?o FILTER " + meowParse + "}",
-                "");
-
-        System.out.println(qp);
-
-        /*try {
-            ASTQueryContainer meow = SyntaxTreeBuilder.parseQuery();
-            System.out.println(meow);
-            ValueExpr expr = meow.jjtGetChild(0).jjtGetChild(1).jjtGetChild(0).jjtGetChild(0)
-        } catch (Exception e) {
-            e.printStackTrace();
-        }*/
-        //
-
         return new Filter(ReturningOpVisitorRouter.visit(this, filter.getSubOp()),
-                null
-                );
+                getValueExpr(
+                        String.join("&&",
+                                filter.getExprs().getList().stream().map(ExprUtils::fmtSPARQL).toList())));
+    }
+
+    @Override
+    public TupleExpr visit(OpOrder orderBy) {
+        return new Order(ReturningOpVisitorRouter.visit(this, orderBy.getSubOp()),
+                orderBy.getConditions().stream().map(sc->
+                    new OrderElem(getValueExpr(ExprUtils.fmtSPARQL(sc.getExpression())))
+                ).toList());
+    }
+
+    public static ValueExpr getValueExpr(String ExprAsSPARQL) {
+        // TODO This is particularly ugly to get the filter condition in
+        // TODO terms of FedX since nothing is set to parse the expression alone
+        // TODO and get a `ValueExpr` to create the `Filter` operator…
+        ParsedQuery parsedQuery = QueryParserUtil.parseQuery(QueryLanguage.SPARQL,
+                "SELECT * WHERE {?s ?p ?o FILTER (" + ExprAsSPARQL + ")}",
+                null);
+
+        ValueExpr expr = null;
+        try {
+            parsedQuery.getTupleExpr().visit(new ValueExprGetterVisitor());
+        } catch (ValueExprException e) {
+            expr = e.expr;
+            // ((AbstractQueryModelNode) expr).setParentNode(null);
+            // TODO very very ugly. But we need to put parent to null otherwise it
+            // TODO does not pass an assert in `setParentNode`. Could also disable runtime assertions as
+            // TODO it probably should in release mode anyway.
+            try {
+                Field privateField = AbstractQueryModelNode.class.getDeclaredField("parent");
+                privateField.setAccessible(true);
+                privateField.set(expr, null);
+            } catch (Exception exception) {
+                throw new RuntimeException(exception.getMessage());
+            }
+        }
+        return expr;
     }
 }

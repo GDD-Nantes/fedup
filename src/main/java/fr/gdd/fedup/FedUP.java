@@ -1,5 +1,6 @@
 package fr.gdd.fedup;
 
+import fr.gdd.fedqpl.FedQPL2FedX;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
 import fr.gdd.fedqpl.groups.FedQPLSimplifyVisitor;
@@ -21,6 +22,7 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
+import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,6 +102,20 @@ public class FedUP {
 
     /* ************************************************************** */
 
+    /**
+     * @param queryAsString The query to execute on the federation of endpoints.
+     * @return A TupleExpr that FedX can easily execute to perform the federated query execution.
+     */
+    public TupleExpr queryToFedX(String queryAsString) {
+        log.debug("Parsing the query {}", queryAsString);
+        Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
+        Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
+        log.info("Building the SPARQL SERVICE query…");
+        TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
+        log.info("Built the following query:\n{}", asFedX);
+        return asFedX;
+    }
+
     public String query(Op queryAsOp) {
         return this.query(queryAsOp, this.endpoints);
     }
@@ -120,9 +136,16 @@ public class FedUP {
     }
 
     public String query(Op queryAsOp, Set<String> endpoints) {
-        //if (Objects.nonNull(this.modifierOfEndpoints)) {
-        //    endpoints = endpoints.stream().map(this.modifierOfEndpoints).collect(Collectors.toSet());
-        // }
+        Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
+        log.info("Building the SPARQL SERVICE query…");
+        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
+        String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
+
+        log.info("Built the following query:\n{}", asSERVICE);
+        return asSERVICE;
+    }
+
+    public Op queryToFedQPL (Op queryAsOp, Set<String> endpoints) {
         log.info("Start making ASK queries on {} endpoints…", endpoints.size());
         // TODO use summary as first filter for ASKS
         ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints)
@@ -186,14 +209,12 @@ public class FedUP {
             asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
         }
         // log.debug("FedUP plan:\n{}", asFedQPL.toString());
-
-        log.info("Building the SPARQL SERVICE query…");
-        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
-        String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
-
-        log.info("Built the following query:\n{}", asSERVICE);
-        return asSERVICE;
+        return asFedQPL;
     }
+
+
+    /* **************************************************************** */
+
 
     /**
      * Convert the binding into a map of [?g -> uri]

@@ -1,34 +1,24 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.FedQPL2FedX;
-import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.query.*;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
 import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
 import org.eclipse.rdf4j.federated.structures.FedXTupleQuery;
-import org.eclipse.rdf4j.model.ValueFactory;
-import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
 import org.eclipse.rdf4j.query.BindingSet;
-import org.eclipse.rdf4j.query.QueryLanguage;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.eclipse.rdf4j.query.algebra.*;
-import org.eclipse.rdf4j.query.parser.ParsedQuery;
 import org.eclipse.rdf4j.query.parser.ParsedTupleQuery;
-import org.eclipse.rdf4j.query.parser.QueryParserUtil;
 import org.eclipse.rdf4j.repository.sail.SailTupleQuery;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -39,7 +29,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Simple test by running on FedShop.
@@ -68,11 +57,41 @@ public class FedShopTest {
                     .withDebugQueryPlan(true))
             .withSparqlEndpoints(List.of()).create();
 
-    // (TODO) conditional run
-    @Disabled
-    @Test
-    public void small_try_to_benchmark_fedshop_on_multiple_executors() {
-        doItAll("""
+
+    public final static String Q05J = """
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
+                PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                                
+                SELECT DISTINCT ?product ?localProductLabel WHERE {
+                    ?localProduct rdfs:label ?localProductLabel .
+                                
+                    ?localProduct bsbm:productFeature ?localProdFeature .
+                    ?localProduct bsbm:productPropertyNumeric1 ?simProperty1 .
+                    ?localProduct bsbm:productPropertyNumeric2 ?simProperty2 .
+                                
+                    ?localProduct owl:sameAs ?product .
+                    ?localProdFeature owl:sameAs ?prodFeature .
+                                
+                    ?localProductXYZ bsbm:productFeature ?localProdFeatureXYZ .
+                    ?localProductXYZ bsbm:productPropertyNumeric1 ?origProperty1 .
+                    ?localProductXYZ bsbm:productPropertyNumeric2 ?origProperty2 .
+                                
+                    # const bsbm:Product171547
+                    ?localProductXYZ owl:sameAs bsbm:Product171547 .
+                    ?localProdFeatureXYZ owl:sameAs ?prodFeature .
+                                
+                    FILTER(bsbm:Product171547 != ?product)
+                    # Values are pre-determined because we knew the boundaries from the normal distribution
+                    FILTER(?simProperty1 < (?origProperty1 + 20) && ?simProperty1 > (?origProperty1 - 20))
+                    FILTER(?simProperty2 < (?origProperty2 + 70) && ?simProperty2 > (?origProperty2 - 70))
+                }
+                ORDER BY ?product ?localProductLabel
+                LIMIT 5
+                """;
+
+    public final static String Q07F = """
                 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -106,7 +125,15 @@ public class FedShopTest {
                     OPTIONAL { ?review bsbm:rating2 ?rating2 . }
                   }
                 }
-             """);
+             """;
+
+    /* ********************************************************************** */
+
+    // (TODO) conditional run
+    @Disabled
+    @Test
+    public void small_try_to_benchmark_fedshop_on_multiple_executors() {
+        doItAll(Q07F);
     }
 
     @Disabled
@@ -131,40 +158,8 @@ public class FedShopTest {
     @Disabled
     @Test
     public void run_on_q05j() {
-        doItAll("""
-                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
-                PREFIX owl: <http://www.w3.org/2002/07/owl#>
-                                
-                SELECT DISTINCT ?product ?localProductLabel WHERE {
-                    ?localProduct rdfs:label ?localProductLabel .
-                                
-                    ?localProduct bsbm:productFeature ?localProdFeature .
-                    ?localProduct bsbm:productPropertyNumeric1 ?simProperty1 .
-                    ?localProduct bsbm:productPropertyNumeric2 ?simProperty2 .
-                                
-                    ?localProduct owl:sameAs ?product .
-                    ?localProdFeature owl:sameAs ?prodFeature .
-                                
-                    ?localProductXYZ bsbm:productFeature ?localProdFeatureXYZ .
-                    ?localProductXYZ bsbm:productPropertyNumeric1 ?origProperty1 .
-                    ?localProductXYZ bsbm:productPropertyNumeric2 ?origProperty2 .
-                                
-                    # const bsbm:Product171547
-                    ?localProductXYZ owl:sameAs bsbm:Product171547 .
-                    ?localProdFeatureXYZ owl:sameAs ?prodFeature .
-                                
-                    FILTER(bsbm:Product171547 != ?product)
-                    # Values are pre-determined because we knew the boundaries from the normal distribution
-                    FILTER(?simProperty1 < (?origProperty1 + 20) && ?simProperty1 > (?origProperty1 - 20))
-                    FILTER(?simProperty2 < (?origProperty2 + 70) && ?simProperty2 > (?origProperty2 - 70))
-                }
-                ORDER BY ?product ?localProductLabel
-                LIMIT 5
-                """);
+        doItAll(Q05J);
     }
-
 
 
     /* **************************************************************** */
@@ -236,35 +231,14 @@ public class FedShopTest {
 
     @Test
     public void quick () {
-       // ParsedQuery pq = QueryParserUtil.parseQuery(QueryLanguage.SPARQL, "SELECT ?s WHERE {SERVICE <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr> {?s <http://meow> ?o.}} GROUP BY ?s", null);
-       // System.out.println(pq.toString());
-/*
-        // measuredExecuteWithFedXWithByPassParser("", pq.getTupleExpr());
-
-        ValueFactory vf = SimpleValueFactory.getInstance();
-        Var uri = new Var("_my_anon", vf.createIRI("http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr"));
-
-        TupleExpr toExecute = new QueryRoot( new Projection(
-                new Service(uri,
-                        new StatementPattern(new Var("s"), new Var("p"), new Var("o")),
-                        "?s ?p ?o", Map.of(), "", false),
-                new ProjectionElemList(new ProjectionElem("s"), new ProjectionElem("p"), new ProjectionElem("o"))
-        ));*/
-
-        Op serviceQueryAsOp = Algebra.compile(QueryFactory.create("""
-        SELECT ?s ?p ?o WHERE {SERVICE <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite53.fr> {?s ?p ?o FILTER (?s = "12")}}
-        """));
-
-
-
-        TupleExpr toExecute = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), serviceQueryAsOp);
-
-        System.out.println(toExecute);
-
-        measuredExecuteWithFedXWithByPassParser("", toExecute);
+        long current = System.currentTimeMillis();
+        TupleExpr toExecute = fedup.queryToFedX(Q05J);
+        long elapsed = System.currentTimeMillis() - current;
+        log.info("FedUP took {} ms to perform source selection.", elapsed);
+        measuredExecuteWithFedXWithBypassParser("", toExecute);
     }
 
-    public long measuredExecuteWithFedXWithByPassParser(String serviceQuery, TupleExpr fedXExpr) {
+    public long measuredExecuteWithFedXWithBypassParser(String serviceQuery, TupleExpr fedXExpr) {
         MultiSet<BindingSet> serviceResults = new HashMultiSet<>();
 
         long elapsed = -1;
