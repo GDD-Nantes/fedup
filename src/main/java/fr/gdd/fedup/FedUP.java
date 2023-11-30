@@ -110,7 +110,8 @@ public class FedUP {
         log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
-        log.info("Building the SPARQL SERVICE query…");
+        log.debug(asFedQPL.toString());
+        log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
         log.info("Built the following query:\n{}", asFedX);
         return asFedX;

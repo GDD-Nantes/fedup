@@ -26,6 +26,8 @@ public class ASKRunnable implements Runnable {
     QueryExecutionBuilder builder;
     Dataset dataset;
 
+    public static Integer RETRY = 5;
+
     public ASKRunnable(ConcurrentHashMap asks, String endpoint, Triple triple, Dataset dataset) {
         this.asks = asks;
         this.triple = triple;
@@ -45,13 +47,17 @@ public class ASKRunnable implements Runnable {
         ImmutablePair<String, Triple> id = new ImmutablePair<>(endpoint, triple);
         boolean response = switch (builder) {
             case QueryExecutionHTTPBuilder b -> { // remote
+                int retry = RETRY;
                 Query query = OpAsQuery.asQuery(new OpTriple(triple));
                 query.setQueryAskType();
-                try {
-                    yield b.query(query).timeout(5000, TimeUnit.MILLISECONDS).ask();
-                } catch (Exception e) {
-                    yield false; // failed to call the remote server, default to false
+                while (retry > 0) {
+                    try {
+                        yield b.query(query).timeout(5000, TimeUnit.MILLISECONDS).ask();
+                    } catch (Exception e) {
+                        retry -= 1;
+                    }
                 }
+                yield false; // failed to call the remote server, default to false
             }
             case QueryExecutionDatasetBuilder b -> { // local
                 Node graph = NodeFactory.createURI(endpoint);

@@ -131,6 +131,42 @@ public class FedShopTest {
                 }
              """;
 
+    public final static String Q10E = """
+            PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
+            PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+            PREFIX dc: <http://purl.org/dc/elements/1.1/>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                        
+            SELECT DISTINCT ?offer ?price WHERE {
+                # const bsbm:Product87739
+                ?offer bsbm:product ?localProductXYZ .
+                ?localProductXYZ owl:sameAs bsbm:Product87739 .
+                ?offer bsbm:vendor ?vendor .
+                #?offer dc:publisher ?vendor .
+                ?vendor bsbm:country <http://downlode.org/rdf/iso-3166/countries#US> .
+                ?offer bsbm:deliveryDays ?deliveryDays .
+                FILTER(?deliveryDays <= 3)
+                ?offer bsbm:price ?price .
+                ?offer bsbm:validTo ?date .
+                # const "2008-04-10T00:00:00"^^xsd:dateTime < ?date
+                FILTER (?date > "2008-04-10T00:00:00"^^xsd:dateTime )
+            }
+            ORDER BY ?offer ?price
+            LIMIT 10
+            """;
+
+    public final static String Q11A = """
+            PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
+                        
+            SELECT DISTINCT ?property ?hasValue ?isValueOf WHERE {
+                # const <http://www.vendor6.fr/Offer886>
+                <http://www.vendor6.fr/Offer886> bsbm:product ?product .
+                { <http://www.vendor6.fr/Offer886> ?property ?hasValue }
+                UNION
+                { ?isValueOf ?property <http://www.vendor6.fr/Offer886> }
+            }
+            """;
+
     /* ********************************************************************** */
 
     // (TODO) conditional run
@@ -162,7 +198,7 @@ public class FedShopTest {
     @Disabled
     @Test
     public void run_on_q05j() {
-        doItAll(Q05J);
+        doItAllWithByPassAndPrint(Q11A, "Q");
     }
 
 
@@ -263,7 +299,10 @@ public class FedShopTest {
             }
             elapsed = System.currentTimeMillis() - current;
             log.info("FedX took {} ms to get {} results.", elapsed, serviceResults.size());
-            log.info(serviceResults.toString());
+        }
+
+        if (serviceResults.size() <= PRINTRESULTTHRESHOLD) {
+            log.debug("Results:\n{}", String.join("\n", serviceResults.entrySet().stream().map(Object::toString).toList()));
         }
 
         return elapsed;
