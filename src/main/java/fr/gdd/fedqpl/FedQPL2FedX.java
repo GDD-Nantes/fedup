@@ -1,5 +1,6 @@
 package fr.gdd.fedqpl;
 
+import com.github.jsonldjava.utils.Obj;
 import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
@@ -8,20 +9,17 @@ import org.apache.jena.graph.*;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.algebra.op.*;
-import org.apache.jena.sparql.sse.writers.WriterExpr;
 import org.apache.jena.sparql.util.ExprUtils;
 import org.eclipse.rdf4j.model.util.Values;
 import org.eclipse.rdf4j.query.QueryLanguage;
 import org.eclipse.rdf4j.query.algebra.*;
 import org.eclipse.rdf4j.query.parser.ParsedQuery;
-import org.eclipse.rdf4j.query.parser.QueryParser;
 import org.eclipse.rdf4j.query.parser.QueryParserUtil;
-import org.eclipse.rdf4j.query.parser.sparql.ast.ASTQueryContainer;
-import org.eclipse.rdf4j.query.parser.sparql.ast.SyntaxTreeBuilder;
 
 import java.lang.reflect.Field;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -35,24 +33,11 @@ import java.util.stream.Collectors;
 public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
 
     private static Integer ANON_VARS = 0;
-    private static boolean SILENT = true;
+    private static final boolean SILENT = true;
 
     private static String getAnonName() {
         ANON_VARS += 1;
         return "_anon_" + ANON_VARS;
-    }
-
-    /**
-     * @param node The node to convert.
-     * @return A FedX Var from a Jena Node.
-     */
-    private static Var getVar(Node node) {
-        return switch (node) {
-            case Node_Literal lit -> new Var(getAnonName(), Values.literal(lit.getLiteralLexicalForm()), true, true);
-            case Node_URI uri -> new Var(getAnonName(), Values.iri(uri.getURI()), true, true);
-            case Node_Variable var -> new Var(var.getName());
-            default -> throw new UnsupportedOperationException(node.toString());
-        };
     }
 
     @Override
@@ -148,6 +133,24 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     }
 
     @Override
+    public TupleExpr visit(OpLeftJoin lj) {
+        ValueExpr expr = null;
+        if (Objects.nonNull(lj.getExprs()) && !lj.getExprs().isEmpty()) {
+            expr = getValueExpr(String.join("&&",
+                    lj.getExprs().getList().stream().map(ExprUtils::fmtSPARQL).toList()));
+        }
+        return new LeftJoin(ReturningOpVisitorRouter.visit(this, lj.getLeft()),
+                ReturningOpVisitorRouter.visit(this, lj.getRight()),
+                expr);
+    }
+
+    @Override
+    public TupleExpr visit(OpConditional cond) {
+        return new LeftJoin(ReturningOpVisitorRouter.visit(this, cond.getLeft()),
+                ReturningOpVisitorRouter.visit(this, cond.getRight()));
+    }
+
+    @Override
     public TupleExpr visit(OpDistinct distinct) {
         return new Distinct(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()));
     }
@@ -190,6 +193,8 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
                 ).toList());
     }
 
+    /* ********************************************************************* */
+
     public static ValueExpr getValueExpr(String ExprAsSPARQL) {
         // TODO This is particularly ugly to get the filter condition in
         // TODO terms of FedX since nothing is set to parse the expression alone
@@ -216,5 +221,18 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
             }
         }
         return expr;
+    }
+
+    /**
+     * @param node The node to convert.
+     * @return A FedX Var from a Jena Node.
+     */
+    private static Var getVar(Node node) {
+        return switch (node) {
+            case Node_Literal lit -> new Var(getAnonName(), Values.literal(lit.getLiteralLexicalForm()), true, true);
+            case Node_URI uri -> new Var(getAnonName(), Values.iri(uri.getURI()), true, true);
+            case Node_Variable var -> new Var(var.getName());
+            default -> throw new UnsupportedOperationException(node.toString());
+        };
     }
 }

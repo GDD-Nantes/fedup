@@ -100,6 +100,30 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
     }
 
     @Override
+    public List<Op> visit(OpJoin join) {
+        List<Op> results = new ArrayList<>();
+
+        // we want to examine each possibility once
+        List<Op> lefts = new HashSet<>(ReturningOpVisitorRouter.visit(this, join.getLeft())).stream().toList();
+        List<Op> rights = new HashSet<>(ReturningOpVisitorRouter.visit(this, join.getRight())).stream().toList();
+
+        for (Op left : lefts) { // for each mandatory part
+            for (Op right : rights) {
+                Map<Var, String> assignmentToTest = new HashMap<>();
+                assignmentToTest.putAll(fedQPL2PartialAssignment.get(left));
+                assignmentToTest.putAll(fedQPL2PartialAssignment.get(right));
+                if (theResultExists(assignmentToTest)) {
+                    Mj mj = new Mj(List.of(left, right));
+                    results.add(mj);
+                    fedQPL2PartialAssignment.put(mj, assignmentToTest);
+                }
+            }
+        }
+
+        return results;
+    }
+
+    @Override
     public List<Op> visit(OpLeftJoin lj) {
         List<Op> results = new ArrayList<>();
 

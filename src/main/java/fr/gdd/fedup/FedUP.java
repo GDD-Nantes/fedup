@@ -104,7 +104,7 @@ public class FedUP {
 
     /**
      * @param queryAsString The query to execute on the federation of endpoints.
-     * @return A TupleExpr that FedX can easily execute to perform the federated query execution.
+     * @return A `TupleExpr` that FedX can easily execute to perform the federated query execution.
      */
     public TupleExpr queryToFedX(String queryAsString) {
         log.debug("Parsing the query {}", queryAsString);
@@ -114,6 +114,20 @@ public class FedUP {
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
         log.info("Built the following query:\n{}", asFedX);
         return asFedX;
+    }
+
+    /**
+     * @param queryAsString The query to execute on the federation of endpoints.
+     * @return An `Op` that Apache Jena can easily execute to perform the federated query execution.
+     */
+    public Op queryToJena(String queryAsString) {
+        log.debug("Parsing the query {}", queryAsString);
+        Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
+        Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
+        log.info("Building the SPARQL SERVICE query…");
+        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
+        log.info("Built the following query:\n{}", asSPARQL);
+        return asSPARQL;
     }
 
     public String query(Op queryAsOp) {

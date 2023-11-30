@@ -8,6 +8,10 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.query.*;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpAsQueryMore;
+import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
@@ -54,7 +58,7 @@ public class FedShopTest {
                     .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
                     .withJoinWorkerThreads(20)
                     .withUnionWorkerThreads(20)
-                    .withDebugQueryPlan(true))
+                    .withDebugQueryPlan(false))
             .withSparqlEndpoints(List.of()).create();
 
 
@@ -138,7 +142,7 @@ public class FedShopTest {
 
     @Disabled
     @Test
-    public void run_on_izmir_fedshop200() throws IOException {
+    public void run_all_izmir_fedshop200() throws IOException {
         List<ImmutablePair<String, String>> queries = Files.walk(Paths.get("./queries/izmir_fedshop/"))
                 .filter(p-> p.toString().endsWith(".sparql"))
                 .map(p -> {
@@ -151,7 +155,7 @@ public class FedShopTest {
         // #1 get all queries from folder
         queries.forEach(q -> {
             log.info("Started {}…", q.getLeft());
-            doItAllAndPrint(q.getRight(), q.getLeft());
+            doItAllWithByPassAndPrint(q.getRight(), q.getLeft());
         });
     }
 
@@ -229,23 +233,29 @@ public class FedShopTest {
         return elapsed;
     }
 
-    @Test
-    public void quick () {
+    public void doItAllWithByPassAndPrint (String query, String shortname) {
         long current = System.currentTimeMillis();
-        TupleExpr toExecute = fedup.queryToFedX(Q05J);
-        long elapsed = System.currentTimeMillis() - current;
-        log.info("FedUP took {} ms to perform source selection.", elapsed);
-        measuredExecuteWithFedXWithBypassParser("", toExecute);
+        TupleExpr toExecute = fedup.queryToFedX(query);
+        long ssFedX = System.currentTimeMillis() - current;
+        long fedxTime = measuredExecuteWithFedXWithBypassParser(toExecute);
+
+        current = System.currentTimeMillis();
+        // Op toExecuteJena = fedup.queryToJena(query);
+        long ssJena = -1; // System.currentTimeMillis() - current;
+        long jenaTime = -1;
+        //long jenaTime = measuredExecuteWithJenaWithBypassParser(toExecuteJena);
+
+        System.out.printf("%s %s %s %s %s%n", shortname, ssFedX, ssJena, jenaTime, fedxTime);
     }
 
-    public long measuredExecuteWithFedXWithBypassParser(String serviceQuery, TupleExpr fedXExpr) {
+    public long measuredExecuteWithFedXWithBypassParser(TupleExpr fedXExpr) {
         MultiSet<BindingSet> serviceResults = new HashMultiSet<>();
 
         long elapsed = -1;
 
         try (FedXRepositoryConnection conn = fedx.getConnection()) {
             long current = System.currentTimeMillis();
-            TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery(serviceQuery, fedXExpr), conn));
+            TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery("", fedXExpr), conn));
             try (TupleQueryResult tqRes = tq.evaluate()) {
                 while (tqRes.hasNext()) {
                     serviceResults.add(tqRes.next());
@@ -256,6 +266,27 @@ public class FedShopTest {
             log.info(serviceResults.toString());
         }
 
+        return elapsed;
+    }
+
+    public long measuredExecuteWithJenaWithBypassParser(Op serviceQuery) {
+        long elapsed = -1;
+        MultiSet<Binding> serviceResults = new HashMultiSet<>();
+
+        Query q = OpAsQueryMore.asQuery(serviceQuery);
+        try (QueryExecution qe =  QueryExecutionFactory.create(q, DatasetFactory.empty())) {
+            long current = System.currentTimeMillis();
+            ResultSet results = qe.execSelect();
+            while (results.hasNext()) {
+                serviceResults.add(results.nextBinding());
+            }
+            elapsed = System.currentTimeMillis() - current;
+            log.info("Jena took {} ms to get {} results.", elapsed, serviceResults.size());
+        }
+
+        if (serviceResults.size() <= PRINTRESULTTHRESHOLD) {
+            log.debug("Results:\n{}", String.join("\n", serviceResults.entrySet().stream().map(Object::toString).toList()));
+        }
         return elapsed;
     }
 
