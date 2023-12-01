@@ -48,7 +48,7 @@ public class FedShopTest {
     private static final Integer PRINTRESULTTHRESHOLD = 10;
 
     public static FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1),
-            Location.create("/Users/nedelec-b-2/Desktop/Projects/fedup/temp/fedup-h0" )))
+            Location.create("./temp/fedup-h0" )))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
     FedXRepository fedx = FedXFactory.newFederation()
