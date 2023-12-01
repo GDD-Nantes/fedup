@@ -18,9 +18,9 @@ class HashSummaryTest {
                 NodeFactory.createURI("https://example.com/Alice"),
                 NodeFactory.createURI("https://example.com/hasFriend"),
                 NodeFactory.createURI("https://example.com/Julien")));
-        hgs.summary.begin(ReadWrite.READ);
-        assertEquals(1, hgs.summary.getNamedModel(graphURI.getURI()).size());
-        hgs.summary.end();
+        hgs.getSummary().begin(ReadWrite.READ);
+        assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());
+        hgs.getSummary().end();
     }
 
     @Test
@@ -35,10 +35,10 @@ class HashSummaryTest {
                 NodeFactory.createURI("https://example.com/Julien"),
                 NodeFactory.createURI("https://example.com/hasFriend"),
                 NodeFactory.createURI("https://example.com/Alice")));
-        hgs.summary.begin(ReadWrite.READ);
+        hgs.getSummary().begin(ReadWrite.READ);
 
         Query q = QueryFactory.create("SELECT * WHERE {GRAPH ?g {?s ?p ?o}}");
-        QueryExecution qe = QueryExecutionFactory.create(q, hgs.summary);
+        QueryExecution qe = QueryExecutionFactory.create(q, hgs.getSummary());
         ResultSet rs = qe.execSelect();
 
         assertTrue(rs.hasNext());
@@ -49,8 +49,8 @@ class HashSummaryTest {
         assertEquals("https://example.com/0", qs.getResource("o").getURI());
         assertFalse(rs.hasNext());
 
-        assertEquals(1, hgs.summary.getNamedModel(graphURI.getURI()).size());
-        hgs.summary.end();
+        assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());
+        hgs.getSummary().end();
     }
 
     /* ******************************************************************* */
@@ -68,10 +68,10 @@ class HashSummaryTest {
                 NodeFactory.createURI("https://example.com/Julien"),
                 NodeFactory.createURI("https://example.com/hasFriend"),
                 NodeFactory.createURI("https://example.com/Alice")));
-        hgs.summary.begin(ReadWrite.READ);
+        hgs.getSummary().begin(ReadWrite.READ);
 
         Query q = QueryFactory.create("SELECT * WHERE {GRAPH ?g {?s ?p ?o}}");
-        QueryExecution qe = QueryExecutionFactory.create(q, hgs.summary);
+        QueryExecution qe = QueryExecutionFactory.create(q, hgs.getSummary());
         ResultSet rs = qe.execSelect();
 
         assertTrue(rs.hasNext());
@@ -82,8 +82,8 @@ class HashSummaryTest {
         assertEquals("https://0", qs.getResource("o").getURI());
         assertFalse(rs.hasNext());
 
-        assertEquals(1, hgs.summary.getNamedModel(graphURI.getURI()).size());
-        hgs.summary.end();
+        assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());
+        hgs.getSummary().end();
     }
 
 }

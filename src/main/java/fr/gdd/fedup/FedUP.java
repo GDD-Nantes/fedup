@@ -9,7 +9,6 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Algebra;
@@ -48,7 +47,7 @@ public class FedUP {
 
     public FedUP (Summary summary) {
         this.summary = summary;
-        this.endpoints = loadEndpoints(this.summary);
+        this.endpoints = this.summary.getGraphs();
     }
 
     /**
@@ -59,34 +58,7 @@ public class FedUP {
     public FedUP (Summary summary, Dataset ds4Asks) {
         this.summary = summary;
         this.ds4Asks = ds4Asks;
-        this.endpoints = loadEndpoints(this.summary);
-    }
-
-    /**
-     * @return The list of endpoints extracted from the summary
-     */
-    private static Set<String> loadEndpoints(Summary summary) {
-        Set<String> endpoints = new HashSet<>();
-        Query getGraphQuery = QueryFactory.create("SELECT DISTINCT ?g WHERE {GRAPH ?g {?s ?p ?o}}");
-
-        boolean inTxn = summary.getSummary().isInTransaction();
-
-        if (!inTxn) summary.getSummary().begin(ReadWrite.READ); // TODO less ugly way ?
-        Plan plan = QueryEngineTDB.getFactory().create(Algebra.compile(getGraphQuery),
-                summary.getSummary().asDatasetGraph(),
-                BindingRoot.create(),
-                summary.getSummary().getContext().copy());
-        QueryIterator iterator = plan.iterator();
-        while (iterator.hasNext()) {
-            Binding b = iterator.next();
-            endpoints.add(b.get(Var.alloc("g")).getURI());
-        }
-        if (!inTxn) {
-            summary.getSummary().commit();
-            summary.getSummary().end();
-        }
-        log.debug("List of endpoints: {}", endpoints);
-        return endpoints;
+        this.endpoints = this.summary.getGraphs();
     }
 
     /**

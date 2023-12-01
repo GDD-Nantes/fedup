@@ -54,6 +54,8 @@ public class VirtuosoTest {
         executeOnVirtuoso(serviceQuery);
     }
 
+    /* ************************************************************************ */
+
     public static long executeOnVirtuoso(String serviceQuery) {
         serviceQuery = serviceQuery.replace("\n", "");
 
