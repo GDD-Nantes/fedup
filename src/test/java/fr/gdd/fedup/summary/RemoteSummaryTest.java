@@ -1,5 +1,8 @@
 package fr.gdd.fedup.summary;
 
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -23,6 +26,13 @@ public class RemoteSummaryTest {
         // virtuoso creates 6 additional graphs by default, we don't care much.
         // as they won't appear in the results of source selection anyway.
         log.debug(graphs.toString());
+
+        Op query = Algebra.compile(QueryFactory.create("""
+                PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                SELECT (COUNT(*) as ?count) WHERE { ?s owl:sameAs ?o }
+                """));
+
+        log.debug(s.querySummary(query).toString());
     }
 
 }

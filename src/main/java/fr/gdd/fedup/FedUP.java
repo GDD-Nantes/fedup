@@ -143,37 +143,25 @@ public class FedUP {
         log.info("Start executing the source selection query…");
         log.debug(ssQueryAsOp.toString());
 
-        boolean inTxn = summary.getSummary().isInTransaction(); // TODO ugly, maybe there is a better way
-        if (!inTxn) summary.getSummary().begin(ReadWrite.READ);
-        // TODO make sure it does not loop with {@link FedUPServer} and {@link FedUPEngine}
-        Plan plan = QueryEngineTDB.getFactory().create(ssQueryAsOp,
-                summary.getSummary().asDatasetGraph(),
-                BindingRoot.create(),
-                summary.getSummary().getContext().copy());
-        QueryIterator iterator = plan.iterator();
-
         // TODO could be processed using a provenance query
-        List<Map<Var, String>> assignments = new ArrayList<>();
+        final List<Map<Var, String>> assignments = new ArrayList<>();
         Set<Integer> seen = new TreeSet<>();
-        while (iterator.hasNext()) {
+
+        summary.querySummary(ssQueryAsOp).forEach(b -> {
             // TODO create FedQPL here
             // TODO but it's much more difficult in presence of OPTIONAL
             // TODO but could get faster time for first result when things are sure
-            Binding binding = iterator.next();
-            int hashcode = binding.toString().hashCode();
+            int hashcode = b.toString().hashCode();
             if (!seen.contains(hashcode)) {
                 seen.add(hashcode);
-                assignments.add(bindingToMap(binding));
-            }
-        }
-        if (!inTxn) {
-            summary.getSummary().commit();
-            summary.getSummary().end();
-        }
+                assignments.add(bindingToMap(b));
+            }}
+        );
 
+        List<Map<Var, String>> assignments2 = assignments;
         // replacing found endpoints by their updated version
         if (Objects.nonNull(this.modifierOfEndpoints)) {
-            assignments = assignments.stream()
+            assignments2 = assignments2.stream()
                     .map(a -> a.entrySet().stream()
                             .map(e -> Map.entry(e.getKey(),modifierOfEndpoints.apply(e.getValue())))
                             .collect(Collectors.toMap(Map.Entry<Var, String>::getKey, Map.Entry<Var, String>::getValue)))
@@ -181,11 +169,11 @@ public class FedUP {
         }
 
         log.info("Removing duplicates and inclusions in logical plan…");
-        assignments = removeInclusions(assignments); // TODO double check if it can be improved
-        log.debug("Assignments comprising {} elements:\n{}", assignments.size(), assignments.stream().map(Object::toString).collect(Collectors.joining("\n")));
+        assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
+        log.debug("Assignments comprising {} elements:\n{}", assignments2.size(), assignments2.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments, tsst.tqt);
+        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt);
 
         log.info("Optimizing the resulting FedQPL plan…");
         // TODO more optimizations and simplifications, if need be

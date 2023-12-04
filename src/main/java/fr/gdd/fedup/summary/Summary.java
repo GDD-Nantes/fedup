@@ -1,22 +1,26 @@
 package fr.gdd.fedup.summary;
 
 import org.apache.jena.dboe.base.file.Location;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.sparql.algebra.*;
 import org.apache.jena.sparql.algebra.op.OpQuad;
+import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryEngineBase;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.main.QueryEngineMain;
+import org.apache.jena.sparql.util.QueryUtils;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * A summary is a dataset along with transformation operations
@@ -81,30 +85,50 @@ public class Summary {
      * reachable through SERVICE queries.
      */
     public Set<String> getGraphs() {
-        Set<String> endpoints = new HashSet<>();
-        Query getGraphQuery = Objects.isNull(remoteURI) ?
-                QueryFactory.create("SELECT DISTINCT ?g WHERE {GRAPH ?g {?s ?p ?o}}") :
-                QueryFactory.create(""+
-                    "SELECT DISTINCT ?g WHERE {SERVICE <"+remoteURI+"> {"+
-                        "SELECT DISTINCT ?g { GRAPH ?g {?s ?p ?o}}"+
-                    "}}");
+        Op getGraphsQuery = Algebra.compile(QueryFactory.create("SELECT DISTINCT ?g { GRAPH ?g {?s ?p ?o}}"));
+        List<Binding> bindings = querySummary(getGraphsQuery);
+        return bindings.stream().map(b -> b.get(Var.alloc("g")).getURI()).collect(Collectors.toSet());
+    }
 
+
+    /**
+     * @param queryAsOp The `Op` representation of the query to perform on the summary.
+     * @return The materialized bindings.
+     */
+    public List<Binding> querySummary(Op queryAsOp) {
         boolean inTxn = this.getSummary().isInTransaction() || Objects.nonNull(remoteURI);
+        if (!inTxn) this.getSummary().begin(ReadWrite.READ);
 
-        if (!inTxn) this.getSummary().begin(ReadWrite.READ); // TODO less ugly way ?
-
-        try (QueryExecution qe =  QueryExecutionFactory.create(getGraphQuery, getSummary())) {
-            ResultSet iterator = qe.execSelect();
-            while (iterator.hasNext()) {
-                 Binding b = iterator.nextBinding();
-                 endpoints.add(b.get(Var.alloc("g")).getURI());
-            }
+        // Query query = Objects.isNull(this.remoteURI) ?
+        //        OpAsQueryMore.asQuery(queryAsOp) : // otherwise we add a service clause in front
+        //        OpAsQueryMore.asQuery(new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true));
+        if (Objects.nonNull(remoteURI)) {
+            queryAsOp = new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true);
         }
+
+        // TODO make sure it does not loop with {@link FedUPServer} and {@link FedUPEngine}
+        List<Binding> bindings = new ArrayList<>();
+        Plan plan = QueryEngineMain.getFactory().create(queryAsOp,
+                getSummary().asDatasetGraph(),
+                BindingRoot.create(),
+                getSummary().getContext().copy());
+
+        QueryIterator iterator = plan.iterator();
+
+        // try (QueryExecution qe =  QueryExecutionFactory.create(query, getSummary())) {
+            // ResultSet iterator = qe.execSelect();
+            while (iterator.hasNext()) {
+                Binding b = iterator.nextBinding();
+                bindings.add(b);
+            }
+        //}
+
         if (!inTxn) {
             this.getSummary().commit();
             this.getSummary().end();
         }
 
-        return endpoints;
+        return bindings;
     }
+
 }
