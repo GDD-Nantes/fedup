@@ -11,6 +11,7 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryEngineBase;
+import org.apache.jena.sparql.engine.QueryEngineFactory;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
@@ -103,7 +104,7 @@ public class Summary {
         //        OpAsQueryMore.asQuery(queryAsOp) : // otherwise we add a service clause in front
         //        OpAsQueryMore.asQuery(new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true));
         if (Objects.nonNull(remoteURI)) {
-            queryAsOp = new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true);
+            queryAsOp = new OpService(NodeFactory.createURI(remoteURI), queryAsOp, false);
         }
 
         // TODO make sure it does not loop with {@link FedUPServer} and {@link FedUPEngine}
@@ -115,13 +116,10 @@ public class Summary {
 
         QueryIterator iterator = plan.iterator();
 
-        // try (QueryExecution qe =  QueryExecutionFactory.create(query, getSummary())) {
-            // ResultSet iterator = qe.execSelect();
             while (iterator.hasNext()) {
                 Binding b = iterator.nextBinding();
                 bindings.add(b);
             }
-        //}
 
         if (!inTxn) {
             this.getSummary().commit();
