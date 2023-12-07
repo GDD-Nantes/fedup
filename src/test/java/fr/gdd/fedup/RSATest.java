@@ -139,6 +139,8 @@ public class RSATest {
         FedShopTest.measuredExecuteWithJena(RSATest.Q07F_FEDUP_RSA);
         FedShopTest.measuredExecuteWithJena(RSATest.Q07F_RSA);
         VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_FEDUP_RSA);
+        // Virtuoso does not like SERVICE ?variable, however, FedShop built its RSA using this… Therefore:
+        // Virtuoso 37000 Error SP031: SPARQL compiler: Internal error: Usupported combination of subqueries and service invocations
         VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_RSA);
     }
 

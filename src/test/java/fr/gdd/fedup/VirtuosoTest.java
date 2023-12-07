@@ -45,6 +45,8 @@ public class VirtuosoTest {
             Location.create("./temp/fedup-h0" )))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
+    // Warning: may take a long time. Using static functions of the class will initialize this,
+    // hence being slow the first time.
     public static FedUP fedup_rsa = new FedUP(new Summary(new TransformCopy(), Location.create("./temp/fedup-id")))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 

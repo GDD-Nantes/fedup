@@ -42,7 +42,7 @@ public class FedUPEngine extends QueryEngineTDB {
 
         FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)));
 
-        String serviceQuery = fedup.query(op); // TODO read graphs from summary
+        String serviceQuery = fedup.query(op);
 
         Op serviceQueryAsOp = Algebra.compile(QueryFactory.create(serviceQuery));
 

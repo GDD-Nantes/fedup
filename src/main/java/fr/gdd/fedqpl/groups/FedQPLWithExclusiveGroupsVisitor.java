@@ -89,13 +89,7 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
         Op leftOp = lj.getLeft();
         Op rightOp = lj.getRight();
 
-        leftOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), leftOp);
-        rightOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), rightOp);
-
-        if (rightOp instanceof OpService && leftOp instanceof OpService) {
-            OpService left = (OpService) leftOp;
-            OpService right = (OpService) rightOp;
-
+        if (rightOp instanceof OpService right && leftOp instanceof OpService left) {
             if (left.getService().equals(right.getService())) {
                 return new OpService(left.getService(),
                         new OpConditional(left.getSubOp(), right.getSubOp()),
@@ -115,13 +109,7 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
         Op leftOp = lj.getLeft();
         Op rightOp = lj.getRight();
 
-        leftOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), leftOp);
-        rightOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), rightOp);
-
-        if (rightOp instanceof OpService && leftOp instanceof OpService) {
-            OpService left = (OpService) leftOp;
-            OpService right = (OpService) rightOp;
-
+        if (rightOp instanceof OpService right && leftOp instanceof OpService left) {
             if (left.getService().equals(right.getService())) {
                 return new OpService(left.getService(),
                         OpLeftJoin.createLeftJoin(left.getSubOp(), right.getSubOp(), lj.getExprs()),
