@@ -56,6 +56,7 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
 
     @Override
     public Op visit(Mj mj) {
+        // TODO make sure to not create carthesian products
         ImmutablePair<List<OpService>, List<Op>> p = divide(mj.getElements());
         Map<Node, List<OpService>> groups = group(p.getLeft());
 
@@ -92,8 +93,8 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
         rightOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), rightOp);
 
         if (rightOp instanceof OpService && leftOp instanceof OpService) {
-            OpService left = (OpService) rightOp;
-            OpService right = (OpService) leftOp;
+            OpService left = (OpService) leftOp;
+            OpService right = (OpService) rightOp;
 
             if (left.getService().equals(right.getService())) {
                 return new OpService(left.getService(),
@@ -106,6 +107,33 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
         rightOp = ReturningOpVisitorRouter.visit(this, rightOp);
         return new OpConditional(leftOp, rightOp);
     }
+
+    @Override
+    public Op visit(OpLeftJoin lj) {
+        // check if left and right should be one big `Req` then merge
+        // meaning they should have been simplified to the maximum beforehand.
+        Op leftOp = lj.getLeft();
+        Op rightOp = lj.getRight();
+
+        leftOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), leftOp);
+        rightOp = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), rightOp);
+
+        if (rightOp instanceof OpService && leftOp instanceof OpService) {
+            OpService left = (OpService) leftOp;
+            OpService right = (OpService) rightOp;
+
+            if (left.getService().equals(right.getService())) {
+                return new OpService(left.getService(),
+                        OpLeftJoin.createLeftJoin(left.getSubOp(), right.getSubOp(), lj.getExprs()),
+                        SILENT);
+            }
+        }
+        // otherwise just run the thing inside each branch
+        leftOp = ReturningOpVisitorRouter.visit(this, leftOp);
+        rightOp = ReturningOpVisitorRouter.visit(this, rightOp);
+        return OpLeftJoin.create(leftOp, rightOp, lj.getExprs());
+    }
+
 
     /* ********************************************************************** */
 

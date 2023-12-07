@@ -45,7 +45,7 @@ import java.util.List;
 public class FedShopTest {
 
     private static final Logger log = LoggerFactory.getLogger(FedShopTest.class);
-    private static final Integer PRINTRESULTTHRESHOLD = 10;
+    public static Integer PRINTRESULTTHRESHOLD = 10;
 
     public static FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1),
             Location.create("./temp/fedup-h0" )))
@@ -103,7 +103,7 @@ public class FedShopTest {
                 PREFIX dc: <http://purl.org/dc/elements/1.1/>
                 PREFIX owl: <http://www.w3.org/2002/07/owl#>
                                 
-                SELECT DISTINCT ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2 WHERE {
+                SELECT ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2 WHERE {
                   ?localProduct owl:sameAs bsbm:Product72080 .
                   ?localProduct rdf:type bsbm:Product .
                   ?localProduct rdfs:label ?productLabel .
@@ -223,7 +223,7 @@ public class FedShopTest {
         return new ImmutablePair<>(result, elapsed);
     }
 
-    public long measuredExecuteWithJena(String serviceQuery) {
+    public static long measuredExecuteWithJena(String serviceQuery) {
         long elapsed = -1;
         MultiSet<Binding> serviceResults = new HashMultiSet<>();
         try (QueryExecution qe =  QueryExecutionFactory.create(serviceQuery, DatasetFactory.empty())) {

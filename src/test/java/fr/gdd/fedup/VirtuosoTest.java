@@ -12,6 +12,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.jena.dboe.base.file.Location;
+import org.apache.jena.sparql.algebra.TransformCopy;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -44,6 +45,9 @@ public class VirtuosoTest {
             Location.create("./temp/fedup-h0" )))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
+    public static FedUP fedup_rsa = new FedUP(new Summary(new TransformCopy(), Location.create("./temp/fedup-id")))
+            .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
+
     @Disabled
     @Test
     public void execute_a_simple_query_on_virtuoso () {
@@ -51,6 +55,13 @@ public class VirtuosoTest {
         // get the following error returned by Virtuoso:
         // `Get Virtuoso 37000 Error SP030: SPARQL compiler, line 0: Curly brace is nested too deep at '{'`
         String serviceQuery = fedup.query(FedShopTest.Q11A);
+        executeOnVirtuoso(serviceQuery);
+    }
+
+    @Disabled
+    @Test
+    public void execute_a_simple_query_on_virtuoso_with_rsa_which_is_smaller () {
+        String serviceQuery = fedup_rsa.query(FedShopTest.Q07F);
         executeOnVirtuoso(serviceQuery);
     }
 

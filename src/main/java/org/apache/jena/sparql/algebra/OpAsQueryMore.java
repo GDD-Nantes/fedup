@@ -4,7 +4,6 @@ import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.op.OpNull;
 import org.apache.jena.sparql.algebra.op.OpQuad;
 import org.apache.jena.sparql.algebra.op.OpQuadPattern;
-import org.apache.jena.sparql.syntax.ElementQuadsBlock;
 
 /**
  * Small extension of {@link OpAsQuery} to add missing behavior.
