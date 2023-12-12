@@ -8,7 +8,7 @@ import org.apache.jena.sparql.util.ExprUtils;
 import java.util.Objects;
 
 /**
- * Never better served than by yourselves.
+ * Never better served than by yourselves. TODO TODO TODO TODO
  */
 public class SPARQL2String extends ReturningOpVisitor<String> {
 

@@ -28,7 +28,7 @@ public class RSATest {
             PREFIX dc: <http://purl.org/dc/elements/1.1/>
             PREFIX owl: <http://www.w3.org/2002/07/owl#>
                         
-            SELECT ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2 WHERE {\s
+            SELECT ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2 WHERE {
               VALUES ( ?bgp1 ?bgp2 ?bgp3 ) {
                 ( <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr> <http://localhost:5555/sparql?default-graph-uri=nan> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr> )
                 ( <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr> <http://localhost:5555/sparql?default-graph-uri=nan> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr> )
@@ -149,19 +149,19 @@ public class RSATest {
             WHERE
               {   {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                           { ?localProduct
-                                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                                             ?localProduct
-                                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                                             ?localProduct
                                                       <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                                           }
                                         OPTIONAL
                                           {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                                   { ?reviewProduct
-                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                     OPTIONAL
                                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -172,10 +172,10 @@ public class RSATest {
                                                             UNION
                                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                                   { ?reviewProduct
-                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                     OPTIONAL
                                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -185,10 +185,10 @@ public class RSATest {
                                                         UNION
                                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                                               { ?reviewProduct
-                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                 OPTIONAL
                                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -198,10 +198,10 @@ public class RSATest {
                                                     UNION
                                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                                           { ?reviewProduct
-                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                             OPTIONAL
                                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -213,10 +213,10 @@ public class RSATest {
                                                 UNION
                                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -226,10 +226,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -240,19 +240,19 @@ public class RSATest {
                                     UNION
                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                           { ?localProduct
-                                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                                             ?localProduct
-                                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                                             ?localProduct
                                                       <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                                           }
                                         OPTIONAL
                                           {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                                   { ?reviewProduct
-                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                     OPTIONAL
                                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -263,10 +263,10 @@ public class RSATest {
                                                             UNION
                                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                                   { ?reviewProduct
-                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                     OPTIONAL
                                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -276,10 +276,10 @@ public class RSATest {
                                                         UNION
                                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                                               { ?reviewProduct
-                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                 OPTIONAL
                                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -289,10 +289,10 @@ public class RSATest {
                                                     UNION
                                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                                           { ?reviewProduct
-                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                             OPTIONAL
                                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -304,10 +304,10 @@ public class RSATest {
                                                 UNION
                                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -317,10 +317,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -332,19 +332,19 @@ public class RSATest {
                                 UNION
                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.vendor47.fr>
                                       { ?localProduct
-                                                  a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                                  a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                                         ?localProduct
-                                                  <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                                  <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                                         ?localProduct
                                                   <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                                       }
                                     OPTIONAL
                                       {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                               { ?reviewProduct
-                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                 OPTIONAL
                                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -355,10 +355,10 @@ public class RSATest {
                                                         UNION
                                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                               { ?reviewProduct
-                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                                 OPTIONAL
                                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -368,10 +368,10 @@ public class RSATest {
                                                     UNION
                                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                                           { ?reviewProduct
-                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                             OPTIONAL
                                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -381,10 +381,10 @@ public class RSATest {
                                                 UNION
                                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -396,10 +396,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -409,10 +409,10 @@ public class RSATest {
                                         UNION
                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -424,19 +424,19 @@ public class RSATest {
                             UNION
                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                   { ?localProduct
-                                              a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                              a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                                     ?localProduct
-                                              <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                              <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                                     ?localProduct
                                               <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                                   }
                                 OPTIONAL
                                   {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                           { ?reviewProduct
-                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                             OPTIONAL
                                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -447,10 +447,10 @@ public class RSATest {
                                                     UNION
                                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                           { ?reviewProduct
-                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                             OPTIONAL
                                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -460,10 +460,10 @@ public class RSATest {
                                                 UNION
                                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -473,10 +473,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -488,10 +488,10 @@ public class RSATest {
                                         UNION
                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -501,10 +501,10 @@ public class RSATest {
                                     UNION
                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                           { ?reviewProduct
-                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                             OPTIONAL
                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -516,19 +516,19 @@ public class RSATest {
                         UNION
                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                               { ?localProduct
-                                          a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                          a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                                 ?localProduct
-                                          <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                          <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                                 ?localProduct
                                           <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                               }
                             OPTIONAL
                               {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -539,10 +539,10 @@ public class RSATest {
                                                 UNION
                                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                       { ?reviewProduct
-                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                         OPTIONAL
                                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -552,10 +552,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -565,10 +565,10 @@ public class RSATest {
                                         UNION
                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -580,10 +580,10 @@ public class RSATest {
                                     UNION
                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                           { ?reviewProduct
-                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                             OPTIONAL
                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -593,10 +593,10 @@ public class RSATest {
                                 UNION
                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                       { ?reviewProduct
-                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                         OPTIONAL
                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -608,19 +608,19 @@ public class RSATest {
                     UNION
                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                           { ?localProduct
-                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                      a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                             ?localProduct
-                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                      <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                             ?localProduct
                                       <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                           }
                         OPTIONAL
                           {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -631,10 +631,10 @@ public class RSATest {
                                             UNION
                                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                                   { ?reviewProduct
-                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                     OPTIONAL
                                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -644,10 +644,10 @@ public class RSATest {
                                         UNION
                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -657,10 +657,10 @@ public class RSATest {
                                     UNION
                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                           { ?reviewProduct
-                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                             OPTIONAL
                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -672,10 +672,10 @@ public class RSATest {
                                 UNION
                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                       { ?reviewProduct
-                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                         OPTIONAL
                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -685,10 +685,10 @@ public class RSATest {
                             UNION
                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                                   { ?reviewProduct
-                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                     OPTIONAL
                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -700,19 +700,19 @@ public class RSATest {
                 UNION
                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                       { ?localProduct
-                                  a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                                  a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .
                         ?localProduct
-                                  <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                                  <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .
                         ?localProduct
                                   <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
                       }
                     OPTIONAL
                       {   {   {   {   {   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -723,10 +723,10 @@ public class RSATest {
                                         UNION
                                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr>
                                               { ?reviewProduct
-                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                                 OPTIONAL
                                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -736,10 +736,10 @@ public class RSATest {
                                     UNION
                                       { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr>
                                           { ?reviewProduct
-                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                      <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                            ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                            ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                            ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                             ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                             OPTIONAL
                                               { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -749,10 +749,10 @@ public class RSATest {
                                 UNION
                                   { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr>
                                       { ?reviewProduct
-                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                        ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                        ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                        ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                         ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                         OPTIONAL
                                           { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
@@ -764,10 +764,10 @@ public class RSATest {
                             UNION
                               { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr>
                                   { ?reviewProduct
-                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                              <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                    ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                    ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                    ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                     ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                     OPTIONAL
                                       { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
@@ -777,10 +777,10 @@ public class RSATest {
                         UNION
                           { SERVICE SILENT <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr>
                               { ?reviewProduct
-                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
-                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
-                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
-                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .
+                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .
+                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .
+                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .
                                 ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
                                 OPTIONAL
                                   { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }

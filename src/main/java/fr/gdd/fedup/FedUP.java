@@ -3,6 +3,7 @@ package fr.gdd.fedup;
 import fr.gdd.fedqpl.FedQPL2FedX;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
+import fr.gdd.fedqpl.groups.FactorizeVisitor;
 import fr.gdd.fedqpl.groups.FedQPLSimplifyVisitor;
 import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
@@ -182,6 +183,11 @@ public class FedUP {
             before = asFedQPL;
             asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), asFedQPL);
             asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
+        }
+        before = null;
+        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
+            before = asFedQPL;
+            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeVisitor(), asFedQPL);
         }
         // log.debug("FedUP plan:\n{}", asFedQPL.toString());
         return asFedQPL;
