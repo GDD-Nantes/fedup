@@ -19,6 +19,8 @@ import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.util.QueryUtils;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
  * that efficiently represents an initial dataset.
  */
 public class Summary {
+
+    private final static Logger log = LoggerFactory.getLogger(Summary.class);
 
     private Dataset summary;
     Transform strategy;
@@ -45,7 +49,9 @@ public class Summary {
 
     public Summary(Transform strategy, Location location) {
         this.strategy = strategy;
+        long start = System.currentTimeMillis();
         this.summary = TDB2Factory.connectDataset(location);
+        log.info("Took {} ms to open the summary.", (System.currentTimeMillis() - start));
     }
 
     public Summary setRemote(String remoteURI) {

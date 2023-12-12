@@ -8,7 +8,6 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpSequence;
 import org.apache.jena.sparql.algebra.op.OpService;
 import org.apache.jena.sparql.algebra.op.OpTable;
-import org.apache.jena.sparql.algebra.table.Table1;
 import org.apache.jena.sparql.algebra.table.TableN;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
@@ -26,9 +25,21 @@ import java.util.stream.Collectors;
  * a representation may not be machine friendly. For instance, Virtuoso does not
  * like `… values (?g) … service ?g { … }`
  */
-public class FactorizeVisitor extends ReturningOpBaseVisitor {
+public class FactorizeUnionsOfReqsVisitor extends ReturningOpBaseVisitor {
 
     public Integer nbValues = 0;
+    public static final String VAR = "_fuorv_";
+
+    public FactorizeUnionsOfReqsVisitor() {}
+
+    public FactorizeUnionsOfReqsVisitor(Integer nbValues) {
+        this.nbValues = nbValues;
+    }
+
+    @Override
+    public Op visit(OpService req) {
+        return req; // we don't dive into req
+    }
 
     @Override
     public Op visit(Mu mu) {
@@ -63,14 +74,14 @@ public class FactorizeVisitor extends ReturningOpBaseVisitor {
 
         // #C rewrite the union of services as union of values
         Mu newMu = new Mu();
-        newMu.addChildren(rest.stream().map(r -> ReturningOpVisitorRouter.visit(this, r)).collect(Collectors.toList()));
+        newMu.addChildren(rest.stream().map(r -> ReturningOpVisitorRouter.visit(new FactorizeUnionsOfReqsVisitor(this.nbValues), r)).collect(Collectors.toList()));
 
         subOpToEndpoints.forEach((op, nodes) -> {
             if (nodes.size() == 1){
                 newMu.add(new OpService(nodes.get(0), op, true));
             } else {
                 nbValues += 1;
-                Var valuesVar = Var.alloc("_v_" + nbValues);
+                Var valuesVar = Var.alloc(VAR + nbValues);
                 TableN tableN = new TableN(List.of(valuesVar));
                 nodes.forEach(n -> tableN.addBinding(BindingFactory.binding(valuesVar, n)));
                 OpTable values = OpTable.create(tableN);
@@ -82,4 +93,5 @@ public class FactorizeVisitor extends ReturningOpBaseVisitor {
 
         return newMu.size() > 1 ? newMu: newMu.get(0);
     }
+
 }

@@ -3,7 +3,8 @@ package fr.gdd.fedup;
 import fr.gdd.fedqpl.FedQPL2FedX;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
-import fr.gdd.fedqpl.groups.FactorizeVisitor;
+import fr.gdd.fedqpl.groups.FactorizeUnionsOfLeftJoinsVisitor;
+import fr.gdd.fedqpl.groups.FactorizeUnionsOfReqsVisitor;
 import fr.gdd.fedqpl.groups.FedQPLSimplifyVisitor;
 import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
@@ -11,17 +12,12 @@ import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sparql.engine.Plan;
-import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
-import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -187,7 +183,12 @@ public class FedUP {
         before = null;
         while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
             before = asFedQPL;
-            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeVisitor(), asFedQPL);
+            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeUnionsOfReqsVisitor(), asFedQPL);
+        }
+        before = null;
+        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
+            before = asFedQPL;
+            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeUnionsOfLeftJoinsVisitor(), asFedQPL);
         }
         // log.debug("FedUP plan:\n{}", asFedQPL.toString());
         return asFedQPL;

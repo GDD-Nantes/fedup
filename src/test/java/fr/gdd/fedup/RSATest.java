@@ -134,6 +134,54 @@ public class RSATest {
 
     @Disabled
     @Test
+    public void run_factorized_rsa() {
+        FedShopTest.measuredExecuteWithJena("""
+                SELECT  ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2
+                WHERE
+                  { VALUES ?_vv_1 { <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.vendor47.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr> }
+                    SERVICE SILENT ?_vv_1
+                      { ?localProduct
+                                  a  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product> .\s
+                        ?localProduct
+                                  <http://www.w3.org/2000/01/rdf-schema#label>  ?productLabel .\s
+                        ?localProduct
+                                  <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080>
+                      }
+                    OPTIONAL
+                      {   { VALUES ?_v_1 { <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr> }
+                            SERVICE SILENT ?_v_1
+                              { ?reviewProduct
+                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
+                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
+                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
+                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
+                                OPTIONAL
+                                  { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
+                              }
+                          }
+                        UNION
+                          { VALUES ?_v_2 { <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr> }
+                            SERVICE SILENT ?_v_2
+                              { ?reviewProduct
+                                          <http://www.w3.org/2002/07/owl#sameAs>  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/Product72080> .\s
+                                ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/reviewFor>  ?reviewProduct .\s
+                                ?review  <http://purl.org/stuff/rev#reviewer>  ?reviewer .\s
+                                ?reviewer  <http://xmlns.com/foaf/0.1/name>  ?revName .\s
+                                ?review  <http://purl.org/dc/elements/1.1/title>  ?revTitle
+                                OPTIONAL
+                                  { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating1>  ?rating1 }
+                                OPTIONAL
+                                  { ?review  <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/rating2>  ?rating2 }
+                              }
+                          }
+                      }
+                  }
+                """);
+    }
+
+    @Disabled
+    @Test
     public void execute_FedShop_s_RSA_with_apache_jena () {
         FedShopTest.PRINTRESULTTHRESHOLD = 1000;
         FedShopTest.measuredExecuteWithJena(RSATest.Q07F_FEDUP_RSA);
