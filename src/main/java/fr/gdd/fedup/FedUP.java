@@ -3,10 +3,7 @@ package fr.gdd.fedup;
 import fr.gdd.fedqpl.FedQPL2FedX;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
-import fr.gdd.fedqpl.groups.FactorizeUnionsOfLeftJoinsVisitor;
-import fr.gdd.fedqpl.groups.FactorizeUnionsOfReqsVisitor;
-import fr.gdd.fedqpl.groups.FedQPLSimplifyVisitor;
-import fr.gdd.fedqpl.groups.FedQPLWithExclusiveGroupsVisitor;
+import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
@@ -173,23 +170,14 @@ public class FedUP {
         Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt);
 
         log.info("Optimizing the resulting FedQPL plan…");
-        // TODO more optimizations and simplifications, if need be
-        Op before = null;
-        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
-            before = asFedQPL;
-            asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLSimplifyVisitor(), asFedQPL);
-            asFedQPL = ReturningOpVisitorRouter.visit(new FedQPLWithExclusiveGroupsVisitor(), asFedQPL);
-        }
-        before = null;
-        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
-            before = asFedQPL;
-            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeUnionsOfReqsVisitor(), asFedQPL);
-        }
-        before = null;
-        while (Objects.isNull(before) || !before.equalTo(asFedQPL, new NodeIsomorphismMap())) { // should converge
-            before = asFedQPL;
-            asFedQPL = ReturningOpVisitorRouter.visit(new FactorizeUnionsOfLeftJoinsVisitor(), asFedQPL);
-        }
+        FedQPLOptimizer optimizer = new FedQPLOptimizer();
+        optimizer.register(new FedQPLSimplifyVisitor()) // TODO configurable
+                .register(new FedQPLWithExclusiveGroupsVisitor())
+                .register(new FactorizeUnionsOfReqsVisitor())
+                .register(new FactorizeUnionsOfLeftJoinsVisitor());
+
+        asFedQPL = optimizer.optimize(asFedQPL);
+
         // log.debug("FedUP plan:\n{}", asFedQPL.toString());
         return asFedQPL;
     }

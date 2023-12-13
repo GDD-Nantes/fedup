@@ -123,7 +123,7 @@ public class RSATest {
 
     @Disabled
     @Test
-    public void try_local_jena_identity() {
+    public void create_jena_rsa_of_q07f() {
         Summary summary = SummaryFactory.createIdentity(Location.create("./temp/fedup-id"));
         FedUP fedup = new FedUP(summary)
                 .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
@@ -134,8 +134,24 @@ public class RSATest {
 
     @Disabled
     @Test
-    public void run_factorized_rsa() {
-        FedShopTest.measuredExecuteWithJena("""
+    public void run_factorized_rsa_of_q07f() {
+        FedShopTest.measuredExecuteWithJena(Q07F_FEDUP_RSA_FACTORIZED);
+    }
+
+    @Disabled
+    @Test
+    public void execute_FedShop_s_RSA_with_apache_jena () {
+        FedShopTest.PRINTRESULTTHRESHOLD = 1000;
+        FedShopTest.measuredExecuteWithJena(RSATest.Q07F_FEDUP_RSA);
+        FedShopTest.measuredExecuteWithJena(RSATest.Q07F_RSA);
+        VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_FEDUP_RSA);
+        // Virtuoso does not like SERVICE ?variable, however, FedShop built its RSA using this… Therefore:
+        // Virtuoso 37000 Error SP031: SPARQL compiler: Internal error: Usupported combination of subqueries and service invocations
+        VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_RSA);
+    }
+
+
+    public static String Q07F_FEDUP_RSA_FACTORIZED =  """
                 SELECT  ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2
                 WHERE
                   { VALUES ?_vv_1 { <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite87.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite98.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.vendor47.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite34.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite8.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite78.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.ratingsite76.fr> }
@@ -177,20 +193,7 @@ public class RSATest {
                           }
                       }
                   }
-                """);
-    }
-
-    @Disabled
-    @Test
-    public void execute_FedShop_s_RSA_with_apache_jena () {
-        FedShopTest.PRINTRESULTTHRESHOLD = 1000;
-        FedShopTest.measuredExecuteWithJena(RSATest.Q07F_FEDUP_RSA);
-        FedShopTest.measuredExecuteWithJena(RSATest.Q07F_RSA);
-        VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_FEDUP_RSA);
-        // Virtuoso does not like SERVICE ?variable, however, FedShop built its RSA using this… Therefore:
-        // Virtuoso 37000 Error SP031: SPARQL compiler: Internal error: Usupported combination of subqueries and service invocations
-        VirtuosoTest.executeOnVirtuoso(RSATest.Q07F_RSA);
-    }
+                """;
 
     public static String Q07F_FEDUP_RSA = """
             SELECT ?productLabel ?offer ?price ?vendor ?vendorTitle ?review ?revTitle ?reviewer ?revName ?rating1 ?rating2

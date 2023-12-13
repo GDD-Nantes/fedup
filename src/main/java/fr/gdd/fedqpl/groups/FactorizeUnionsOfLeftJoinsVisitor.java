@@ -43,6 +43,7 @@ public class FactorizeUnionsOfLeftJoinsVisitor extends ReturningOpBaseVisitor {
         List<OpLeftJoin> candidates = new ArrayList<>();
         List<Op> rest = new ArrayList<>();
         for (Op op : mu.getElements()) {
+            // TODO possibly do not check if OpService, Mu is still ok + other visitor will create values of req.
             if (op instanceof OpLeftJoin opLeftJoin && opLeftJoin.getLeft() instanceof OpService) {
                 candidates.add(opLeftJoin);
             } else {
