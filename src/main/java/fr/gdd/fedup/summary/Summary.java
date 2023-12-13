@@ -92,8 +92,10 @@ public class Summary {
      * reachable through SERVICE queries.
      */
     public Set<String> getGraphs() {
+        long start = System.currentTimeMillis();
         Op getGraphsQuery = Algebra.compile(QueryFactory.create("SELECT DISTINCT ?g { GRAPH ?g {?s ?p ?o}}"));
         List<Binding> bindings = querySummary(getGraphsQuery);
+        log.info("Took {} ms to get graphs.", (System.currentTimeMillis() - start));
         return bindings.stream().map(b -> b.get(Var.alloc("g")).getURI()).collect(Collectors.toSet());
     }
 

@@ -224,22 +224,26 @@ public class FedShopTest {
     }
 
     public static long measuredExecuteWithJena(String serviceQuery) {
-        long elapsed = -1;
-        MultiSet<Binding> serviceResults = new HashMultiSet<>();
-        try (QueryExecution qe =  QueryExecutionFactory.create(serviceQuery, DatasetFactory.empty())) {
-            long current = System.currentTimeMillis();
-            ResultSet results = qe.execSelect();
-            while (results.hasNext()) {
-                serviceResults.add(results.nextBinding());
-            }
-            elapsed = System.currentTimeMillis() - current;
-            log.info("Jena took {} ms to get {} results.", elapsed, serviceResults.size());
-        }
+        long current = System.currentTimeMillis();
+        MultiSet<Binding> serviceResults = executeWithJena(serviceQuery);
+        long elapsed = System.currentTimeMillis() - current;
+        log.info("Jena took {} ms to get {} results.", elapsed, serviceResults.size());
 
         if (serviceResults.size() <= PRINTRESULTTHRESHOLD) {
             log.debug("Results:\n{}", String.join("\n", serviceResults.entrySet().stream().map(Object::toString).toList()));
         }
         return elapsed;
+    }
+
+    public static MultiSet<Binding> executeWithJena(String serviceQuery) {
+        MultiSet<Binding> serviceResults = new HashMultiSet<>();
+        try (QueryExecution qe =  QueryExecutionFactory.create(serviceQuery, DatasetFactory.empty())) {
+            ResultSet results = qe.execSelect();
+            while (results.hasNext()) {
+                serviceResults.add(results.nextBinding());
+            }
+        }
+        return serviceResults;
     }
 
     public long measuredExecuteWithFedX(String serviceQuery) {

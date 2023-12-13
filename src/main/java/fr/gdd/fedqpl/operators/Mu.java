@@ -1,18 +1,14 @@
 package fr.gdd.fedqpl.operators;
 
-import fr.gdd.fedqpl.visitors.FedQPLVisitor;
-
-import java.util.*;
-
-import fr.gdd.fedqpl.visitors.FedQPLVisitorArg;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.op.OpN;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
+
+import java.util.List;
+import java.util.Objects;
 
 /**
  * Multi-union operator that does not seem to exist in Apache Jena's list of `Op`.

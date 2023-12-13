@@ -2,12 +2,22 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.summary.SummaryFactory;
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.sparql.algebra.TransformCopy;
+import org.apache.jena.sparql.engine.binding.Binding;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Try to create RSA using the identity data of FedShop.
@@ -17,6 +27,10 @@ import org.slf4j.LoggerFactory;
 public class RSATest {
 
     private static final Logger log = LoggerFactory.getLogger(RSATest.class);
+
+    private static FedUP fedup = new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")))
+            .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
+    // private static FedUP fedup;
 
     public static final String Q07F_RSA = """
             PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
@@ -115,20 +129,14 @@ public class RSATest {
         // the use of remote
         FedUP fedup = new FedUP(summary)
                 .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri=" + e);
-
         String rsa = fedup.query(FedShopTest.Q11A);
-
         log.debug(rsa);
     }
 
     @Disabled
     @Test
     public void create_jena_rsa_of_q07f() {
-        Summary summary = SummaryFactory.createIdentity(Location.create("./temp/fedup-id"));
-        FedUP fedup = new FedUP(summary)
-                .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
         String rsa = fedup.query(FedShopTest.Q07F);
-
         log.debug(rsa);
     }
 
@@ -136,6 +144,43 @@ public class RSATest {
     @Test
     public void run_factorized_rsa_of_q07f() {
         FedShopTest.measuredExecuteWithJena(Q07F_FEDUP_RSA_FACTORIZED);
+    }
+
+    @Disabled
+    @Test
+    void run_and_compare_all_fedshop_rsa_vs_fedup_rsa () throws IOException {
+        Path fedupRSAFolderPath = Path.of("./queries/fedshop200-RSA-fedup");
+        if (!fedupRSAFolderPath.toFile().isDirectory()) {
+            log.info("Created the directory {}…", fedupRSAFolderPath.toAbsolutePath());
+            Files.createDirectories(fedupRSAFolderPath);
+        }
+        Path fedshopQueriesPath = Path.of("./queries/fedshop");
+        File[] queryFiles = fedshopQueriesPath.toFile().listFiles();
+        for (File queryFile : queryFiles) {
+            Path newRSAPath =  fedupRSAFolderPath.resolve(queryFile.getName());
+            if (newRSAPath.toFile().exists()) {
+                log.info("Skipping {}…", queryFile.getName());
+                continue;
+            }
+            log.info("Reading {}…", queryFile.getName());
+            String query = FileUtils.readFileToString(queryFile, "UTF-8");
+            String fedupRSA = fedup.query(query);
+            MultiSet<Binding> resultsOfFedUP = FedShopTest.executeWithJena(fedupRSA);
+
+            Path fedshopRSAPath = Path.of("./queries/fedshop200-RSA/", queryFile.getName());
+            String rsa = FileUtils.readFileToString(fedshopRSAPath.toFile(), "UTF-8")
+                    .replace("http://localhost:8890/", "http://localhost:5555/"); // Virtuoso's address
+            log.debug("Read RSA: {}", rsa);
+            MultiSet<Binding> resultsOfRSA = FedShopTest.executeWithJena(rsa);
+
+            // comparing key
+            assertEquals(resultsOfRSA.uniqueSet().stream().map(Binding::toString).sorted().toList(), resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted().toList());
+
+            // comparing the number of entries
+            assertEquals(resultsOfRSA.stream().map(Binding::toString).sorted().toList(), resultsOfFedUP.stream().map(Binding::toString).sorted().toList());
+
+            Files.writeString(newRSAPath, fedupRSA);
+        }
     }
 
     @Disabled
