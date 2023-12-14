@@ -7,14 +7,19 @@ import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.ReadWrite;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -165,6 +170,18 @@ public class FedUP {
         log.info("Removing duplicates and inclusions in logical plan…");
         assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
         log.debug("Assignments comprising {} elements:\n{}", assignments2.size(), assignments2.stream().map(Object::toString).collect(Collectors.joining("\n")));
+
+        /*Dataset assignmentsAsGraph = TDB2Factory.createDataset();
+        assignmentsAsGraph.begin(ReadWrite.WRITE);
+        Model defaultModel = ModelFactory.createDefaultModel();
+        for (Map<Var, String> assignment: assignments2) {
+            for (Map.Entry<Var, String> var2source: assignment.entrySet()) {
+                defaultModel.add(var2source.getKey().toString(), NodeFactory.createURI("http://source"), )
+            }
+        }
+        assignmentsAsGraph.commit();
+        assignmentsAsGraph.end();*/
+
 
         log.info("Building the FedQPL query…");
         Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt);

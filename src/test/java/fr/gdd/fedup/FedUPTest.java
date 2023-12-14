@@ -2,11 +2,18 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.summary.SummaryFactory;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.*;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -14,6 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -197,6 +207,52 @@ class FedUPTest {
                     { ?people <http://auth/owns> ?animal }
                     FILTER ( ?animal = <http://auth/dog> )
                 }""");
+    }
+
+
+    @Test
+    public void tricky_query_with_two_optionals() {
+        Dataset dataset = TDB2Factory.createDataset();
+        dataset.begin(ReadWrite.WRITE);
+
+        List<String> statements = Arrays.asList(
+                "<http://auth/Alice> <http://something/owns> <http://auth/dog>."
+        );
+
+        InputStream statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());
+        Model modelA = ModelFactory.createDefaultModel();
+        modelA.read(statementsStream, "", Lang.NT.getLabel());
+
+        statements = Arrays.asList(
+                "<http://auth/dog> <http://something/likes> <http://auth/Bob>.",
+                "<http://auth/dog> <http://something/likes> <http://auth/Croquettes>.",
+                "<http://auth/Bob> <http://something/race> \"French Poodle\".",
+                "<http://auth/Croquettes> <http://something/category> <http://auth/A>."
+        );
+        statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());
+        Model modelB = ModelFactory.createDefaultModel();
+        modelB.read(statementsStream, "", Lang.NT.getLabel());
+
+        dataset.addNamedModel("https://graphA.org", modelA);
+        dataset.addNamedModel("https://graphB.org", modelB);
+
+        dataset.commit();
+        dataset.end();
+
+        Summary summary = new Summary(new TransformCopy(), dataset);
+        FedUP fedup = new FedUP(summary, dataset);
+        String rsa = fedup.query("""
+               SELECT * WHERE {
+               ?p <http://something/owns> ?a .
+               ?a <http://something/likes> ?s .
+               OPTIONAL {?s <http://something/race> ?r}
+               OPTIONAL {?s <http://something/category> ?c}
+               }
+               """);
+        log.debug(rsa);
+        // There should be two optionals in the final query since both "race" and
+        // "category" exist.
+        assertEquals(2, StringUtils.countMatches(rsa, "OPTIONAL"));
     }
 
 
