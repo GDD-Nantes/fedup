@@ -6,11 +6,23 @@ import fr.gdd.fedqpl.visitors.OpCloningUtil;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.QueryFactory;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.Plan;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.expr.ExprList;
+import org.apache.jena.sparql.util.QueryUtils;
+import org.apache.jena.sparql.util.VarUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,10 +41,15 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt), query).stream().toList()); // root mu
     }
 
+    public static Op build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt, Dataset assignmentsDataset){
+        return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt).setAssignmentsDataset(assignmentsDataset), query).stream().toList()); // root mu
+    }
+
     /* *************************************************************** */
 
     List<Map<Var, String>> assignments;
     ToQuadsTransform toQuads;
+    Dataset assignmentsDataset;
 
     public static boolean SILENT = true;
 
@@ -45,18 +62,18 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         this.toQuads = tqt;
     }
 
+    public SA2FedQPL setAssignmentsDataset(Dataset assignmentsDataset) { // TODO in constructor
+        this.assignmentsDataset = assignmentsDataset;
+        return this;
+    }
+
     @Override
     public List<Op> visit(OpTriple opTriple) {
-        List<Op> result = new ArrayList<>();
         Var g = toQuads.findVar(opTriple);
-        for (Map<Var, String> assignment : assignments) {
-            if (assignment.containsKey(g)) {
-                OpService req = new OpService(NodeFactory.createURI(assignment.get(g)), opTriple, SILENT);
-                result.add(req);
-                fedQPL2PartialAssignment.put(req, Map.of(g, assignment.get(g)));
-            }
-        }
-        return result;
+        MultiSet<Binding> bindings = this.sols(opTriple);
+        return bindings.stream().map(b ->
+                (Op) new OpService(b.get(g), opTriple, SILENT)
+        ).toList();
     }
 
     @Override
@@ -65,26 +82,19 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         // then examine which combinations actually checks out. But this would
         // be very inefficient.
         // Instead, checking directly which results exist
-        List<Op> result = new ArrayList<>();
-
         Set<Var> gs = toQuads.findVars(opBGP);
+        MultiSet<Binding> bindings = this.sols(opBGP);
 
-        List<Map<Var, String>> saOfGs = allSourcesAreSet(gs);
-
-        for (Map<Var, String> assignment : saOfGs) {
+        return bindings.stream().map(b -> {
             Mj mj = new Mj();
-            assignment.entrySet().forEach(a -> {
-                OpService req = new OpService(NodeFactory.createURI(a.getValue()),
-                        new OpTriple(toQuads.getVar2quad().get(a.getKey()).asTriple()),
-                        SILENT
-                        );
+            for (Var g : gs) {
+                OpTriple triple = new OpTriple(toQuads.getVar2quad().get(g).asTriple());
+                Op req = new OpService(b.get(g), triple, SILENT);
                 mj.addChild(req);
-            });
-            result.add(mj);
-            fedQPL2PartialAssignment.put(mj, assignment);
-        }
-
-        return result;
+                toQuads.add(g, triple);
+            }
+            return (Op) mj;
+        }).toList();
     }
 
     @Override
@@ -135,24 +145,19 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
             Mu mu = new Mu();
 
             for (Op right : rights) {
-                Map<Var, String> assignmentToTest = new HashMap<>();
-                assignmentToTest.putAll(fedQPL2PartialAssignment.get(left));
-                assignmentToTest.putAll(fedQPL2PartialAssignment.get(right));
-                if (theResultExists(assignmentToTest)) {
+                if (this.ask(OpJoin.create(left, right))) {
                     mu.addChild(right);
-                    fedQPL2PartialAssignment.put(mu, assignmentToTest);
                 }
             }
 
             if (mu.getElements().isEmpty()) {
                 results.add(left); // nothing in OPT
+            } else if (mu.getElements().size() == 1) {
+                OpLeftJoin leftJoin = OpCloningUtil.clone(lj, left, mu.get(0));
+                results.add(leftJoin);
             } else {
                 OpLeftJoin leftJoin = OpCloningUtil.clone(lj, left, mu);
                 results.add(leftJoin);
-                Map<Var, String> assignmentToAdd = new HashMap<>();
-                assignmentToAdd.putAll(fedQPL2PartialAssignment.get(left));
-                assignmentToAdd.putAll(fedQPL2PartialAssignment.get(mu));
-                fedQPL2PartialAssignment.put(leftJoin, assignmentToAdd);
             }
         }
 
@@ -226,6 +231,57 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
             }
         }
         return false;
+    }
+
+
+    public MultiSet<Binding> sols(Op op) {
+        MultiSet<Binding> bindings = new HashMultiSet<>();
+        boolean inTxn = this.assignmentsDataset.isInTransaction();
+        if (!inTxn) this.assignmentsDataset.begin(ReadWrite.READ);
+
+        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(this.toQuads), op);
+
+        Plan plan = QueryEngineMain.getFactory().create(checking,
+                assignmentsDataset.asDatasetGraph(),
+                BindingRoot.create(),
+                assignmentsDataset.getContext().copy());
+
+        QueryIterator iterator = plan.iterator();
+
+        while (iterator.hasNext()) {
+            bindings.add(iterator.next());
+        }
+
+        if (!inTxn) {
+            this.assignmentsDataset.commit();
+            this.assignmentsDataset.end();
+        }
+
+        return bindings;
+    }
+
+
+    public boolean ask(Op op) {
+        boolean inTxn = this.assignmentsDataset.isInTransaction();
+        if (!inTxn) this.assignmentsDataset.begin(ReadWrite.READ);
+
+        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(this.toQuads), op);
+
+        Plan plan = QueryEngineMain.getFactory().create(checking,
+                assignmentsDataset.asDatasetGraph(),
+                BindingRoot.create(),
+                assignmentsDataset.getContext().copy());
+
+        QueryIterator iterator = plan.iterator();
+
+        boolean result = iterator.hasNext();
+
+        if (!inTxn) {
+            this.assignmentsDataset.commit();
+            this.assignmentsDataset.end();
+        }
+
+        return result;
     }
 
 }

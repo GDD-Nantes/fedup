@@ -6,7 +6,9 @@ import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.sparql.algebra.TransformCopy;
+import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -16,6 +18,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -174,7 +180,17 @@ public class RSATest {
             MultiSet<Binding> resultsOfRSA = FedShopTest.executeWithJena(rsa);
 
             // comparing key
-            assertEquals(resultsOfRSA.uniqueSet().stream().map(Binding::toString).sorted().toList(), resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted().toList());
+            // TODO TODO TODO TODO compare with same orders
+            assertEquals(resultsOfRSA.uniqueSet().stream().map(
+                    b -> {
+                        // sort inside binding
+                        Iterator<Var> iterator = b.vars();
+                        List<Var> sorted = Stream.generate(iterator::next).sorted((v1, v2)-> v1.toString().compareTo(v2.toString())).toList();
+
+                        return String.format();
+                    }).sorted().toList(),
+
+                    resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted().toList());
 
             // comparing the number of entries
             assertEquals(resultsOfRSA.stream().map(Binding::toString).sorted().toList(), resultsOfFedUP.stream().map(Binding::toString).sorted().toList());

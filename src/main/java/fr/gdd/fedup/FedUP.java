@@ -13,6 +13,8 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
@@ -171,20 +173,36 @@ public class FedUP {
         assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
         log.debug("Assignments comprising {} elements:\n{}", assignments2.size(), assignments2.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
-        /*Dataset assignmentsAsGraph = TDB2Factory.createDataset();
+        // TODO in dedicated class
+        // TODO built using a CONSTRUCT query
+        Dataset assignmentsAsGraph = TDB2Factory.createDataset();
         assignmentsAsGraph.begin(ReadWrite.WRITE);
         Model defaultModel = ModelFactory.createDefaultModel();
+        Integer rowNb = 0;
         for (Map<Var, String> assignment: assignments2) {
+            rowNb += 1;
             for (Map.Entry<Var, String> var2source: assignment.entrySet()) {
-                defaultModel.add(var2source.getKey().toString(), NodeFactory.createURI("http://source"), )
+                assignmentsAsGraph.getNamedModel(var2source.getValue()).add(
+                        ResourceFactory.createResource(var2source.getKey().getVarName()),
+                        ResourceFactory.createProperty("row"),
+                        String.valueOf(rowNb));
             }
         }
+        assignmentsAsGraph.setDefaultModel(defaultModel);
         assignmentsAsGraph.commit();
-        assignmentsAsGraph.end();*/
+        assignmentsAsGraph.end();
+
+        assignmentsAsGraph.begin(ReadWrite.READ);
+        StmtIterator iterator = assignmentsAsGraph.getUnionModel().listStatements();
+        while (iterator.hasNext()) {
+            log.debug(iterator.next().toString());
+        }
+        assignmentsAsGraph.commit();
+        assignmentsAsGraph.end();
 
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt);
+        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt, assignmentsAsGraph);
 
         log.info("Optimizing the resulting FedQPL plan…");
         FedQPLOptimizer optimizer = new FedQPLOptimizer();

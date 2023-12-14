@@ -97,7 +97,7 @@ class FedUPTest {
         // Among others, Bob does not own a pet, which is true in @1 Lj @1 and
         // @1 Lj @2, therefore, the prefix is repeated which leads to wrong results.
         checkQueryWithActualEndpoints("""
-                SELECT * WHERE {
+                SELECT ?person ?animal WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL {
                         ?person <http://auth/owns> ?animal
@@ -108,7 +108,7 @@ class FedUPTest {
     @Test
     public void every_person_with_its_OPTIONAL_animal_and_its_number () {
         checkQueryWithActualEndpoints("""
-                SELECT * WHERE {
+                SELECT ?person ?animal ?nb WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL { ?person <http://auth/owns> ?animal }
                     OPTIONAL { ?person <http://auth/nbPets> ?nb }
@@ -134,7 +134,7 @@ class FedUPTest {
     @Test
     public void retrieve_all_people_and_all_animals_with_a_union () {
         checkQueryWithActualEndpoints("""
-                SELECT * WHERE {
+                SELECT ?person ?any ?animal WHERE {
                     {<http://auth/person> <http://auth/named> ?person .}
                     UNION { ?any <http://auth/owns> ?animal }
                 }""");
