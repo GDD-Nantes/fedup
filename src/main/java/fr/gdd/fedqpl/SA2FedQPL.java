@@ -119,13 +119,8 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
         for (Op left : lefts) { // for each mandatory part
             for (Op right : rights) {
-                Map<Var, String> assignmentToTest = new HashMap<>();
-                assignmentToTest.putAll(fedQPL2PartialAssignment.get(left));
-                assignmentToTest.putAll(fedQPL2PartialAssignment.get(right));
-                if (theResultExists(assignmentToTest)) {
-                    Mj mj = new Mj(List.of(left, right));
-                    results.add(mj);
-                    fedQPL2PartialAssignment.put(mj, assignmentToTest);
+                if (this.ask(OpJoin.create(left, right))) {
+                    results.add(new Mj(List.of(left, right)));
                 }
             }
         }
@@ -185,6 +180,7 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     @Override
     public List<Op> visit(OpProject project) { // hijack too
+        System.out.println("meow");
         return List.of(OpCloningUtil.clone(project,
                 new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
     }

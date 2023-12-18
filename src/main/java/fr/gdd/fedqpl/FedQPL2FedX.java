@@ -1,6 +1,5 @@
 package fr.gdd.fedqpl;
 
-import com.github.jsonldjava.utils.Obj;
 import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
@@ -13,6 +12,7 @@ import org.apache.jena.sparql.util.ExprUtils;
 import org.eclipse.rdf4j.model.util.Values;
 import org.eclipse.rdf4j.query.QueryLanguage;
 import org.eclipse.rdf4j.query.algebra.*;
+import org.eclipse.rdf4j.query.algebra.helpers.AbstractSimpleQueryModelVisitor;
 import org.eclipse.rdf4j.query.parser.ParsedQuery;
 import org.eclipse.rdf4j.query.parser.QueryParserUtil;
 
@@ -206,7 +206,7 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
         ValueExpr expr = null;
         try {
             parsedQuery.getTupleExpr().visit(new ValueExprGetterVisitor());
-        } catch (ValueExprException e) {
+        } catch (ValueExprGetterVisitor.ValueExprException e) {
             expr = e.expr;
             // ((AbstractQueryModelNode) expr).setParentNode(null);
             // TODO very very ugly. But we need to put parent to null otherwise it
@@ -235,4 +235,33 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
             default -> throw new UnsupportedOperationException(node.toString());
         };
     }
+
+    /* ************************************************************************************* */
+
+    /**
+     * An RDF4J visitor that will probably be useful nowhere else. If this happens, consider moving
+     * it to its own file…
+     */
+    public static class ValueExprGetterVisitor extends AbstractSimpleQueryModelVisitor<RuntimeException> {
+
+        @Override
+        public void meet(Filter node)  {
+            throw new ValueExprException(node.getCondition());
+        }
+
+        /**
+         * The exception that goes with the Visitor. It's actually the return value, and
+         * not an actual exception. This is probably the proper way to use these RDF4J visitors.
+         */
+        public static class ValueExprException extends RuntimeException {
+
+            ValueExpr expr;
+
+            public ValueExprException(ValueExpr expr) {
+                this.expr = expr;
+            }
+        }
+
+    }
+
 }

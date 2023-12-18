@@ -18,6 +18,9 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
+import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
+import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacementConservative;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
@@ -41,10 +44,15 @@ public class FedUP {
 
     // The quotient summary to retrieve possibly relevant sources.
     final Summary summary;
+    // The list of endpoints to consider, retrieved from the summary.
     Set<String> endpoints;
+    // Modifiers applied to the list of endpoints to adapt to real addresses.
     Function<String, String> modifierOfEndpoints = null;
 
-    Dataset ds4Asks = null; // mostly for testing purposes
+    private boolean shouldFactorize = true;
+
+    // mostly for testing purposes when there are no real endpoints to query.
+    Dataset ds4Asks = null;
 
     public FedUP (Summary summary) {
         this.summary = summary;
@@ -70,6 +78,16 @@ public class FedUP {
      */
     public FedUP modifyEndpoints(Function<String, String> lambda){
         this.modifierOfEndpoints = lambda;
+        return this;
+    }
+
+    public FedUP shouldFactorize() {
+        this.shouldFactorize = true;
+        return this;
+    }
+
+    public FedUP shouldNotFactorize() {
+        this.shouldFactorize = false;
         return this;
     }
 
@@ -127,6 +145,9 @@ public class FedUP {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
+
+        asSPARQL = ReturningOpVisitorRouter.visit(new FilterPushDownVisitor(), asSPARQL);
+
         String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
 
         log.info("Built the following query:\n{}", asSERVICE);
@@ -169,8 +190,8 @@ public class FedUP {
                     .toList();
         }
 
-        log.info("Removing duplicates and inclusions in logical plan…");
-        assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
+        // log.info("Removing duplicates and inclusions in logical plan…");
+        // assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
         log.debug("Assignments comprising {} elements:\n{}", assignments2.size(), assignments2.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
         // TODO in dedicated class
@@ -192,28 +213,22 @@ public class FedUP {
         assignmentsAsGraph.commit();
         assignmentsAsGraph.end();
 
-        assignmentsAsGraph.begin(ReadWrite.READ);
-        StmtIterator iterator = assignmentsAsGraph.getUnionModel().listStatements();
-        while (iterator.hasNext()) {
-            log.debug(iterator.next().toString());
-        }
-        assignmentsAsGraph.commit();
-        assignmentsAsGraph.end();
-
-
         log.info("Building the FedQPL query…");
         Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt, assignmentsAsGraph);
 
         log.info("Optimizing the resulting FedQPL plan…");
-        FedQPLOptimizer optimizer = new FedQPLOptimizer();
-        optimizer.register(new FedQPLSimplifyVisitor()) // TODO configurable
-                .register(new FedQPLWithExclusiveGroupsVisitor())
-                .register(new FactorizeUnionsOfReqsVisitor())
-                .register(new FactorizeUnionsOfLeftJoinsVisitor());
+        FedQPLOptimizer optimizer = new FedQPLOptimizer()
+                .register(new FedQPLSimplifyVisitor()) // TODO configurable
+                .register(new FedQPLWithExclusiveGroupsVisitor());
+
+        if (shouldFactorize) {
+            optimizer.register(new FactorizeUnionsOfReqsVisitor())
+                    .register(new FactorizeUnionsOfLeftJoinsVisitor());
+        }
 
         asFedQPL = optimizer.optimize(asFedQPL);
 
-        // log.debug("FedUP plan:\n{}", asFedQPL.toString());
+        // log.debug("FedUP plan:\n{}", asFedQPL.toString()); // /!\ this could be a lot of logs
         return asFedQPL;
     }
 
@@ -236,6 +251,7 @@ public class FedUP {
         return bindingAsMap;
     }
 
+    /**
     static List<Map<Var, String>> removeInclusions(List<Map<Var, String>> sourceSelection) {
         List<Map<Var, String>> withoutDuplicates = new ArrayList<>();
         for (Map<Var, String> e1 : sourceSelection) {
@@ -258,6 +274,6 @@ public class FedUP {
             }
         }
         return newSourceSelection;
-    }
+    }**/
 
 }

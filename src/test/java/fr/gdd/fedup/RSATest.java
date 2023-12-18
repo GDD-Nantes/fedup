@@ -3,12 +3,14 @@ package fr.gdd.fedup;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.summary.SummaryFactory;
 import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.checkerframework.checker.units.qual.A;
+import org.apache.jena.sparql.engine.binding.BindingBuilder;
+import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -21,7 +23,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,7 +35,7 @@ public class RSATest {
 
     private static final Logger log = LoggerFactory.getLogger(RSATest.class);
 
-    private static FedUP fedup = new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")))
+    private static final FedUP fedup = new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
     // private static FedUP fedup;
 
@@ -181,22 +182,37 @@ public class RSATest {
 
             // comparing key
             // TODO TODO TODO TODO compare with same orders
-            assertEquals(resultsOfRSA.uniqueSet().stream().map(
-                    b -> {
-                        // sort inside binding
-                        Iterator<Var> iterator = b.vars();
-                        List<Var> sorted = Stream.generate(iterator::next).sorted((v1, v2)-> v1.toString().compareTo(v2.toString())).toList();
+            resultsOfRSA = reorderMultiset(resultsOfRSA);
+            resultsOfFedUP = reorderMultiset(resultsOfFedUP);
 
-                        return String.format();
-                    }).sorted().toList(),
-
+            assertEquals(resultsOfRSA.uniqueSet().stream().map(Binding::toString).sorted().toList(),
                     resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted().toList());
 
             // comparing the number of entries
-            assertEquals(resultsOfRSA.stream().map(Binding::toString).sorted().toList(), resultsOfFedUP.stream().map(Binding::toString).sorted().toList());
+            assertEquals(resultsOfRSA.stream().map(Binding::toString).sorted().toList(),
+                    resultsOfFedUP.stream().map(Binding::toString).sorted().toList());
 
             Files.writeString(newRSAPath, fedupRSA);
         }
+    }
+
+    public static MultiSet<Binding> reorderMultiset(MultiSet<Binding> bindings) {
+        MultiSet<Binding> result = new HashMultiSet<>();
+        List<Binding> reordered = bindings.stream().map(b -> {
+                    Iterator<Var> vars = b.vars();
+                    List<Var> sortedVars = new ArrayList<>();
+                    while (vars.hasNext()) {
+                        sortedVars.add(vars.next());
+                    }
+                    sortedVars = sortedVars.stream().map(Var::getVarName).sorted().map(Var::alloc).toList();
+
+                    BindingBuilder bindingBuilder = BindingFactory.builder();
+                    sortedVars.forEach(v -> bindingBuilder.add(v, b.get(v)));
+                    return bindingBuilder.build();
+                }
+            ).toList();
+        reordered.forEach(b -> result.add(b));
+        return result;
     }
 
     @Disabled

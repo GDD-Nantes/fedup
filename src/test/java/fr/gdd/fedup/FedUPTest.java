@@ -2,7 +2,6 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
-import fr.gdd.fedup.summary.SummaryFactory;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.StringUtils;
@@ -268,6 +267,7 @@ class FedUPTest {
         // before, had to replace manually (see below), now we have a convenience function
         // `modifyEndpoints` to do that instead.
         FedUP fedup = new FedUP(summary, dataset)
+                .shouldNotFactorize()
                 .modifyEndpoints(e ->
                         e.contains("graphA") ?
                                 "http://localhost:3333/graphA/sparql":
