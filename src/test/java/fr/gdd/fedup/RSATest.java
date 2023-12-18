@@ -36,6 +36,7 @@ public class RSATest {
     private static final Logger log = LoggerFactory.getLogger(RSATest.class);
 
     private static final FedUP fedup = new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")))
+            .shouldNotFactorize()
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
     // private static FedUP fedup;
 
@@ -171,6 +172,7 @@ public class RSATest {
             }
             log.info("Reading {}…", queryFile.getName());
             String query = FileUtils.readFileToString(queryFile, "UTF-8");
+            fedup.shouldFactorize(); // TODO
             String fedupRSA = fedup.query(query);
             MultiSet<Binding> resultsOfFedUP = FedShopTest.executeWithJena(fedupRSA);
 

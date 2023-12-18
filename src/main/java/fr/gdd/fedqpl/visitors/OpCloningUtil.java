@@ -17,6 +17,7 @@ public class OpCloningUtil {
     public static OpFilter clone(OpFilter filter, Op subOp) {return OpFilter.filterDirect(filter.getExprs(), subOp);}
     public static OpGroup clone(OpGroup group, Op subOp) {return new OpGroup(subOp, group.getGroupVars(), group.getAggregators());}
     public static OpUnion clone(OpUnion union, Op left, Op right) {return new OpUnion(left, right);}
+    public static OpJoin clone(OpJoin join, Op left, Op right) {return (OpJoin) OpJoin.create(left, right);}
 
     public static OpSequence clone(OpSequence sequence, List<Op> subops) {
         return (OpSequence) OpSequence.create().copy(subops);

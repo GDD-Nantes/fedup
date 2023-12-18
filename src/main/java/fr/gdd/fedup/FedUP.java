@@ -19,6 +19,7 @@ import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacementConservative;
 import org.apache.jena.sparql.core.Var;
@@ -146,6 +147,8 @@ public class FedUP {
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
 
+        asSPARQL = Transformer.transform(new TransformFilterConjunction(), asSPARQL); // TODO put this in the visitor
+        // TODO it splits the exprList, but we want actual split.
         asSPARQL = ReturningOpVisitorRouter.visit(new FilterPushDownVisitor(), asSPARQL);
 
         String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
@@ -214,7 +217,7 @@ public class FedUP {
         assignmentsAsGraph.end();
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, assignments2, tsst.tqt, assignmentsAsGraph);
+        Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, assignmentsAsGraph);
 
         log.info("Optimizing the resulting FedQPL plan…");
         FedQPLOptimizer optimizer = new FedQPLOptimizer()
@@ -250,30 +253,5 @@ public class FedUP {
         }
         return bindingAsMap;
     }
-
-    /**
-    static List<Map<Var, String>> removeInclusions(List<Map<Var, String>> sourceSelection) {
-        List<Map<Var, String>> withoutDuplicates = new ArrayList<>();
-        for (Map<Var, String> e1 : sourceSelection) {
-            if (!(withoutDuplicates.contains(e1))) {
-                withoutDuplicates.add(e1);
-            }
-        }
-
-        List<Map<Var, String>> newSourceSelection = new ArrayList<>();
-        for (int i = 0; i < withoutDuplicates.size(); i++) {
-            boolean keep = true;
-            for (int j = 0; j < withoutDuplicates.size(); j++) {
-                if (i != j && withoutDuplicates.get(j).entrySet().containsAll(withoutDuplicates.get(i).entrySet())) {
-                    keep = false;
-                    break;
-                }
-            }
-            if (keep) {
-                newSourceSelection.add(withoutDuplicates.get(i));
-            }
-        }
-        return newSourceSelection;
-    }**/
 
 }

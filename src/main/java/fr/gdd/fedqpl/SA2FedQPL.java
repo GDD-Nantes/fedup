@@ -14,15 +14,19 @@ import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.optimize.VariableUsagePusher;
+import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QueryEngineMain;
+import org.apache.jena.sparql.engine.main.VarFinder;
 import org.apache.jena.sparql.expr.ExprList;
 import org.apache.jena.sparql.util.QueryUtils;
 import org.apache.jena.sparql.util.VarUtils;
+import org.eclipse.rdf4j.federated.optimizer.OptimizerUtil;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,34 +41,28 @@ import java.util.stream.Collectors;
  */
 public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
-    public static Op build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt){
-        return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt), query).stream().toList()); // root mu
-    }
-
-    public static Op build(Op query, List<Map<Var, String>> assignments, ToQuadsTransform tqt, Dataset assignmentsDataset){
-        return new Mu(ReturningOpVisitorRouter.visit(new SA2FedQPL(assignments, tqt).setAssignmentsDataset(assignmentsDataset), query).stream().toList()); // root mu
+    public static Op build(Op query, ToQuadsTransform tqt, Dataset assignmentsDataset){
+        SA2FedQPL builder = new SA2FedQPL(tqt, assignmentsDataset);
+        List<Op> subExps = ReturningOpVisitorRouter.visit(builder, query);
+        Mu rootUnion = new Mu(subExps.stream().toList());
+        if (Objects.isNull(builder.topMostProjection)) {
+            return OpCloningUtil.clone((OpProject) builder.createOpProject(query), rootUnion);
+        } else {
+            return rootUnion;
+        }
     }
 
     /* *************************************************************** */
 
-    List<Map<Var, String>> assignments;
     ToQuadsTransform toQuads;
     Dataset assignmentsDataset;
+    OpProject topMostProjection = null;
 
     public static boolean SILENT = true;
 
-    // This is a way to save the work that has been done, but could
-    // be returned instead.
-    Map<Op, Map<Var, String>> fedQPL2PartialAssignment = new HashMap<>();
-
-    public SA2FedQPL(List<Map<Var, String>> assignments, ToQuadsTransform tqt) {
-        this.assignments = assignments;
-        this.toQuads = tqt;
-    }
-
-    public SA2FedQPL setAssignmentsDataset(Dataset assignmentsDataset) { // TODO in constructor
+    public SA2FedQPL(ToQuadsTransform tqt, Dataset assignmentsDataset) {
         this.assignmentsDataset = assignmentsDataset;
-        return this;
+        this.toQuads = tqt;
     }
 
     @Override
@@ -180,13 +178,19 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     @Override
     public List<Op> visit(OpProject project) { // hijack too
-        System.out.println("meow");
+        if (Objects.isNull(this.topMostProjection)) {
+            this.topMostProjection = project;
+        }
+
         return List.of(OpCloningUtil.clone(project,
                 new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
     }
 
     @Override
     public List<Op> visit(OpDistinct distinct) {
+        if (Objects.isNull(this.topMostProjection)) {
+            return List.of(createOpProject(distinct.getSubOp()));
+        }
         return List.of(OpCloningUtil.clone(distinct,
                 new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()).stream().toList())));
     }
@@ -198,37 +202,6 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
     }
 
     /* *************************************************************** */
-
-    /**
-     * @param vars The set of variables to check.
-     * @return All results where the variables are set along with their value.
-     */
-    public List<Map<Var, String>> allSourcesAreSet(Set<Var> vars) {
-        List<Map<Var, String>> results = new ArrayList<>();
-        for (Map<Var, String> assignment : assignments) {
-            if (vars.stream().allMatch(assignment::containsKey)) {
-                // only keep Var that are in vars
-                Map<Var, String> cutAssignment = assignment.entrySet().stream().filter(e -> vars.contains(e.getKey()) ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-                results.add(cutAssignment);
-            }
-        }
-        return results;
-    }
-
-    /**
-     * @param partialAssignment Variables and their respective value.
-     * @return True if in an assignment, they all exist and are set with the appropriate value
-     */
-    public boolean theResultExists(Map<Var, String> partialAssignment) {
-        for (Map<Var, String> assignment : assignments) {
-            if (partialAssignment.entrySet().stream()
-                    .allMatch(e -> assignment.containsKey(e.getKey()) && assignment.get(e.getKey()).equals(e.getValue()))) {
-                return true;
-            }
-        }
-        return false;
-    }
-
 
     public MultiSet<Binding> sols(Op op) {
         MultiSet<Binding> bindings = new HashMultiSet<>();
@@ -280,4 +253,18 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         return result;
     }
 
-}
+    /* ************************************************************* */
+
+    public Op createOpProject(Op query) {
+            VarFinder vars = VarFinder.process(query);
+            Set<Var> allVariables = new HashSet<>();
+            allVariables.addAll(vars.getAssign());
+            allVariables.addAll(vars.getFilter());
+            allVariables.addAll(vars.getFixed());
+            allVariables.addAll(vars.getOpt());
+            allVariables.addAll(vars.getFilterOnly());
+            this.topMostProjection = new OpProject(new Mu(ReturningOpVisitorRouter.visit(this, query)),
+                    allVariables.stream().toList());
+            return this.topMostProjection;
+        }
+    }

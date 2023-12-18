@@ -7,11 +7,11 @@ import org.apache.jena.query.Dataset;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
+import org.eclipse.rdf4j.federated.repository.FedXRepository;
+import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
-import org.eclipse.rdf4j.repository.Repository;
-import org.eclipse.rdf4j.repository.RepositoryConnection;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -58,6 +58,15 @@ public class FedXTest {
     }
 
     @Test
+    public void fedup_to_fedx_with_filter_to_see_if_they_are_pushed_down() {
+        executeFedUPThenFedX("""
+            SELECT DISTINCT * WHERE {
+            { ?people <http://auth/owns> ?animal }
+              FILTER ( ?people = <http://auth/dog> )
+            }""");
+    }
+
+    @Test
     public void fedx_with_filter() {
         // filters are effectively pushed down. BUT limit and distinct aren't…
         executeWithFedX("""
@@ -97,7 +106,7 @@ public class FedXTest {
     /* ***************************************************************** */
 
     public void executeFedUPThenFedX(String queryAsString) {
-        FedUP fedup = new FedUP(summary, dataset);
+        FedUP fedup = new FedUP(summary, dataset).shouldNotFactorize();
         String result = fedup.query(queryAsString, new HashSet<>(graphs));
         // so we need to replace
         result = result.replace(graphs.get(0), endpoints.get(0))
@@ -113,11 +122,11 @@ public class FedXTest {
 
         FedXConfig config = new FedXConfig();
         config.withDebugQueryPlan(true); // in std out…
-        Repository fedx = FedXFactory.newFederation()
+        FedXRepository fedx = FedXFactory.newFederation()
                 .withConfig(config)
                 .withSparqlEndpoints(endpoints).create();
 
-        try (RepositoryConnection conn = fedx.getConnection()) {
+        try (FedXRepositoryConnection conn = fedx.getConnection()) {
             TupleQuery tq = conn.prepareTupleQuery(queryAsString);
 
             try (TupleQueryResult tqRes = tq.evaluate()) {

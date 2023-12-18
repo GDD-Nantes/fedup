@@ -208,6 +208,40 @@ class FedUPTest {
                 }""");
     }
 
+    @Test
+    public void query_with_a_filter_clause_that_is_useless () {
+        // remove all solution as ?meow is undefined. But it
+        // still needs to be pushed down in both branches.
+        checkQueryWithActualEndpoints("""
+                SELECT DISTINCT * WHERE {
+                    { ?people <http://auth/owns> ?animal }
+                    FILTER ( ?meow = <http://auth/dog> )
+                }""");
+    }
+
+    @Test
+    public void query_with_a_conjunctive_filter_clause_should_be_split () {
+        checkQueryWithActualEndpoints("""
+                SELECT DISTINCT * WHERE {
+                    { ?people <http://auth/owns> ?animal }
+                    FILTER ( ?meow = <http://auth/dog> && ?animal = <http://auth/dog>)
+                }""");
+    }
+
+    @Test
+    public void query_with_a_conjunctive_filter_clause_should_be_split_and_one_as_not_both () {
+        // remove one of the solution, keeping David and his dog.
+        // however, endpointA still appears in the logical plan since
+        // FedUP removes filter to operate.
+        checkQueryWithActualEndpoints("""
+                SELECT DISTINCT * WHERE {
+                    { ?people <http://auth/owns> ?animal .
+                      ?people  <http://auth/nbPets> ?nb
+                    }
+                    FILTER ( ?meow = <http://auth/dog> && ?animal = <http://auth/dog>)
+                }""");
+    }
+
 
     @Test
     public void tricky_query_with_two_optionals() {

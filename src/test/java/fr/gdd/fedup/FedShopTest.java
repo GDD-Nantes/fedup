@@ -51,7 +51,7 @@ public class FedShopTest {
             Location.create("./temp/fedup-h0" )))
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
-    FedXRepository fedx = FedXFactory.newFederation()
+    public static FedXRepository fedx = FedXFactory.newFederation()
             .withConfig(new FedXConfig() // same as FedUP-experiment
                     .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
                     .withJoinWorkerThreads(20)
