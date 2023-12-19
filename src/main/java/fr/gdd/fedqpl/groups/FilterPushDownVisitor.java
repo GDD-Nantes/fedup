@@ -7,6 +7,8 @@ import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.main.VarFinder;
+import org.apache.jena.sparql.expr.Expr;
+import org.apache.jena.sparql.expr.ExprList;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,10 +22,14 @@ public class FilterPushDownVisitor extends ReturningOpBaseVisitor {
 
     @Override
     public Op visit(OpFilter filter) {
-        return ReturningArgsOpVisitorRouter.visit(
-                new FilterPushDownVisitorStarted(),
-                ReturningOpVisitorRouter.visit(this, filter.getSubOp()), // visit downstream first
-                filter);
+        Op subop = ReturningOpVisitorRouter.visit(this, filter.getSubOp()); // visit downstream first
+        for (Expr expr : filter.getExprs().getList()) {
+            subop = ReturningArgsOpVisitorRouter.visit(
+                    new FilterPushDownVisitorStarted(),
+                    subop,
+                    (OpFilter) OpFilter.filter(expr, subop)); // actually, only `Expr` matters
+        }
+        return subop;
     }
 
     /* ********************************************************************* */
@@ -84,6 +90,42 @@ public class FilterPushDownVisitor extends ReturningOpBaseVisitor {
                     return OpCloningUtil.clone(args, join); // filter on top of join
                 }
             }
+        }
+
+        @Override
+        public Op visit(OpLeftJoin lj, OpFilter args) {
+            Set<Var> filterMentioned = args.getExprs().getVarsMentioned();
+            VarFinder varsLeft = VarFinder.process(lj.getLeft());
+            Set<Var> leftMentioned = new HashSet<>(varsLeft.getAssign());
+            leftMentioned.addAll(varsLeft.getOpt());
+            leftMentioned.addAll(varsLeft.getFixed());
+
+
+            if (leftMentioned.containsAll(filterMentioned)) {
+                return OpCloningUtil.clone(lj,
+                        ReturningArgsOpVisitorRouter.visit(this, lj.getLeft(), args),
+                        lj.getRight());
+            } else {
+                VarFinder varsRight = VarFinder.process(lj.getRight());
+                Set<Var> rightMentioned = new HashSet<>(varsRight.getAssign());
+                rightMentioned.addAll(varsRight.getOpt());
+                rightMentioned.addAll(varsRight.getFixed());
+                // TODO depending on operator, allows filter to go down further, but conservative is
+                // TODO to stay on top.
+                // rightMentioned.addAll(leftMentioned); // left are already set (/!\ no symmetric hash join plz)
+                if (rightMentioned.containsAll(filterMentioned)) {
+                    return OpCloningUtil.clone(lj,
+                            lj.getLeft(),
+                            ReturningArgsOpVisitorRouter.visit(this, lj.getRight(), args));
+                } else {
+                    return OpCloningUtil.clone(args, lj); // filter on top of join
+                }
+            }
+        }
+
+        @Override
+        public Op visit(OpConditional cond, OpFilter args) {
+            return this.visit(OpLeftJoin.createLeftJoin(cond.getLeft(), cond.getRight(), ExprList.emptyList), args);
         }
 
         @Override

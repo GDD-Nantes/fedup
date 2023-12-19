@@ -11,6 +11,7 @@ import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.eclipse.rdf4j.federated.FedX;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
@@ -286,26 +287,35 @@ public class FedShopTest {
         System.out.printf("%s %s %s %s %s%n", shortname, ssFedX, ssJena, jenaTime, fedxTime);
     }
 
-    public long measuredExecuteWithFedXWithBypassParser(TupleExpr fedXExpr) {
-        MultiSet<BindingSet> serviceResults = new HashMultiSet<>();
-
-        long elapsed = -1;
+    public static MultiSet<Binding> executeWithFedxWithBypassParser(TupleExpr fedXExpr) {
+        MultiSet<Binding> bindings = new HashMultiSet<>();
 
         try (FedXRepositoryConnection conn = fedx.getConnection()) {
-            long current = System.currentTimeMillis();
             TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery("", fedXExpr), conn));
             try (TupleQueryResult tqRes = tq.evaluate()) {
                 while (tqRes.hasNext()) {
-                    serviceResults.add(tqRes.next());
+                    bindings.add(FedXTest.createBinding(tqRes.next()));
                 }
             }
-            elapsed = System.currentTimeMillis() - current;
-            log.info("FedX took {} ms to get {} results.", elapsed, serviceResults.size());
         }
 
-        if (serviceResults.size() <= PRINTRESULTTHRESHOLD) {
-            log.debug("Results:\n{}", String.join("\n", serviceResults.entrySet().stream().map(Object::toString).toList()));
+        if (bindings.size() <= PRINTRESULTTHRESHOLD) {
+            log.debug("Results:\n{}", String.join("\n", bindings.entrySet().stream().map(Object::toString).toList()));
         }
+
+        return bindings;
+    }
+
+
+    public static long measuredExecuteWithFedXWithBypassParser(TupleExpr fedXExpr) {
+
+
+        long elapsed = -1;
+        long current = System.currentTimeMillis();
+        MultiSet<Binding> bindings = executeWithFedxWithBypassParser(fedXExpr);
+        elapsed = System.currentTimeMillis() - current;
+        log.info("FedX took {} ms to get {} results.", elapsed, bindings.size());
+
 
         return elapsed;
     }

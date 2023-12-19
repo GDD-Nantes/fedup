@@ -2,16 +2,29 @@ package fr.gdd.fedup;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.multiset.HashMultiSet;
+import org.apache.jena.datatypes.BaseDatatype;
+import org.apache.jena.datatypes.RDFDatatype;
+import org.apache.jena.datatypes.xsd.XSDDatatype;
+import org.apache.jena.datatypes.xsd.impl.XSDDouble;
 import org.apache.jena.fuseki.main.FusekiServer;
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
+import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.binding.BindingBuilder;
+import org.apache.jena.sparql.engine.binding.BindingFactory;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
 import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
+import org.eclipse.rdf4j.query.Binding;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
+import org.eclipse.rdf4j.rio.datatypes.RDFDatatypeHandler;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -111,38 +124,71 @@ public class FedXTest {
         // so we need to replace
         result = result.replace(graphs.get(0), endpoints.get(0))
                 .replace(graphs.get(1), endpoints.get(1));
+
+        List<FusekiServer> servers = FedUPTest.startServers();
         executeWithFedX(result);
+        FedUPTest.stopServers(servers);
     }
 
 
-    public void executeWithFedX(String queryAsString) {
+    public MultiSet<org.apache.jena.sparql.engine.binding.Binding> executeWithFedX(String queryAsString) {
         // still need dataset since the dataset refers to <graphA> and not
         // endpoint remote address.
-        List<FusekiServer> servers = FedUPTest.startServers();
+        MultiSet<org.apache.jena.sparql.engine.binding.Binding> bindings = new HashMultiSet<>();
 
         FedXConfig config = new FedXConfig();
-        config.withDebugQueryPlan(true); // in std out…
+        if (log.isDebugEnabled()) {
+            config.withDebugQueryPlan(true); // in std out…
+        }
+
         FedXRepository fedx = FedXFactory.newFederation()
                 .withConfig(config)
-                .withSparqlEndpoints(endpoints).create();
+                .create();
 
         try (FedXRepositoryConnection conn = fedx.getConnection()) {
             TupleQuery tq = conn.prepareTupleQuery(queryAsString);
 
             try (TupleQueryResult tqRes = tq.evaluate()) {
-
-                int count = 0;
                 while (tqRes.hasNext()) {
-                    BindingSet b = tqRes.next();
-                    log.debug(b.toString());
-                    count++;
+                    bindings.add(createBinding(tqRes.next()));
                 }
 
-                log.debug("Got {} results.", count);
+                log.debug("Got {} results.", bindings.size());
             }
 
         }
 
-        FedUPTest.stopServers(servers);
+        return bindings;
+    }
+
+    /**
+     * @param origin The RDF4J binding to convert.
+     * @return An Apache Jena `Binding` that comes from an RDF4J binding.
+     */
+    public static org.apache.jena.sparql.engine.binding.Binding createBinding(BindingSet origin) {
+        BindingBuilder builder = BindingFactory.builder();
+        for (String name : origin.getBindingNames()) {
+            Binding value = origin.getBinding(name);
+            Node valueAsNode = null;
+            if (value.getValue().isBNode()) {
+                valueAsNode = NodeFactory.createBlankNode(value.getValue().stringValue());
+            } else if (value.getValue().isIRI()) {
+                valueAsNode = NodeFactory.createURI(value.getValue().stringValue());
+            } else if (value.getValue().isLiteral()) {
+                if (value.getValue().toString().contains(XSDDatatype.XSDinteger.getURI())) {
+                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDinteger);
+                } else if (value.getValue().toString().contains(XSDDatatype.XSDdouble.getURI())) {
+                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdouble);
+                } else if (value.getValue().toString().contains(XSDDatatype.XSDdateTime.getURI())) {
+                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdateTime);
+                } else {
+                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue());
+                }
+            } else if (value.getValue().isResource() || value.getValue().isTriple()) {
+                throw new UnsupportedOperationException("RDF4J to Jena Bindings with a resource or a triple.");
+            }
+            builder.add(Var.alloc(name), valueAsNode);
+        }
+        return builder.build();
     }
 }

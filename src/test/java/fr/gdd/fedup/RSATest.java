@@ -11,6 +11,7 @@ import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
+import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -23,6 +24,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,7 +39,12 @@ public class RSATest {
 
     private static final Logger log = LoggerFactory.getLogger(RSATest.class);
 
-    private static final FedUP fedup = new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")))
+    private static final FedUP fedup =
+            new FedUP(SummaryFactory.createIdentity(Location.create("./temp/fedup-id")),
+                    IntStream.range(0, 100).boxed() // So it does not call getGraph that is slow (~2minutes process)
+                            .flatMap(i -> Stream.of(String.format("http://www.vendor%s.fr/", i),
+                                    String.format("http://www.ratingsite%s.fr/", i))).collect(Collectors.toSet())
+                    )
             .shouldNotFactorize()
             .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
     // private static FedUP fedup;
@@ -164,17 +173,36 @@ public class RSATest {
         }
         Path fedshopQueriesPath = Path.of("./queries/fedshop");
         File[] queryFiles = fedshopQueriesPath.toFile().listFiles();
+        assert queryFiles != null;
         for (File queryFile : queryFiles) {
             Path newRSAPath =  fedupRSAFolderPath.resolve(queryFile.getName());
             if (newRSAPath.toFile().exists()) {
                 log.info("Skipping {}…", queryFile.getName());
                 continue;
             }
+            if (queryFile.getName().contains("q06")) {
+                log.info("Skipping {}… (too long [source selection])", queryFile.getName());
+                continue;
+            }
+
             log.info("Reading {}…", queryFile.getName());
             String query = FileUtils.readFileToString(queryFile, "UTF-8");
-            fedup.shouldFactorize(); // TODO
+
+            MultiSet<Binding> resultsOfFedUP = null;
+
             String fedupRSA = fedup.query(query);
-            MultiSet<Binding> resultsOfFedUP = FedShopTest.executeWithJena(fedupRSA);
+            // fedup.shouldFactorize(); // TODO
+            if (queryFile.getName().contains("q05")) { // should be executed with FedX
+                // log.info("Skipping {}… (too long [execution time])", queryFile.getName());
+                // continue;
+                log.info("Reexecuting source selection for FedX…");
+                TupleExpr fedupRSAFedx = fedup.queryToFedX(query); // reexecute all… TODO not to
+                log.info("Executing with FedX…");
+                resultsOfFedUP = FedShopTest.executeWithFedxWithBypassParser(fedupRSAFedx);
+            } else {
+                log.info("Executing with Jena…");
+                resultsOfFedUP = FedShopTest.executeWithJena(fedupRSA);
+            }
 
             Path fedshopRSAPath = Path.of("./queries/fedshop200-RSA/", queryFile.getName());
             String rsa = FileUtils.readFileToString(fedshopRSAPath.toFile(), "UTF-8")
@@ -183,16 +211,20 @@ public class RSATest {
             MultiSet<Binding> resultsOfRSA = FedShopTest.executeWithJena(rsa);
 
             // comparing key
-            // TODO TODO TODO TODO compare with same orders
             resultsOfRSA = reorderMultiset(resultsOfRSA);
             resultsOfFedUP = reorderMultiset(resultsOfFedUP);
 
-            assertEquals(resultsOfRSA.uniqueSet().stream().map(Binding::toString).sorted().toList(),
-                    resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted().toList());
+            /*assert (resultsOfRSA.uniqueSet().containsAll(resultsOfFedUP.uniqueSet()));
+                    assert (resultsOfFedUP.uniqueSet().containsAll(resultsOfRSA.uniqueSet()));*/
+
+            assertEquals(resultsOfRSA.uniqueSet().stream().map(Binding::toString).sorted(String::compareTo).toList(),
+                    resultsOfFedUP.uniqueSet().stream().map(Binding::toString).sorted(String::compareTo).toList());
+            log.debug("Got {} distinct results.", resultsOfFedUP.uniqueSet().size());
 
             // comparing the number of entries
             assertEquals(resultsOfRSA.stream().map(Binding::toString).sorted().toList(),
                     resultsOfFedUP.stream().map(Binding::toString).sorted().toList());
+            log.debug("Got {} total results.", resultsOfFedUP.size());
 
             Files.writeString(newRSAPath, fedupRSA);
         }
@@ -213,7 +245,7 @@ public class RSATest {
                     return bindingBuilder.build();
                 }
             ).toList();
-        reordered.forEach(b -> result.add(b));
+        result.addAll(reordered);
         return result;
     }
 

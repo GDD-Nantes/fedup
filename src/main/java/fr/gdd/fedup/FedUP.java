@@ -72,6 +72,16 @@ public class FedUP {
     }
 
     /**
+     * Mainly for testing purpose and bypass the `getGraph` that may take a long time.
+     * @param summary
+     * @param endpoints
+     */
+    public FedUP (Summary summary, Set<String> endpoints) {
+        this.summary = summary;
+        this.endpoints = endpoints;
+    }
+
+    /**
      * Sometimes, the ingested summary does not reflect the current state
      * of endpoints. To alleviate this issue, this function applies a lambda
      * expression to every element of the list of endpoints.
@@ -102,7 +112,7 @@ public class FedUP {
         log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
-        log.debug(asFedQPL.toString());
+        // log.debug(asFedQPL.toString()); // cannot print mu and mj
         log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
         log.info("Built the following query:\n{}", asFedX);

@@ -5,17 +5,23 @@ import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jena.atlas.lib.Alg;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
+import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.engine.binding.Binding;
+import org.apache.jena.sparql.engine.main.VarFinder;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.apache.jena.tdb2.sys.TDBInternal;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,7 +247,6 @@ class FedUPTest {
                     FILTER ( ?meow = <http://auth/dog> && ?animal = <http://auth/dog>)
                 }""");
     }
-
 
     @Test
     public void tricky_query_with_two_optionals() {

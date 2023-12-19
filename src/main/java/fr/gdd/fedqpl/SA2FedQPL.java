@@ -8,14 +8,10 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
-import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.Dataset;
-import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
-import org.apache.jena.sparql.algebra.optimize.VariableUsagePusher;
-import org.apache.jena.sparql.algebra.optimize.VariableUsageTracker;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.Plan;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -24,12 +20,8 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.engine.main.VarFinder;
 import org.apache.jena.sparql.expr.ExprList;
-import org.apache.jena.sparql.util.QueryUtils;
-import org.apache.jena.sparql.util.VarUtils;
-import org.eclipse.rdf4j.federated.optimizer.OptimizerUtil;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A source assignments is a list of sources that are expected to provide
@@ -45,8 +37,9 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         SA2FedQPL builder = new SA2FedQPL(tqt, assignmentsDataset);
         List<Op> subExps = ReturningOpVisitorRouter.visit(builder, query);
         Mu rootUnion = new Mu(subExps.stream().toList());
+
         if (Objects.isNull(builder.topMostProjection)) {
-            return OpCloningUtil.clone((OpProject) builder.createOpProject(query), rootUnion);
+            return OpCloningUtil.clone(builder.createOpProjectWithAllVariables(query), rootUnion);
         } else {
             return rootUnion;
         }
@@ -56,6 +49,7 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     ToQuadsTransform toQuads;
     Dataset assignmentsDataset;
+
     OpProject topMostProjection = null;
 
     public static boolean SILENT = true;
@@ -178,9 +172,7 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     @Override
     public List<Op> visit(OpProject project) { // hijack too
-        if (Objects.isNull(this.topMostProjection)) {
-            this.topMostProjection = project;
-        }
+        if (Objects.isNull(this.topMostProjection)) {this.topMostProjection = project;}
 
         return List.of(OpCloningUtil.clone(project,
                 new Mu(ReturningOpVisitorRouter.visit(this, project.getSubOp()).stream().toList())));
@@ -188,11 +180,15 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     @Override
     public List<Op> visit(OpDistinct distinct) {
-        if (Objects.isNull(this.topMostProjection)) {
-            return List.of(createOpProject(distinct.getSubOp()));
+        Op below = new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()));
+
+        if (!(distinct.getSubOp() instanceof OpProject)) {
+            // if there is no project below distinct, we add it.
+            this.topMostProjection = createOpProjectWithAllVariables(distinct.getSubOp());
+            below = OpCloningUtil.clone(this.topMostProjection, below);
         }
-        return List.of(OpCloningUtil.clone(distinct,
-                new Mu(ReturningOpVisitorRouter.visit(this, distinct.getSubOp()).stream().toList())));
+
+        return List.of(OpCloningUtil.clone(distinct, below));
     }
 
     @Override
@@ -255,7 +251,7 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     /* ************************************************************* */
 
-    public Op createOpProject(Op query) {
+    public static OpProject createOpProjectWithAllVariables(Op query) {
             VarFinder vars = VarFinder.process(query);
             Set<Var> allVariables = new HashSet<>();
             allVariables.addAll(vars.getAssign());
@@ -263,8 +259,6 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
             allVariables.addAll(vars.getFixed());
             allVariables.addAll(vars.getOpt());
             allVariables.addAll(vars.getFilterOnly());
-            this.topMostProjection = new OpProject(new Mu(ReturningOpVisitorRouter.visit(this, query)),
-                    allVariables.stream().toList());
-            return this.topMostProjection;
+            return new OpProject(null, allVariables.stream().toList());
         }
     }
