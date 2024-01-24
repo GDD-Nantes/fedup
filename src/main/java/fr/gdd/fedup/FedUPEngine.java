@@ -42,8 +42,9 @@ public class FedUPEngine extends QueryEngineTDB {
 
         FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)));
 
+        // TODO call the SPARQL OP creator directly
+        // TODO if FedX is the chosen engine, run with FedX
         String serviceQuery = fedup.query(op);
-
         Op serviceQueryAsOp = Algebra.compile(QueryFactory.create(serviceQuery));
 
         return super.eval(serviceQueryAsOp, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
