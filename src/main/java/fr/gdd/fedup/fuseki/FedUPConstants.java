@@ -1,4 +1,4 @@
-package fr.gdd.fedup;
+package fr.gdd.fedup.fuseki;
 
 import org.apache.jena.sparql.util.Symbol;
 

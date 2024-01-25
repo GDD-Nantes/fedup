@@ -1,12 +1,11 @@
-package fr.gdd.fedup;
+package fr.gdd.fedup.fuseki;
 
+import fr.gdd.fedup.FedUP;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveGraphsTransform;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraph;
@@ -17,6 +16,7 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
+import org.eclipse.rdf4j.query.algebra.TupleExpr;
 
 public class FedUPEngine extends QueryEngineTDB {
 
@@ -40,13 +40,20 @@ public class FedUPEngine extends QueryEngineTDB {
     public QueryIterator eval(Op op, DatasetGraph dsg, Binding input, Context context) {
         op = Transformer.transform(new RemoveGraphsTransform(), op);
 
-        FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)));
+        // TODO fedup factory builds this in main
+        FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)))
+                .shouldNotFactorize()
+                .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
         // TODO call the SPARQL OP creator directly
         // TODO if FedX is the chosen engine, run with FedX
-        String serviceQuery = fedup.query(op);
-        Op serviceQueryAsOp = Algebra.compile(QueryFactory.create(serviceQuery));
+        if (context.get(FedUPConstants.EXECUTION_ENGINE).equals(FedUPConstants.FEDX)) {
+            TupleExpr query4FedX = fedup.queryJenaToFedX(op);
+            return fedup.executeWithFedX(query4FedX);
+        }
 
+        // default engine is Jena:
+        Op serviceQueryAsOp = fedup.queryJenaToJena(op);
         return super.eval(serviceQueryAsOp, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
     }
 

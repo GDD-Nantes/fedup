@@ -5,27 +5,28 @@ import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
 import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
+import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
-import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ReadWrite;
+import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
-import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacement;
-import org.apache.jena.sparql.algebra.optimize.TransformFilterPlacementConservative;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.util.NodeIsomorphismMap;
+import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.main.QueryEngineMain;
+import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.eclipse.rdf4j.federated.FedXConfig;
+import org.eclipse.rdf4j.federated.FedXFactory;
+import org.eclipse.rdf4j.federated.repository.FedXRepository;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,8 +50,11 @@ public class FedUP {
     Set<String> endpoints;
     // Modifiers applied to the list of endpoints to adapt to real addresses.
     Function<String, String> modifierOfEndpoints = null;
+    // Factorize some operations when possible
+    boolean shouldFactorize = false;
+    // If we want to execute it on FedX
+    FedXRepository fedx = null; // lazy
 
-    private boolean shouldFactorize = true;
 
     // mostly for testing purposes when there are no real endpoints to query.
     Dataset ds4Asks = null;
@@ -111,11 +115,16 @@ public class FedUP {
     public TupleExpr queryToFedX(String queryAsString) {
         log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
+        TupleExpr asFedX = queryJenaToFedX(queryAsOp);
+        log.info("Built the following query:\n{}", asFedX);
+        return asFedX;
+    }
+
+    public TupleExpr queryJenaToFedX(Op queryAsOp) {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
         // log.debug(asFedQPL.toString()); // cannot print mu and mj
         log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
-        log.info("Built the following query:\n{}", asFedX);
         return asFedX;
     }
 
@@ -126,6 +135,14 @@ public class FedUP {
     public Op queryToJena(String queryAsString) {
         log.debug("Parsing the query {}", queryAsString);
         Op queryAsOp = Algebra.compile(QueryFactory.create(queryAsString));
+        return queryJenaToJena(queryAsOp);
+    }
+
+    /**
+     * @param queryAsOp The initial federated query.
+     * @return A SERVICE query that Apache Jena can execute immediately without parsing it again.
+     */
+    public Op queryJenaToJena(Op queryAsOp) {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
@@ -248,6 +265,31 @@ public class FedUP {
 
     /* **************************************************************** */
 
+    public QueryIterator executeWithFedX(TupleExpr queryAsFedX) {
+        // lazily create a FedX query executor
+        if (Objects.isNull(fedx)) {
+            log.info("Initializing FedX executor…");
+            fedx = FedXFactory.newFederation()
+                    .withConfig(new FedXConfig() // same as FedUP-experiment
+                            .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
+                            .withJoinWorkerThreads(20)
+                            .withUnionWorkerThreads(20)
+                            .withDebugQueryPlan(false))
+                    .withSparqlEndpoints(List.of()).create();
+        }
+        // then run the query
+        log.info("Running the query using FedX…");
+        return new TupleQueryResult2QueryIterator(fedx.getConnection(), queryAsFedX);
+    }
+
+    public QueryIterator executeWithJena(Op queryAsJena) {
+        QueryEngineMain engine = new QueryEngineMain(queryAsJena, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
+        log.info("Running the query using Jena…");
+        return engine.eval(queryAsJena, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
+    }
+
+
+    /* **************************************************************** */
 
     /**
      * Convert the binding into a map of [?g -> uri]
