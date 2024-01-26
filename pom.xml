@@ -32,12 +32,6 @@
 			<version>${rdf4j.version}</version>
 		</dependency>
 
-
-		<dependency>
-			<groupId>fr.gdd.sage</groupId>
-			<artifactId>raw-jena-volcano</artifactId>
-			<version>0.0.1</version>
-		</dependency>
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>apache-jena-libs</artifactId>

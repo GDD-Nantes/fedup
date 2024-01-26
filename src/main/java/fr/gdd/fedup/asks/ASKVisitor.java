@@ -1,6 +1,6 @@
 package fr.gdd.fedup.asks;
 
-import fr.gdd.raw.io.OpVisitorUnimplemented;
+import fr.gdd.fedqpl.visitors.OpVisitorUnimplemented;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.Dataset;
