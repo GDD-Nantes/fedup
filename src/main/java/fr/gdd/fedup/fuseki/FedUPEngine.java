@@ -1,11 +1,15 @@
 package fr.gdd.fedup.fuseki;
 
 import fr.gdd.fedup.FedUP;
+import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveGraphsTransform;
+import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
+import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraph;
@@ -16,7 +20,14 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
+import org.eclipse.rdf4j.federated.optimizer.OptimizerUtil;
+import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
+import org.eclipse.rdf4j.federated.structures.FedXTupleQuery;
+import org.eclipse.rdf4j.query.TupleQuery;
+import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
+import org.eclipse.rdf4j.query.parser.ParsedTupleQuery;
+import org.eclipse.rdf4j.repository.sail.SailTupleQuery;
 
 public class FedUPEngine extends QueryEngineTDB {
 
@@ -45,8 +56,6 @@ public class FedUPEngine extends QueryEngineTDB {
                 .shouldNotFactorize()
                 .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
-        // TODO call the SPARQL OP creator directly
-        // TODO if FedX is the chosen engine, run with FedX
         if (context.get(FedUPConstants.EXECUTION_ENGINE).equals(FedUPConstants.FEDX)) {
             TupleExpr query4FedX = fedup.queryJenaToFedX(op);
             return fedup.executeWithFedX(query4FedX);

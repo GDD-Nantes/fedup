@@ -196,11 +196,11 @@ public class ToValuesAndOrderTransform extends TransformUnimplemented {
      */
     public static OpTable prepareValues(Var graph, List<String> endpoints) {
         TableN table = new TableN();
-        endpoints.forEach(
-                e -> table.addBinding(
-                        Binding.builder().add(graph, NodeFactory.createURI(e)).build()
-                )
-        );
+        if (Objects.isNull(endpoints) || endpoints.isEmpty()) { // TODO remove quad instead and replace it with empty op
+            table.addBinding(Binding.builder().add(graph, NodeFactory.createURI("<http://404>")).build());
+        } else {
+            endpoints.forEach(
+                    e -> table.addBinding(Binding.builder().add(graph, NodeFactory.createURI(e)).build()));}
         return OpTable.create(table);
     }
 }

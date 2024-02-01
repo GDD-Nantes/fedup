@@ -7,6 +7,7 @@ import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.transforms.RemoveSequences;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
@@ -16,6 +17,7 @@ import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -26,7 +28,9 @@ import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
+import org.eclipse.rdf4j.federated.algebra.EmptyNJoin;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
+import org.eclipse.rdf4j.query.algebra.EmptySet;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,6 +126,9 @@ public class FedUP {
 
     public TupleExpr queryJenaToFedX(Op queryAsOp) {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
+        if (Objects.isNull(asFedQPL)) {
+            return new EmptySet();
+        }
         // log.debug(asFedQPL.toString()); // cannot print mu and mj
         log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
@@ -185,6 +192,7 @@ public class FedUP {
     }
 
     public Op queryToFedQPL (Op queryAsOp, Set<String> endpoints) {
+        queryAsOp = ReturningOpVisitorRouter.visit(new RemoveSequences(), queryAsOp);
         log.info("Start making ASK queries on {} endpoints…", endpoints.size());
         // TODO use summary as first filter for ASKS
         ToSourceSelectionTransforms tsst = new ToSourceSelectionTransforms(summary.getStrategy(), true, endpoints)
@@ -200,14 +208,15 @@ public class FedUP {
         Set<Integer> seen = new TreeSet<>();
 
         summary.querySummary(ssQueryAsOp).forEach(b -> {
-            // TODO create FedQPL here
-            // TODO but it's much more difficult in presence of OPTIONAL
-            // TODO but could get faster time for first result when things are sure
-            int hashcode = b.toString().hashCode();
-            if (!seen.contains(hashcode)) {
-                seen.add(hashcode);
-                assignments.add(bindingToMap(b));
-            }}
+                    // TODO create FedQPL here
+                    // TODO but it's much more difficult in presence of OPTIONAL
+                    // TODO but could get faster time for first result when things are sure
+                    int hashcode = b.toString().hashCode();
+                    if (!seen.contains(hashcode)) {
+                        seen.add(hashcode);
+                        assignments.add(bindingToMap(b));
+                    }
+                }
         );
 
         List<Map<Var, String>> assignments2 = assignments;
@@ -215,7 +224,7 @@ public class FedUP {
         if (Objects.nonNull(this.modifierOfEndpoints)) {
             assignments2 = assignments2.stream()
                     .map(a -> a.entrySet().stream()
-                            .map(e -> Map.entry(e.getKey(),modifierOfEndpoints.apply(e.getValue())))
+                            .map(e -> Map.entry(e.getKey(), modifierOfEndpoints.apply(e.getValue())))
                             .collect(Collectors.toMap(Map.Entry<Var, String>::getKey, Map.Entry<Var, String>::getValue)))
                     .toList();
         }
@@ -230,9 +239,9 @@ public class FedUP {
         assignmentsAsGraph.begin(ReadWrite.WRITE);
         Model defaultModel = ModelFactory.createDefaultModel();
         Integer rowNb = 0;
-        for (Map<Var, String> assignment: assignments2) {
+        for (Map<Var, String> assignment : assignments2) {
             rowNb += 1;
-            for (Map.Entry<Var, String> var2source: assignment.entrySet()) {
+            for (Map.Entry<Var, String> var2source : assignment.entrySet()) {
                 assignmentsAsGraph.getNamedModel(var2source.getValue()).add(
                         ResourceFactory.createResource(var2source.getKey().getVarName()),
                         ResourceFactory.createProperty("row"),
@@ -256,7 +265,11 @@ public class FedUP {
                     .register(new FactorizeUnionsOfLeftJoinsVisitor());
         }
 
-        asFedQPL = optimizer.optimize(asFedQPL);
+        try { // instead of try catch, include the cases in optimizers
+            asFedQPL = optimizer.optimize(asFedQPL);
+        } catch (NullPointerException e) {
+            return null;
+        }
 
         // log.debug("FedUP plan:\n{}", asFedQPL.toString()); // /!\ this could be a lot of logs
         return asFedQPL;
@@ -265,7 +278,7 @@ public class FedUP {
 
     /* **************************************************************** */
 
-    public QueryIterator executeWithFedX(TupleExpr queryAsFedX) {
+    public FedXRepository getFedX() {
         // lazily create a FedX query executor
         if (Objects.isNull(fedx)) {
             log.info("Initializing FedX executor…");
@@ -274,9 +287,15 @@ public class FedUP {
                             .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
                             .withJoinWorkerThreads(20)
                             .withUnionWorkerThreads(20)
+                            .withEnforceMaxQueryTime(Integer.MAX_VALUE)
                             .withDebugQueryPlan(false))
                     .withSparqlEndpoints(List.of()).create();
         }
+        return fedx;
+    }
+
+    public QueryIterator executeWithFedX(TupleExpr queryAsFedX) {
+        getFedX();
         // then run the query
         log.info("Running the query using FedX…");
         return new TupleQueryResult2QueryIterator(fedx.getConnection(), queryAsFedX);

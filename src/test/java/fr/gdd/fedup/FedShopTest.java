@@ -60,6 +60,31 @@ public class FedShopTest {
                     .withDebugQueryPlan(false))
             .withSparqlEndpoints(List.of()).create();
 
+    public final static String Q06A = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                        
+            SELECT ?localProduct ?label WHERE {
+                ?localProduct rdfs:label ?label .
+                ?localProduct rdf:type bsbm:Product .
+                # const "pyrenees" in ?label\s
+                FILTER regex(lcase(str(?label)), "pyrenees")
+            }""";
+
+    public final static String Q06A_JO = """
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+            PREFIX bsbm: <http://www4.wiwiss.fu-berlin.de/bizer/bsbm/v01/vocabulary/>
+            PREFIX owl: <http://www.w3.org/2002/07/owl#>
+                        
+            SELECT ?localProduct ?label WHERE {
+                ?localProduct rdfs:label ?label .
+                FILTER regex(lcase(str(?label)), "pyrenees")
+                ?localProduct rdf:type bsbm:Product .
+                # const "pyrenees" in ?label\s
+            }""";
 
     public final static String Q05J = """
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -200,6 +225,13 @@ public class FedShopTest {
         doItAllWithByPassAndPrint(Q11A, "Q");
     }
 
+    @Disabled
+    @Test
+    public void run_on_q06a() {
+        doItAllWithByPassAndPrint(Q06A, "Q");
+        // TODO try with forced join order
+    }
+
 
     /* **************************************************************** */
 
@@ -308,15 +340,11 @@ public class FedShopTest {
 
 
     public static long measuredExecuteWithFedXWithBypassParser(TupleExpr fedXExpr) {
-
-
         long elapsed = -1;
         long current = System.currentTimeMillis();
         MultiSet<Binding> bindings = executeWithFedxWithBypassParser(fedXExpr);
         elapsed = System.currentTimeMillis() - current;
         log.info("FedX took {} ms to get {} results.", elapsed, bindings.size());
-
-
         return elapsed;
     }
 

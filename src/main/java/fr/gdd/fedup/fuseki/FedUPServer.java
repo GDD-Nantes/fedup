@@ -1,7 +1,5 @@
 package fr.gdd.fedup.fuseki;
 
-import fr.gdd.fedup.fuseki.FedUPConstants;
-import fr.gdd.fedup.fuseki.FedUPEngine;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.cli.*;
@@ -30,6 +28,7 @@ public class FedUPServer {
                 "The federated query plan is exported within HTTP responses (default: false).");
         options.addOption("p", "port", true,
                 "The port of this FedUP server (default: 3330).");
+        // TODO Add option to configure remote virtuoso
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -62,10 +61,13 @@ public class FedUPServer {
 
         FedUPEngine.register();
 
+        s.getSummary().getContext().set(ARQ.optimization, false);
+
         FusekiServer.create()
                 .add("summary", s.getSummary()) // make it accessible, when queried, it makes federated query
                 .port(port)
                 .enableCors(true)
+                .verbose(true)
                 .build()
                 .start();
     }

@@ -95,4 +95,9 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
             }
         };
     }
+
+    @Override
+    public Op visit(OpFilter filter) {
+        return ReturningOpVisitorRouter.visit(this, filter.getSubOp());
+    }
 }
