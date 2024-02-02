@@ -6,6 +6,8 @@ import org.apache.commons.cli.*;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.ARQ;
+import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.rowset.RowSetWriterRegistry;
 import org.apache.jena.sparql.mgt.Explain;
 
 /**
@@ -62,6 +64,9 @@ public class FedUPServer {
         FedUPEngine.register();
 
         s.getSummary().getContext().set(ARQ.optimization, false);
+
+
+        RowSetWriterRegistry.register(ResultSetLang.RS_JSON, FedUPPlanAndNormalJSON.factory);
 
         FusekiServer.create()
                 .add("summary", s.getSummary()) // make it accessible, when queried, it makes federated query

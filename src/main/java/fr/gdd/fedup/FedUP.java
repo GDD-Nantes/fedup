@@ -9,6 +9,8 @@ import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveSequences;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -126,13 +128,23 @@ public class FedUP {
 
     public TupleExpr queryJenaToFedX(Op queryAsOp) {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
-        if (Objects.isNull(asFedQPL)) {
-            return new EmptySet();
-        }
+        if (Objects.isNull(asFedQPL)) {return new EmptySet();} // handle error TODO should be elsewhere ?
+
         // log.debug(asFedQPL.toString()); // cannot print mu and mj
         log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
         return asFedX;
+    }
+
+    public Pair<TupleExpr, Op> queryJenaToBothFedXAndJena(Op queryAsOp) {
+        Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
+        if (Objects.isNull(asFedQPL)) {return new ImmutablePair<>(new EmptySet(), null);}
+
+        log.info("Building the Jena SERVICE query…");
+        Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
+        log.info("Building the FedX SERVICE query…");
+        TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
+        return new ImmutablePair<>(asFedX, asSPARQL);
     }
 
     /**

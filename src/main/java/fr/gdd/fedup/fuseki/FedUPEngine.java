@@ -7,6 +7,7 @@ import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveGraphsTransform;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
 import org.apache.jena.sparql.algebra.Algebra;
@@ -57,12 +58,20 @@ public class FedUPEngine extends QueryEngineTDB {
                 .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
 
         if (context.get(FedUPConstants.EXECUTION_ENGINE).equals(FedUPConstants.FEDX)) {
-            TupleExpr query4FedX = fedup.queryJenaToFedX(op);
-            return fedup.executeWithFedX(query4FedX);
+            if (context.isTrue(FedUPConstants.EXPORT_PLANS)) {
+                Pair<TupleExpr, Op> query4both = fedup.queryJenaToBothFedXAndJena(op);
+                context.set(FedUPConstants.EXPORTED, query4both.getRight());
+                return fedup.executeWithFedX(query4both.getLeft());
+
+            } else {
+                TupleExpr query4FedX = fedup.queryJenaToFedX(op);
+                return fedup.executeWithFedX(query4FedX);
+            }
         }
 
         // default engine is Jena:
         Op serviceQueryAsOp = fedup.queryJenaToJena(op);
+        context.set(FedUPConstants.EXPORTED, serviceQueryAsOp); // it costs barely nothing
         return super.eval(serviceQueryAsOp, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
     }
 

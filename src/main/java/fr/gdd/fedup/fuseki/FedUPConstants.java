@@ -14,4 +14,5 @@ public class FedUPConstants {
     public static final String APACHE_JENA = "Jena";
     public static final String FEDX = "FedX";
 
+    public static final Symbol EXPORTED = Symbol.create("FedUP_Exported");
 }
