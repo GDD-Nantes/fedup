@@ -28,7 +28,7 @@ mvn exec:java
 
 ```sh
 # As an example, from the Fediscount use case that comprises 3 summaries
- mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 --engine=FedX --export"
+mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 --engine=FedX --export"
 ```
 
 ## How Does It Work?
