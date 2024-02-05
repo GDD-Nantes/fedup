@@ -49,8 +49,8 @@ public class FedUPServer {
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
-
-        if (cmd.hasOption("help")) {
+        
+        if (cmd.hasOption("help") || cmd.getOptions().length==0) {
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("fedup [options] --sumaries <path>", options);
             return;
