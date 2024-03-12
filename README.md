@@ -34,7 +34,7 @@ mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop2
 > [!NOTE]
 > How to build a summary you ask?
 > ```sh
-> mvn compile exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester"
+> mvn exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester"
 > # usage: fedup-ingester -i <path> -o <path>
 > # -h,--help           print this message
 > # -hash <arg>         The modulo value of the hash that summarizes (default: 0).
@@ -42,9 +42,10 @@ mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop2
 > # -o,--output <arg>   The path to the TDB2 dataset summarized.
 > ```
 > ```sh
-> mvn compile exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester" \
+> mvn exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester" \
 > -Dexec.args="-i=./temp/fedup-id -o=./fedshop200-h0/"
 > ```
+
 ## How Does It Work?
 
 FedUP builds a tiny quotient summary that represents the federation of
