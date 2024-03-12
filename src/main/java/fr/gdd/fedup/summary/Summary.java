@@ -78,6 +78,22 @@ public class Summary {
         summary.end();
     }
 
+    public void add(Iterator<Quad> quads) {
+        if (Objects.nonNull(remoteURI)) { // TODO
+            throw new UnsupportedOperationException("Write on remote summary");
+        }
+
+        summary.begin(TxnType.WRITE);
+        quads.forEachRemaining(q-> {
+            OpQuad toAdd = (OpQuad) strategy.transform(new OpQuad(q));
+            Model model = summary.getNamedModel(toAdd.getQuad().getGraph().getURI());
+            model.add(model.asStatement(toAdd.getQuad().asTriple()));
+        });
+
+        summary.commit();
+        summary.end();
+    }
+
     public Dataset getSummary() {
         return summary;
     }
