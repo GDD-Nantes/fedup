@@ -11,13 +11,13 @@ import org.apache.jena.query.ARQ;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.rowset.RowSetWriterRegistry;
 import org.apache.jena.sparql.mgt.Explain;
-import org.checkerframework.checker.units.qual.A;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * FedUP server that runs on top of Apache Jena Fuseki. All options available are
@@ -44,7 +44,8 @@ public class FedUPServer {
                 "The federated query plan is exported within HTTP responses (default: false).");
         options.addOption("p", "port", true,
                 "The port of this FedUP server (default: 3330).");
-        // TODO Add option to configure remote virtuoso
+        options.addOption("m", "modify", true,
+                "Lambda expression to apply to graphs in summaries in order to call actual endpoints.");
 
 
         CommandLineParser parser = new DefaultParser();
@@ -74,6 +75,16 @@ public class FedUPServer {
             }
             s.getSummary().getContext().set(ARQ.optimization, false);
             summaries.add(new ImmutablePair<>(path.getFileName().toString(), s));
+            if (cmd.hasOption("m")) {
+                // When graphs in summaries differ from actual endpoints, it's useful to
+                // be able to change them at runtime, without re-ingesting the summary.
+                Function<String, String> lambda = InMemoryLambdaJavaFileObject.getLambda("ModifyEndpoints",
+                        cmd.getOptionValue("m"), "String");
+                if (Objects.isNull(lambda)) {
+                    throw new UnsupportedOperationException("The lambda expression does not seem valid.");
+                }
+                s.getSummary().getContext().set(FedUPConstants.MODIFY_ENDPOINTS, lambda);
+            }
         }
 
         ARQ.setExecutionLogging(Explain.InfoLevel.ALL);  // TODO explain level as argument

@@ -10,6 +10,7 @@ public class FedUPConstants {
 
     public static final Symbol EXECUTION_ENGINE = Symbol.create("FedUP_ExecutionEngine");
     public static final Symbol EXPORT_PLANS = Symbol.create("FedUP_ExportPlans");
+    public static final Symbol MODIFY_ENDPOINTS = Symbol.create("FedUP_ModifyEndpoints");
 
     public static final String APACHE_JENA = "Jena";
     public static final String FEDX = "FedX";

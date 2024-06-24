@@ -1,16 +1,12 @@
 package fr.gdd.fedup.fuseki;
 
 import fr.gdd.fedup.FedUP;
-import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import fr.gdd.fedup.transforms.RemoveGraphsTransform;
-import org.apache.commons.collections4.MultiSet;
-import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.Query;
-import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.core.DatasetGraph;
@@ -21,14 +17,9 @@ import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.util.Context;
 import org.apache.jena.tdb2.solver.QueryEngineTDB;
 import org.apache.jena.tdb2.store.DatasetGraphTDB;
-import org.eclipse.rdf4j.federated.optimizer.OptimizerUtil;
-import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
-import org.eclipse.rdf4j.federated.structures.FedXTupleQuery;
-import org.eclipse.rdf4j.query.TupleQuery;
-import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
-import org.eclipse.rdf4j.query.parser.ParsedTupleQuery;
-import org.eclipse.rdf4j.repository.sail.SailTupleQuery;
+
+import java.util.function.Function;
 
 public class FedUPEngine extends QueryEngineTDB {
 
@@ -54,8 +45,15 @@ public class FedUPEngine extends QueryEngineTDB {
 
         // TODO fedup factory builds this in main
         FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1), DatasetImpl.wrap(dsg)))
-                .shouldNotFactorize()
-                .modifyEndpoints(e-> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0,e.length()-1)));
+                .shouldNotFactorize();
+
+        if (context.isDefined(FedUPConstants.MODIFY_ENDPOINTS)) {
+            Function<String, String> lambda = context.get(FedUPConstants.MODIFY_ENDPOINTS);
+            fedup.modifyEndpoints(lambda);
+        } else {
+            // we keep the default behavior so it does not break anything
+            fedup.modifyEndpoints(e -> "http://localhost:5555/sparql?default-graph-uri=" + (e.substring(0, e.length() - 1)));
+        }
 
         if (context.get(FedUPConstants.EXECUTION_ENGINE).equals(FedUPConstants.FEDX)) {
             if (context.isTrue(FedUPConstants.EXPORT_PLANS)) {
