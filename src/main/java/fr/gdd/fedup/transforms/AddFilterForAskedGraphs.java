@@ -41,6 +41,7 @@ public class AddFilterForAskedGraphs extends TransformCopy {
     }
 
     public static Op prepareFilter(List<String> endpoints, Op op, Var graph) {
+        // TODO, what if endpoints is empty ?
         List<Expr> exprs = endpoints.stream().map(e -> ExprUtils.parse(String.format("%s = <%s>", graph, e))).toList();
         Expr expr = switch (exprs.size()) {
             case 1 -> exprs.getFirst();

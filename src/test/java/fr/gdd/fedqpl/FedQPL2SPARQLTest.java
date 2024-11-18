@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FedQPL2SPARQLTest {
 
@@ -25,7 +25,7 @@ class FedQPL2SPARQLTest {
     @Test
     public void simple_req_writes_as_a_service() {
         OpService r = new OpService(NodeFactory.createURI("http://graphA"),
-                new OpTriple(new Triple(Var.alloc("s"),
+                new OpTriple(Triple.create(Var.alloc("s"),
                 Var.alloc("p"),
                 Var.alloc("o"))), false);
 
@@ -42,10 +42,10 @@ class FedQPL2SPARQLTest {
     public void req_with_two_triples_in_it() {
         OpService r = new OpService(
                 NodeFactory.createURI("http://graphA"),
-                new OpBGP(BasicPattern.wrap(List.of(new Triple(Var.alloc("s"),
+                new OpBGP(BasicPattern.wrap(List.of(Triple.create(Var.alloc("s"),
                 Var.alloc("p"),
                 Var.alloc("o")),
-                new Triple(Var.alloc("s2"),
+                Triple.create(Var.alloc("s2"),
                         Var.alloc("p2"),
                         Var.alloc("o2"))))),
                 false
@@ -64,12 +64,12 @@ class FedQPL2SPARQLTest {
     public void simple_union_of_two_req() {
         OpService r1 = new OpService(
                 NodeFactory.createURI("http://graphA"),
-                new OpTriple(new Triple(Var.alloc("s"),
+                new OpTriple(Triple.create(Var.alloc("s"),
                 Var.alloc("p"),
                 Var.alloc("o"))), false);
         OpService r2 = new OpService(
                 NodeFactory.createURI("http://graphB"),
-                new OpTriple(new Triple(Var.alloc("s"),
+                new OpTriple(Triple.create(Var.alloc("s"),
                 Var.alloc("p"),
                 Var.alloc("o"))), false);
         Mu mu = new Mu(List.of(r1, r2));

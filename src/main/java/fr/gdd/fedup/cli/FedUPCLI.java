@@ -7,13 +7,22 @@ import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.query.QueryFactory;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFLanguages;
+import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.engine.QueryIterator;
+import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
+import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
+import org.eclipse.rdf4j.rio.RDFWriterRegistry;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -77,9 +86,9 @@ public class FedUPCLI {
     @picocli.CommandLine.Option(
             order = 6,
             names = {"-m", "--modify"},
-            paramLabel = "lambda expression",
+            paramLabel = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))",
             description = "Lambda expression to apply to graphs in summaries in order to call actual endpoints.")
-    String modifyEndpoints;
+    String modifyEndpoints = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))";
 
     @picocli.CommandLine.Option(
             order = Integer.MAX_VALUE, // last
@@ -117,6 +126,15 @@ public class FedUPCLI {
             }
         }
 
+        if (options.explain) {
+            System.err.println(options.queryAsString);
+        }
+
+        // important to initialize these two now or else they might not be
+        // initialized when ASK queries are performed… It cannot accept nor parse the
+        // received results.
+        ResultSetLang.init();
+        ResultSetReaderRegistry.init();
 
         // TODO, no necessarily modulo on suffix…
         Summary summary = new Summary(new ModuloOnSuffix(1), Location.create(Path.of(options.summaryPath)));
@@ -133,18 +151,43 @@ public class FedUPCLI {
             fedup.modifyEndpoints(lambda);
         }
 
+        long sourceSelectionStart = System.currentTimeMillis();
         Pair<TupleExpr, Op> both = fedup.queryJenaToBothFedXAndJena(Algebra.compile(QueryFactory.create(options.queryAsString)));
+        long sourceAssignment = System.currentTimeMillis() - sourceSelectionStart;
 
         if (options.explain) {
             System.err.println(OpAsQuery.asQuery(both.getRight()).toString());
+            System.err.printf("Took %s to perform the source assignment.%n", sourceAssignment);
         }
 
-        switch (options.engine) {
-            case "Jena", "jena" -> System.out.println("jena");
-            case "FedX", "fedx" -> System.out.println("fedx");
-            default -> {} // nothing
+        if (Objects.isNull(options.engine)) {
+            System.exit(CommandLine.ExitCode.OK);
         }
 
+
+        long executionStart = System.currentTimeMillis();
+        QueryIterator results = switch (options.engine) {
+            case "Jena", "jena" -> fedup.executeWithJena(both.getRight());
+            case "FedX", "fedx" -> fedup.executeWithFedX(both.getLeft());
+            default -> null; // nothing
+        };
+
+        if (Objects.isNull(results)) {
+            System.exit(CommandLine.ExitCode.OK);
+        }
+
+        long nbResults = 0L;
+        while (results.hasNext()) {
+            System.out.println(results.next());
+            nbResults += 1;
+        }
+
+        long elapsedExecution = System.currentTimeMillis() - executionStart;
+        if (options.explain) {
+            System.err.printf("Took %s ms to retrieve %s mappings.%n", elapsedExecution, nbResults);
+        }
+
+        System.exit(CommandLine.ExitCode.OK);
     }
 
 }

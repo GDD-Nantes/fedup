@@ -7,6 +7,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.algebra.op.OpGraph;
+import org.apache.jena.sparql.algebra.op.OpSlice;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.exec.http.QueryExecutionHTTPBuilder;
 
@@ -49,11 +50,14 @@ public class ASKRunnable implements Runnable {
             case QueryExecutionHTTPBuilder b -> { // remote
                 int retry = RETRY;
                 Query query = OpAsQuery.asQuery(new OpTriple(triple));
+                // Query query = OpAsQuery.asQuery(new OpSlice(new OpTriple(triple), 0, 1));
                 query.setQueryAskType();
                 while (retry > 0) {
                     try {
+                        // var results = b.query(query).timeout(5, TimeUnit.SECONDS).select();
+                        // yield results.hasNext();
                         yield b.query(query).timeout(5000, TimeUnit.MILLISECONDS).ask();
-                    } catch (Exception e) {
+                    } catch (QueryException e) {
                         retry -= 1;
                     }
                 }

@@ -12,6 +12,7 @@ import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.ARQ;
 import org.apache.jena.riot.resultset.ResultSetLang;
+import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.riot.rowset.RowSetWriterRegistry;
 import org.apache.jena.sparql.mgt.Explain;
 
@@ -93,11 +94,13 @@ public class FedUPServer {
         ARQ.setExecutionLogging(Explain.InfoLevel.ALL);  // TODO explain level as argument
         int port = cmd.hasOption("p") ? Integer.parseInt(cmd.getOptionValue("p")) : 3330; // On which port?
         FedUPEngine.register();
+        ResultSetLang.init();
+        ResultSetReaderRegistry.init();
         RowSetWriterRegistry.register(ResultSetLang.RS_JSON, FedUPPlanAndNormalJSON.factory);
 
         var builder = FusekiServer.create()
                 .port(port)
-                .enableCors(true)
+                .enableCors(true, "")
                 .verbose(true);
 
         for (Pair<String, Summary> nameAndSummary : summaries) {

@@ -35,7 +35,7 @@ public class TupleQueryResult2QueryIterator implements QueryIterator {
 
     public TupleQueryResult2QueryIterator(FedXRepositoryConnection conn, TupleExpr queryAsFedX) {
         this.conn = conn;
-        TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery("", queryAsFedX), this.conn));
+        TupleQuery tq = new FedXTupleQuery(new SailTupleQuery(new ParsedTupleQuery(queryAsFedX), this.conn));
         try {
             tqRes = tq.evaluate();
         } catch (Exception e) {

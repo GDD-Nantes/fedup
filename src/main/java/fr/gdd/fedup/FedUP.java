@@ -19,7 +19,6 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.sparql.algebra.*;
-import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.algebra.op.OpTable;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.core.Var;
@@ -297,9 +296,9 @@ public class FedUP {
             log.info("Initializing FedX executor…");
             fedx = FedXFactory.newFederation()
                     .withConfig(new FedXConfig() // same as FedUP-experiment
-                            .withBoundJoinBlockSize(20) // 10+10 or 20+20 ?
-                            .withJoinWorkerThreads(20)
-                            .withUnionWorkerThreads(20)
+                            .withBoundJoinBlockSize(10) // 10+10 or 20+20 ?
+                            .withJoinWorkerThreads(10)
+                            .withUnionWorkerThreads(10)
                             .withEnforceMaxQueryTime(Integer.MAX_VALUE)
                             .withDebugQueryPlan(false))
                     .withSparqlEndpoints(List.of()).create();
@@ -308,10 +307,9 @@ public class FedUP {
     }
 
     public QueryIterator executeWithFedX(TupleExpr queryAsFedX) {
-        getFedX();
         // then run the query
         log.info("Running the query using FedX…");
-        return new TupleQueryResult2QueryIterator(fedx.getConnection(), queryAsFedX);
+        return new TupleQueryResult2QueryIterator(getFedX().getConnection(), queryAsFedX);
     }
 
     public QueryIterator executeWithJena(Op queryAsJena) {
