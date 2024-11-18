@@ -51,8 +51,9 @@ public class FedXTest {
 
     @BeforeAll
     public static void initialize_dataset() {
-        dataset = InMemorySummaryFactory.getPetsDataset();
-        summary = InMemorySummaryFactory.getSimplePetsSummary();
+        InMemorySummaryFactory imsf = new InMemorySummaryFactory();
+        dataset = imsf.getPetsDataset();
+        summary = imsf.getSimplePetsSummary();
     }
 
     @AfterAll

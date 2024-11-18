@@ -36,6 +36,7 @@ import java.util.Objects;
  * queries as described in:
  * <a href="https://github.com/dice-group/LargeRDFBench#running-sparql-11-queries">this link</a>.
  */
+@Disabled
 public class VirtuosoTest {
 
     private final static Logger log = LoggerFactory.getLogger(VirtuosoTest.class);

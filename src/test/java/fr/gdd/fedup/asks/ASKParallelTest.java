@@ -19,7 +19,7 @@ class ASKParallelTest {
 
     @Test
     public void testing_asks_on_one_graph_as_endpoint() {
-        Dataset dataset = InMemorySummaryFactory.getPetsDataset();
+        Dataset dataset = new InMemorySummaryFactory().getPetsDataset();
 
         String graphA = "https://graphA.org";
         String graphB = "https://graphB.org";
@@ -38,7 +38,7 @@ class ASKParallelTest {
 
     @Test
     public void testing_asks_on_two_local_endpoints() {
-        Dataset dataset = InMemorySummaryFactory.getPetsDataset();
+        Dataset dataset = new InMemorySummaryFactory().getPetsDataset();
 
         String graphA = "https://graphA.org";
         String graphB = "https://graphB.org";
@@ -69,6 +69,7 @@ class ASKParallelTest {
 
     @Test
     public void test_on_remote_endpoints() {
+        InMemorySummaryFactory imsf = new InMemorySummaryFactory();
         Node s = Var.alloc("s");
         Node p = NodeFactory.createURI("http://auth/named");
         Node o = NodeFactory.createURI("http://auth/Alice");
@@ -77,12 +78,12 @@ class ASKParallelTest {
         // create the server
         FusekiServer serverA = FusekiServer.create()
                 .port(3333)
-                .add("graphA", InMemorySummaryFactory.getGraph("https://graphA.org"))
+                .add("graphA", imsf.getGraph("https://graphA.org"))
                 .build();
 
         FusekiServer serverB = FusekiServer.create()
                 .port(3334)
-                .add("graphB", InMemorySummaryFactory.getGraph("https://graphB.org"))
+                .add("graphB", imsf.getGraph("https://graphB.org"))
                 .build();
 
         String endpointA = "http://localhost:3333/graphA/sparql";

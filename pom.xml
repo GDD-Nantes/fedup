@@ -9,15 +9,23 @@
 	<packaging>jar</packaging>
 
 	<properties>
-		<jdk.version>21</jdk.version>
-		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+		<maven.compiler.version>3.10.1</maven.compiler.version>
+		<maven.surefire.version>3.5.1</maven.surefire.version>
+		<maven.compiler.release>21</maven.compiler.release>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
+
 		<rdf4j.version>4.3.8</rdf4j.version>
-<!--		<maven-surefire-plugin.version>3.0.0</maven-surefire-plugin.version>-->
-		<!-- So I can modify this property to change the maven main class executed easily -->
-		<main.class>fr.gdd.fedup.fuseki.FedUPServer</main.class>
+		<picocli.version>4.7.6</picocli.version>
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>info.picocli</groupId> <!-- for command line interfaces -->
+			<artifactId>picocli</artifactId>
+			<version>${picocli.version}</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-model</artifactId>
@@ -79,25 +87,52 @@
 	</dependencies>
 
 	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin> <!-- so junit 5 tests are properly run on GitHub -->
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<version>${maven.surefire.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>${maven.compiler.version}</version>
+					<configuration>
+						<release>${maven.compiler.release}</release>
+						<source>${maven.compiler.source}</source>
+						<target>${maven.compiler.target}</target>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>${maven-compiler-plugin.version}</version>
-				<configuration>
-					<source>${jdk.version}</source>
-					<target>${jdk.version}</target>
-					<showDeprecation>true</showDeprecation>
-					<showWarnings>true</showWarnings>
-                </configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.1.1</version>
-				<configuration>
-					<mainClass>${main.class}</mainClass>
-				</configuration>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>3.4.1</version>
+				<executions>
+					<execution>
+						<id>make-assembly-fedup</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
+							<archive>
+								<manifest>
+									<mainClass>fr.gdd.fedup.cli.FedUPCLI</mainClass>
+								</manifest>
+							</archive>
+							<finalName>fedup</finalName>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>

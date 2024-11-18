@@ -1,5 +1,8 @@
-package fr.gdd.fedup.fuseki;
+package fr.gdd.fedup.cli;
 
+import fr.gdd.fedup.fuseki.FedUPConstants;
+import fr.gdd.fedup.fuseki.FedUPEngine;
+import fr.gdd.fedup.fuseki.FedUPPlanAndNormalJSON;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.cli.*;

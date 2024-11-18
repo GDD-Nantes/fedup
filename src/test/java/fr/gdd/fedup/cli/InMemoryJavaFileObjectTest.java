@@ -1,4 +1,4 @@
-package fr.gdd.fedup.fuseki;
+package fr.gdd.fedup.cli;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

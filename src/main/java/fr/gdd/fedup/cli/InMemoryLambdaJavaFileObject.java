@@ -1,4 +1,4 @@
-package fr.gdd.fedup.fuseki;
+package fr.gdd.fedup.cli;
 
 import javax.tools.*;
 import java.io.ByteArrayOutputStream;

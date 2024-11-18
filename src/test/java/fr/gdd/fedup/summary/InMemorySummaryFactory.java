@@ -20,20 +20,20 @@ import java.util.Objects;
  */
 public class InMemorySummaryFactory {
 
-    static Dataset petsDataset;
-    static Summary simplePetsSummary;
+    Dataset petsDataset;
+    Summary simplePetsSummary;
 
     /**
      * /!\ must call summary first (TODO) remove this requirement
      */
-    public static Dataset getPetsDataset() {
+    public Dataset getPetsDataset() {
         if (Objects.isNull(petsDataset)) {
             getSimplePetsSummary();
         }
         return petsDataset;
     }
 
-    public static Summary getSimplePetsSummary() {
+    public Summary getSimplePetsSummary() {
         if (Objects.nonNull(simplePetsSummary)) {
             return simplePetsSummary;
         }
@@ -83,7 +83,7 @@ public class InMemorySummaryFactory {
         return simplePetsSummary;
     }
 
-    public static Dataset getGraph(String name) {
+    public Dataset getGraph(String name) {
         getSimplePetsSummary();
         Model modelA = petsDataset.getNamedModel(name);
         Dataset dataset = TDB2Factory.createDataset();

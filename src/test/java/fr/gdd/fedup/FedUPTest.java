@@ -42,14 +42,16 @@ class FedUPTest {
 
     private static final Logger log = LoggerFactory.getLogger(FedUPTest.class);
 
+    static InMemorySummaryFactory imsf;
     static Dataset dataset;
     static Summary summary;
     static Set<String> endpoints = Set.of("https://graphA.org", "https://graphB.org");
 
     @BeforeAll
     public static void initialize_dataset() {
-        dataset = InMemorySummaryFactory.getPetsDataset();
-        summary = InMemorySummaryFactory.getSimplePetsSummary();
+        imsf = new InMemorySummaryFactory();
+        dataset = imsf.getPetsDataset();
+        summary = imsf.getSimplePetsSummary();
     }
 
     @AfterAll
@@ -371,12 +373,12 @@ class FedUPTest {
         // create the server
         FusekiServer serverA = FusekiServer.create()
                 .port(3333)
-                .add("graphA", InMemorySummaryFactory.getGraph("https://graphA.org"))
+                .add("graphA", imsf.getGraph("https://graphA.org"))
                 .build();
 
         FusekiServer serverB = FusekiServer.create()
                 .port(3334)
-                .add("graphB", InMemorySummaryFactory.getGraph("https://graphB.org"))
+                .add("graphB", imsf.getGraph("https://graphB.org"))
                 .build();
 
         serverA.start();

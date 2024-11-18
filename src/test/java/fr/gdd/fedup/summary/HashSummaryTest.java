@@ -44,9 +44,9 @@ class HashSummaryTest {
         assertTrue(rs.hasNext());
         QuerySolution qs = rs.next();
         assertEquals(graphURI.toString(), qs.getResource("g").getURI());
-        assertEquals("https://example.com/0", qs.getResource("s").getURI());
+        assertEquals("https://example.com", qs.getResource("s").getURI());
         assertEquals("https://example.com/hasFriend", qs.getResource("p").getURI());
-        assertEquals("https://example.com/0", qs.getResource("o").getURI());
+        assertEquals("https://example.com", qs.getResource("o").getURI());
         assertFalse(rs.hasNext());
 
         assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());

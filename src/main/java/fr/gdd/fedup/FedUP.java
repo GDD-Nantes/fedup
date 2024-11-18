@@ -18,10 +18,9 @@ import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.sparql.algebra.Algebra;
-import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpAsQueryMore;
-import org.apache.jena.sparql.algebra.Transformer;
+import org.apache.jena.sparql.algebra.*;
+import org.apache.jena.sparql.algebra.op.OpProject;
+import org.apache.jena.sparql.algebra.op.OpTable;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.QueryIterator;
@@ -192,6 +191,7 @@ public class FedUP {
     public String query(Op queryAsOp, Set<String> endpoints) {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
         log.info("Building the SPARQL SERVICE query…");
+        if (Objects.isNull(asFedQPL)) { return OpAsQuery.asQuery(OpTable.unit()).toString();}
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
 
         asSPARQL = Transformer.transform(new TransformFilterConjunction(), asSPARQL); // TODO put this in the visitor

@@ -1,4 +1,4 @@
-package fr.gdd.fedup.fuseki;
+package fr.gdd.fedup.cli;
 
 class InMemoryClassLoader extends ClassLoader {
     private final String className;
