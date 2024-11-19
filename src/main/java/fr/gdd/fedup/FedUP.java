@@ -11,6 +11,7 @@ import fr.gdd.fedup.transforms.RemoveSequences;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryFactory;
@@ -33,6 +34,9 @@ import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
 import org.eclipse.rdf4j.query.algebra.EmptySet;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
+import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
+import org.eclipse.rdf4j.query.resultio.sparqljson.SPARQLResultsJSONParserFactory;
+import org.eclipse.rdf4j.query.resultio.sparqlxml.SPARQLResultsXMLParserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -302,6 +306,10 @@ public class FedUP {
                             .withEnforceMaxQueryTime(Integer.MAX_VALUE)
                             .withDebugQueryPlan(false))
                     .withSparqlEndpoints(List.of()).create();
+            // for the standalone jar, it seems mandatory to register these
+            // result handler beforehand here.
+            TupleQueryResultParserRegistry.getInstance().add(new SPARQLResultsXMLParserFactory());
+            TupleQueryResultParserRegistry.getInstance().add(new SPARQLResultsJSONParserFactory());
         }
         return fedx;
     }
