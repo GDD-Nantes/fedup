@@ -20,11 +20,12 @@ mvn clean package
 java -jar target/fedup-server.jar
 
 # usage: fedup-server [options] --sumaries <path>
-#  -e,--engine <arg>      The federation engine in charge of executing (default: Jena; FedX).
-#  -h,--help              print this message
-#  -p,--port <arg>        The port of this FedUP server (default: 3330).
-#  -s,--summaries <arg>   Path(s) to TDB2 dataset summary(ies).
-#  -x,--export            The federated query plan is exported within HTTP responses (default: false).
+# -e,--engine <arg>      The federation engine in charge of executing (default: Jena; FedX).
+# -h,--help              print this message
+# -m,--modify <arg>      Lambda expression to apply to graphs in summaries in order to call actual endpoints.
+# -p,--port <arg>        The port of this FedUP server (default: 3330).
+# -s,--summaries <arg>   Path(s) to TDB2 dataset summary(ies).
+# -x,--export            The federated query plan is exported within HTTP responses (default: false).
 ```
 
 ```sh
@@ -43,8 +44,7 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 > # -o,--output <arg>   The path to the TDB2 dataset summarized.
 > ```
 > ```sh
-> java -jar target/summarizer.jar \
-> -Dexec.args="-i=./temp/fedup-id -o=./fedshop200-h0/"
+> java -jar target/summarizer.jar -i=./temp/fedup-id -o=./fedshop200-h0/
 > ```
 
 Alternatively, a command line interface is available. Among others, it
@@ -52,7 +52,7 @@ provides a convenient mean to retrieve the unions-over-joins logical
 plan with `--explain`, and then, optionally execute it using `-e Jena`
 or `-e FedX`.
 
-```bash
+```sh
 java -jar target/fedup.jar
 
 # Usage: fedup [-xh] [-q=<SPARQL>] [-f=<path/to/query>] [-s=<path/to/TDB2>] [-e=None | Jena | FedX] [-m=(e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0, e.length() - 1))]
