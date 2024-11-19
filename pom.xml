@@ -145,6 +145,26 @@
 							</descriptorRefs>
 						</configuration>
 					</execution>
+					<execution>
+						<id>make-assembly-summarizer</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<encoding>${project.build.sourceEncoding}</encoding>
+							<appendAssemblyId>false</appendAssemblyId>
+							<archive>
+								<manifest>
+									<mainClass>fr.gdd.fedup.cli.SummaryIngester</mainClass>
+								</manifest>
+							</archive>
+							<finalName>summarizer</finalName>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

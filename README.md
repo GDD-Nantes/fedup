@@ -13,12 +13,13 @@ server.
 ```sh
 git clone https://git@github.com:GDD-Nantes/fedup.git
 cd fedup
+mvn clean package
 ```
 
 ```sh
-mvn exec:java
+java -jar target/fedup-server.jar
 
-# usage: fedup [options] --sumaries <path>
+# usage: fedup-server [options] --sumaries <path>
 #  -e,--engine <arg>      The federation engine in charge of executing (default: Jena; FedX).
 #  -h,--help              print this message
 #  -p,--port <arg>        The port of this FedUP server (default: 3330).
@@ -28,13 +29,13 @@ mvn exec:java
 
 ```sh
 # As an example, from the Fediscount use case that comprises 3 summaries
-mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 --engine=FedX --export"
+java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 --engine=FedX --export
 ```
 
 > [!NOTE]
 > How to build a summary you ask?
 > ```sh
-> mvn exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester"
+> java -jar target/summarizer.jar
 > # usage: fedup-ingester -i <path> -o <path>
 > # -h,--help           print this message
 > # -hash <arg>         The modulo value of the hash that summarizes (default: 0).
@@ -42,9 +43,29 @@ mvn exec:java -Dexec.args="--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop2
 > # -o,--output <arg>   The path to the TDB2 dataset summarized.
 > ```
 > ```sh
-> mvn exec:java -Dmain.class="fr.gdd.fedup.summary.SummaryIngester" \
+> java -jar target/summarizer.jar \
 > -Dexec.args="-i=./temp/fedup-id -o=./fedshop200-h0/"
 > ```
+
+Alternatively, a command line interface is available. Among others, it
+provides a convenient mean to retrieve the unions-over-joins logical
+plan with `--explain`, and then, optionally execute it using `-e Jena`
+or `-e FedX`.
+
+```bash
+java -jar target/fedup.jar
+
+# Usage: fedup [-xh] [-q=<SPARQL>] [-f=<path/to/query>] [-s=<path/to/TDB2>] [-e=None | Jena | FedX] [-m=(e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0, e.length() - 1))]
+# Federation engine for SPARQL query processing.
+#  -q, --query=<SPARQL>   The SPARQL query to execute.
+#  -f, --file=<path/to/query> The file containing the SPARQL query to execute.
+#  -s, --summary=<path/to/TDB2> Path to the TDB2 dataset summary.
+#  -e, --engine=None | Jena | FedX The federation engine in charge of executing (default: None).
+#  -x, --explain          Prints the source selection plan (default: false).
+#  -m, --modify=(e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0, e.length() - 1))
+#                         Lambda expression to apply to graphs in summaries in order to call actual endpoints.
+#  -h, --help             Display this help message.
+```
 
 ## How Does It Work?
 

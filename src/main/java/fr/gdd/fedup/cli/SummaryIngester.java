@@ -1,5 +1,7 @@
-package fr.gdd.fedup.summary;
+package fr.gdd.fedup.cli;
 
+import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.summary.SummaryFactory;
 import org.apache.commons.cli.*;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.graph.Node;
