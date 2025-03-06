@@ -1,8 +1,7 @@
 package fr.gdd.fedup.summary;
 
 import fr.gdd.fedup.transforms.AddFilterForAskedGraphs;
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.graph.*;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.OpConditional;
 import org.apache.jena.sparql.algebra.op.OpFilter;
@@ -17,7 +16,7 @@ import java.net.URISyntaxException;
  */
 public class ModuloOnSuffix extends LeavePredicateUntouched {
 
-    Integer modulo = 1;
+    Integer modulo;
     AddFilterForAskedGraphs affag;
 
     public ModuloOnSuffix(Integer modulo) {
@@ -29,23 +28,24 @@ public class ModuloOnSuffix extends LeavePredicateUntouched {
     }
 
     public Node transform(Node node) {
-        if (node.isURI()) {
-            try {
-                URI uri = new URI(node.getURI());
-                int hashcode = Math.abs(uri.toString().hashCode());
-                if (modulo == 0 || modulo == 1) {
-                    return NodeFactory.createURI(uri.getScheme() + "://" + uri.getHost());
-                } else {
-                    return NodeFactory.createURI(uri.getScheme() + "://" + uri.getHost() + "/" + (hashcode % modulo));
+        return switch (node) {
+            case Node_URI ignored -> {
+                try {
+                    URI uri = new URI(node.getURI());
+                    int hashcode = Math.abs(uri.toString().hashCode());
+                    if (modulo == 0 || modulo == 1) {
+                        yield NodeFactory.createURI(uri.getScheme() + "://" + uri.getHost());
+                    } else {
+                        yield NodeFactory.createURI(uri.getScheme() + "://" + uri.getHost() + "/" + (hashcode % modulo));
+                    }
+                } catch (URISyntaxException e) {
+                    yield NodeFactory.createURI("https://donotcare.com/whatever");
                 }
-            } catch (URISyntaxException e) {
-                return NodeFactory.createURI("https://donotcare.com/whatever");
             }
-        } else if (node.isLiteral()) {
-            return NodeFactory.createLiteral("any");
-        } else {
-            return Var.alloc(node.getName());
-        }
+            case Node_Blank ignored -> NodeFactory.createBlankNode("_:any");
+            case Node_Literal ignored -> NodeFactory.createLiteralString("any");
+            default -> Var.alloc(node.getName());
+        };
     }
 
     /* ************************************************************************* */

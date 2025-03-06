@@ -7,16 +7,25 @@ import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.http.auth.AuthEnv;
 import org.apache.jena.query.*;
+import org.apache.jena.rdfconnection.RDFConnection;
+import org.apache.jena.rdfconnection.RDFConnectionRemote;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.modify.request.UpdateModify;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.update.UpdateRequest;
 import picocli.CommandLine;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.http.HttpClient;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * A class that contains a main to enable easy ingestion of
@@ -35,26 +44,50 @@ public class SummarizerCLI {
     @picocli.CommandLine.Option(
             order = 2,
             names = {"-i", "--input"},
-            paramLabel = "path/to/tdb2 | http://remote/endpoint",
-            description = "The path to the TDB2 dataset to summarize.")
+            paramLabel = "<path/to/tdb2 | http://input/endpoint>",
+            required = true,
+            description = "Set the dataset to summarize.")
     public String input;
 
     @picocli.CommandLine.Option(
             order = 2,
             names = {"-o", "--output"},
-            paramLabel = "path/to/tdb2",
-            description = "The path to the TDB2 dataset summarized.")
+            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
+            required = true,
+            description = "Set the output summary dataset.")
     public String output;
 
     @picocli.CommandLine.Option(
             order = 3,
+            names = {"-u", "--username"},
+            paramLabel = "<$USERNAME>",
+            description = "(Not tested) The username for the summary database if needed.")
+    public String username;
+
+    @picocli.CommandLine.Option(
+            order = 3,
+            names = {"-p", "--password"},
+            paramLabel = "<$PASSWORD>",
+            description = "(Not tested) The password for the summary database if needed.")
+    public String password;
+
+    @picocli.CommandLine.Option(
+            order = 4,
             names = {"--hash"},
             paramLabel = "0",
             description = "The modulo value of the hash that summarizes (default: 0).")
     public int hash = 0;
 
+    @picocli.CommandLine.Option(
+            order = 5,
+            names = {"--filter"},
+            paramLabel = ".*",
+            description = "The regular expression to filter out read graphs.")
+    public String filterRegex = ".*"; // by default allows everything
 
     public static void main(String[] args) throws ParseException {
+        // http://www.w3.org/2002/07/owl#…
+
         SummarizerCLI options = new SummarizerCLI();
         try {
             new picocli.CommandLine(options).parseArgs(args);
@@ -63,43 +96,48 @@ public class SummarizerCLI {
             System.exit(picocli.CommandLine.ExitCode.USAGE);
         }
 
-        Path outputAsPath = Path.of(options.output);
-        if (!outputAsPath.toFile().isDirectory()) {
-            boolean createFolder = outputAsPath.toFile().mkdirs();
-            if (!createFolder) {
-                System.out.printf("There was an issue while creating the output TDB2 folder %s.%n", outputAsPath.getFileName().toString());
-                return;
+        Pattern pattern = Pattern.compile(options.filterRegex);
+
+
+        if (Objects.nonNull(options.password) && Objects.nonNull(options.username)) {
+            try {
+                URI remoteSummary = new URI(options.output);
+                AuthEnv.get().registerUsernamePassword(remoteSummary, options.username, options.password);
+            } catch (URISyntaxException e) {
+                System.err.println("Error with login/password info for the remote summary.");
+                System.exit(CommandLine.ExitCode.USAGE);
             }
-        };
+        }
 
-        // TODO output is a service as well, that we update using UPDATE
-
-        Summary summary = SummaryFactory.createModuloOnSuffix(options.hash, Location.create(outputAsPath));
+        Path outputAsPath = Paths.get(options.output);
+        Summary summary = outputAsPath.toFile().isDirectory() ?
+                SummaryFactory.createModuloOnSuffix(options.hash, Location.create(outputAsPath)):
+                SummaryFactory.createModuloOnSuffix(options.hash);
 
         // #A if remote input, create a service query
         try {
             // Instead of getting the ?g ?s ?p ?o, we retrieve the graphs
             // first to subdivide the query into smaller ?s ?p ?o queries.
             Set<String> graphs = getGraphs(options.input);
+            System.out.println("Number of graphs to summarize: " + graphs.size());
             List<String> graphsAdded = new ArrayList<>();
             graphs.forEach(graph -> {
-                graphsAdded.add(graph);
-                System.out.printf("%s: Started summarizing %s…%n", graphsAdded.size(), graph);
-                List<Quad> quads2add = new ArrayList<>();
-                List<Triple> triples = getSPO(options.input, graph);
-                triples.forEach(triple -> {
-                    quads2add.add(Quad.create(NodeFactory.createURI(graph), triple));
-                });
-                System.out.printf("%s: Summarizing %s triples…%n", graphsAdded.size(), quads2add.size());
+                Matcher matcher = pattern.matcher(graph);
 
-                summary.add(quads2add.iterator());
+                if (matcher.matches()) {
+                    graphsAdded.add(graph);
+                    System.out.printf("%s: Started summarizing %s…%n", graphsAdded.size(), graph);
+                    List<Quad> quads2add = new ArrayList<>();
+                    List<Triple> triples = getSPO(options.input, graph);
+                    triples.forEach(triple -> {
+                        quads2add.add(Quad.create(NodeFactory.createURI(graph), triple));
+                    });
+                    System.out.printf("%s: Summarizing %s triples…%n", graphsAdded.size(), quads2add.size());
 
-                summary.getSummary().begin(ReadWrite.READ);
-                int graphSize = summary.getSummary().asDatasetGraph().getGraph(NodeFactory.createURI(graph)).size();
-                summary.getSummary().commit();
-                summary.getSummary().close();
+                    int nbSummarized = updateSummary(options.output, graph, triples, summary);
 
-                System.out.printf("%s: Summary contains %s triples for this graph.%n", graphsAdded.size(), graphSize);
+                    System.out.printf("%s: Summary contains %s triples for this graph.%n", graphsAdded.size(), nbSummarized);
+                }
             });
 
             System.out.printf("Number of graphs added in the summary: %s.%n", graphsAdded.size());
@@ -113,6 +151,34 @@ public class SummarizerCLI {
         System.out.printf("Number of statements: %s.%n", summary.getSummary().getUnionModel().size());
         summary.getSummary().commit();
         summary.getSummary().close();
+    }
+
+    /* ***************************************************************************** */
+
+    public static int updateSummary (String pathOrUri, String graph, List<Triple> triples, Summary summary) {
+        List<Quad> quads2summarize = triples.stream().map(t -> Quad.create(NodeFactory.createURI(graph), t)).toList();
+
+        try {
+            URI outputURI = new URI(pathOrUri);
+
+            Set<Quad> summarized = summary.toAdd(quads2summarize.iterator());
+            UpdateModify updateModify = new UpdateModify();
+            summarized.forEach(q-> updateModify.getInsertAcc().addQuad(q));
+            UpdateRequest updateRequest = new UpdateRequest();
+            updateRequest.add(updateModify);
+
+            HttpClient httpClient = HttpClient.newBuilder().build();
+
+            try ( RDFConnection conn = RDFConnectionRemote.service(pathOrUri)
+                    .httpClient(httpClient)
+                    .build()) {
+                conn.update(updateRequest);
+            }
+            return summarized.size();
+        } catch (URISyntaxException e) {
+            // otherwise, we try to create a local TDB2 database
+            return summary.add(quads2summarize.iterator());
+        }
     }
 
     /* ***************************************************************************** */

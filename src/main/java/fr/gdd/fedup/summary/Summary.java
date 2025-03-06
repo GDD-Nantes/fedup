@@ -77,20 +77,35 @@ public class Summary {
         summary.end();
     }
 
-    public void add(Iterator<Quad> quads) {
+    public int add(Iterator<Quad> quads) {
         if (Objects.nonNull(remoteURI)) { // TODO
             throw new UnsupportedOperationException("Write on remote summary");
         }
 
-        summary.begin(TxnType.WRITE);
-        quads.forEachRemaining(q-> {
-            OpQuad toAdd = (OpQuad) strategy.transform(new OpQuad(q));
-            Model model = summary.getNamedModel(toAdd.getQuad().getGraph().getURI());
-            model.add(model.asStatement(toAdd.getQuad().asTriple()));
-        });
+        Set<Quad> summarized = toAdd(quads);
 
+        summary.begin(TxnType.WRITE);
+        summarized.forEach(q-> {
+            Model model = summary.getNamedModel(q.getGraph().getURI());
+            model.add(model.asStatement(q.asTriple()));
+        });
         summary.commit();
         summary.end();
+        return summarized.size();
+    }
+
+    /**
+     * @param quads The list of quads to summarize.
+     * @return The list of summarized quad.
+     */
+    public Set<Quad> toAdd(Iterator<Quad> quads) {
+        Set<Quad> result = new HashSet<>();
+        while (quads.hasNext()) {
+            Quad quad = quads.next();
+            OpQuad toAdd = (OpQuad) strategy.transform(new OpQuad(quad));
+            result.add(toAdd.getQuad());
+        }
+        return result;
     }
 
     public Dataset getSummary() {
@@ -144,10 +159,10 @@ public class Summary {
 
         QueryIterator iterator = plan.iterator();
 
-            while (iterator.hasNext()) {
-                Binding b = iterator.nextBinding();
-                bindings.add(b);
-            }
+        while (iterator.hasNext()) {
+            Binding b = iterator.nextBinding();
+            bindings.add(b);
+        }
 
         if (!inTxn) {
             this.getSummary().commit();
