@@ -98,6 +98,9 @@ public class TransformUnimplemented implements Transform {
     }
 
     @Override
+    public Op transform(OpUnfold opUnfold, Op subOp) { throw new UnsupportedOperationException(); }
+
+    @Override
     public Op transform(OpJoin opJoin, Op op, Op op1) {
         throw new UnsupportedOperationException();
     }

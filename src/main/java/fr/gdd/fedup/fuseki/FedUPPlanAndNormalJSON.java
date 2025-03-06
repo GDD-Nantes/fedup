@@ -26,7 +26,6 @@ import java.util.Iterator;
 import java.util.Objects;
 
 import static org.apache.jena.riot.rowset.rw.JSONResultsKW.*;
-import static org.apache.jena.riot.rowset.rw.JSONResultsKW.kObject;
 
 public class FedUPPlanAndNormalJSON implements RowSetWriter {
 

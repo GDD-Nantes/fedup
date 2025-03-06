@@ -91,6 +91,9 @@ public class OpVisitorUnimplemented implements OpVisitor {
     }
 
     @Override
+    public void visit(OpUnfold opUnfold) { throw new UnsupportedOperationException(); }
+
+    @Override
     public void visit(OpJoin opJoin) {
         throw new UnsupportedOperationException();
     }

@@ -1,15 +1,18 @@
 package fr.gdd.fedqpl.groups;
 
-import fr.gdd.fedqpl.operators.*;
+import fr.gdd.fedqpl.operators.Mj;
+import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.ReturningOpBaseVisitor;
-import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**

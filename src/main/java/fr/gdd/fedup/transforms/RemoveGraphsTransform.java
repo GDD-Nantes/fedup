@@ -1,7 +1,6 @@
 package fr.gdd.fedup.transforms;
 
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.op.OpBGP;
 import org.apache.jena.sparql.algebra.op.OpQuad;

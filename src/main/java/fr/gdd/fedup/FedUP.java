@@ -11,7 +11,6 @@ import fr.gdd.fedup.transforms.RemoveSequences;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.atlas.lib.tuple.TupleFactory;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryFactory;

@@ -1,6 +1,5 @@
 package fr.gdd.fedup.fuseki;
 
-import org.apache.commons.lang3.SerializationUtils;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.atlas.json.io.JSWriter;
 import org.apache.jena.ext.xerces.impl.dv.util.Base64;

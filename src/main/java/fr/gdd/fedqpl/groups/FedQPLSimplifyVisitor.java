@@ -4,11 +4,10 @@ import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.OpCloningUtil;
 import fr.gdd.fedqpl.visitors.ReturningOpBaseVisitor;
-import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
-import org.apache.http.client.utils.CloneUtils;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.op.OpConditional;
+import org.apache.jena.sparql.algebra.op.OpLeftJoin;
 
 import java.util.List;
 import java.util.Objects;

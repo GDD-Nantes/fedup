@@ -1,34 +1,24 @@
 package fr.gdd.fedup.cli;
 
 import fr.gdd.fedup.FedUP;
-import fr.gdd.fedup.fuseki.FedUPConstants;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
-import org.apache.commons.cli.*;
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.jena.base.Sys;
 import org.apache.jena.dboe.base.file.Location;
-import org.apache.jena.query.ARQ;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.riot.Lang;
-import org.apache.jena.riot.RDFLanguages;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.engine.QueryIterator;
-import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
-import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
-import org.eclipse.rdf4j.rio.RDFWriterRegistry;
 import picocli.CommandLine;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -38,7 +28,7 @@ import java.util.function.Function;
  */
 @picocli.CommandLine.Command(
         name = "fedup",
-        version = "0.0.1",
+        version = "0.0.2",
         description = "Federation engine for SPARQL query processing.",
         usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
         sortOptions = false,

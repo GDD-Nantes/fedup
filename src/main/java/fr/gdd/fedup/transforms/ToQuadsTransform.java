@@ -11,7 +11,6 @@ import org.apache.jena.sparql.algebra.op.OpSequence;
 import org.apache.jena.sparql.algebra.op.OpTriple;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Var;
-import org.checkerframework.checker.units.qual.A;
 
 import java.util.*;
 

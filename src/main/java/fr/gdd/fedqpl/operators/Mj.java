@@ -7,7 +7,6 @@ import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.op.OpN;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
