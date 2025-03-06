@@ -27,7 +27,7 @@ import java.util.function.Function;
  * FedUP server that runs on top of Apache Jena Fuseki. All options available are
  * printed with the `--help` command.
  */
-public class FedUPServer {
+public class FedUPServerCLI {
 
     public static void main(String[] args) throws ParseException {
         Options options = new Options();
