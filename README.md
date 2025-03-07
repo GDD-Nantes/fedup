@@ -34,18 +34,37 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 ```
 
 > [!NOTE]
-> How to build a summary you ask?
+> <details>
+> <summary> How to build a summary you ask? </summary>
 > ```sh
 > java -jar target/summarizer.jar
-> # usage: fedup-ingester -i <path> -o <path>
-> # -h,--help           print this message
-> # -hash <arg>         The modulo value of the hash that summarizes (default: 0).
-> # -i,--input <arg>    The path to the TDB2 dataset to summarize.
-> # -o,--output <arg>   The path to the TDB2 dataset summarized.
 > ```
 > ```sh
-> java -jar target/summarizer.jar -i=./temp/fedup-id -o=./fedshop200-h0/
+> Usage: summarizer -i=<path/to/tdb2 | http://input/endpoint> -o=<path/to/tdb2 | http://output/endpoint> [-u=<$USERNAME>] [-p=<$PASSWORD>] [--hash=0] [--filter=.*]
+> Creates the summary for FedUP.
+>  -i, --input=<path/to/tdb2 | http://input/endpoint> Set the dataset to summarize.
+>  -o, --output=<path/to/tdb2 | http://output/endpoint> Set the output summary dataset.
+>  -u, --username=<$USERNAME> (Not tested) The username for the summary database if needed.
+>  -p, --password=<$PASSWORD> (Not tested) The password for the summary database if needed.
+>      --hash=0  The modulo value of the hash that summarizes (default: 0).
+>      --filter=.*  The regular expression to filter out read graphs.
 > ```
+> In `0.0.2`, for better interoperability, the summarizer also allows ingesting from
+> any kind of remote SPARQL endpoint (although slower than
+> using a local [TDB2](https://jena.apache.org/documentation/tdb2/) database) to any kind 
+> of remote SPARQL endpoint:
+> ```sh
+> java -jar target/summarizer.jar \
+    --input=http://localhost:5555/sparql \
+    --output=http://localhost:8080/sparql \
+    --filter="^http://www.vendor.*|^http://www.rating.*"
+> ```
+> Running this summarizer command allowed us to build *from* Virtuoso's
+> FedShop200 endpoint *to* a Virtuoso summary database. The `--filter` 
+> makes sure that we summarize only the graphs of FedShop200. It took 
+> roughly 1h since the summarizer needs to download the graphs one by one
+> from the input endpoint.
+> </details>
 
 Alternatively, a command line interface is available. Among others, it
 provides a convenient mean to retrieve the unions-over-joins logical

@@ -53,8 +53,8 @@ public class FedUPCLI {
     @picocli.CommandLine.Option(
             order = 3,
             names = {"-s", "--summary"},
-            paramLabel = "<path/to/TDB2>",
-            description = "Path to the TDB2 dataset summary.")
+            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
+            description = "Path to the summary dataset.")
     String summaryPath;
 
     // options.addOption("t", "type", true, "The summary type (example: ModuloOnSuffix(1)).");

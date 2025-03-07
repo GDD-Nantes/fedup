@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
 @picocli.CommandLine.Command(
         name = "summarizer",
         version = "0.0.2",
-        description = "Creates the TDB2 summary for FedUP.",
+        description = "Creates the summary for FedUP.",
         usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
         sortOptions = false,
         sortSynopsis = false
