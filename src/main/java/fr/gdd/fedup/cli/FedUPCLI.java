@@ -81,6 +81,13 @@ public class FedUPCLI {
     String modifyEndpoints = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))";
 
     @picocli.CommandLine.Option(
+            order = 7,
+            names = {"--filter"},
+            paramLabel = ".*",
+            description = "The regular expression to filter out read endpoints.")
+    public String filterRegex = ".*"; // by default allows everything
+
+    @picocli.CommandLine.Option(
             order = Integer.MAX_VALUE, // last
             names = {"-h", "--help"},
             usageHelp = true,
@@ -127,9 +134,22 @@ public class FedUPCLI {
         ResultSetReaderRegistry.init();
 
         // TODO, no necessarily modulo on suffix…
-        Summary summary = new Summary(new ModuloOnSuffix(1), Location.create(Path.of(options.summaryPath)));
+        Summary summary;
+        if (Path.of(options.summaryPath).toFile().isDirectory()) {
+            summary = new Summary(new ModuloOnSuffix(1), Location.create(Path.of(options.summaryPath)));
+        } else {
+            summary = new Summary(new ModuloOnSuffix(1));
+            summary.setRemote(options.summaryPath); // TODO check if actually an URI
+        }
+        summary.setPattern(options.filterRegex);
 
+        long startTimeGraphs = System.currentTimeMillis();
         FedUP fedup = new FedUP(summary);
+        long elapsedTimeGraphs = System.currentTimeMillis() - startTimeGraphs;
+        if (options.explain) {
+            // because graphs are lazily initialized in fedup.
+            System.err.printf("Took %s ms to get the federation members.%n", elapsedTimeGraphs);
+        }
 
         if (Objects.nonNull(options.modifyEndpoints) && !Objects.equals(options.modifyEndpoints, "")) {
             Function<String, String> lambda =
@@ -141,13 +161,24 @@ public class FedUPCLI {
             fedup.modifyEndpoints(lambda);
         }
 
-        long sourceSelectionStart = System.currentTimeMillis();
-        Pair<TupleExpr, Op> both = fedup.queryJenaToBothFedXAndJena(Algebra.compile(QueryFactory.create(options.queryAsString)));
-        long sourceAssignment = System.currentTimeMillis() - sourceSelectionStart;
+        long parseStart  =System.currentTimeMillis();
+        Op query = Algebra.compile(QueryFactory.create(options.queryAsString));
+        long parseElapsed = System.currentTimeMillis() - parseStart;
 
         if (options.explain) {
-            System.err.println(OpAsQuery.asQuery(both.getRight()).toString());
-            System.err.printf("Took %s to perform the source assignment.%n", sourceAssignment);
+            System.err.printf("Took %s ms to parse the query.%n", parseElapsed);
+        }
+
+        long sourceSelectionStart = System.currentTimeMillis();
+        Pair<TupleExpr, Op> both = fedup.queryJenaToBothFedXAndJena(query);
+        long sourceAssignmentElapsed = System.currentTimeMillis() - sourceSelectionStart;
+
+        if (options.explain) {
+            Op queryWithSources = both.getRight();
+            if (Objects.nonNull(queryWithSources)) {
+                System.err.println(OpAsQuery.asQuery(queryWithSources).toString());
+            }
+            System.err.printf("Took %s ms to perform the source assignment.%n", sourceAssignmentElapsed);
         }
 
         if (Objects.isNull(options.engine)) {

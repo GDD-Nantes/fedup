@@ -1,5 +1,7 @@
 package fr.gdd.fedup.summary;
 
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
+import fr.gdd.fedup.transforms.Quad2Pattern;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.query.*;
@@ -22,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +40,7 @@ public class Summary {
     Transform strategy;
     private String remoteURI = null;
     private Set<String> graphs = null; // lazy loading
+    Pattern patternForGraphs = null;
 
     public Summary(Transform strategy) {
         this.strategy = strategy;
@@ -57,6 +62,11 @@ public class Summary {
     public Summary setRemote(String remoteURI) {
         this.remoteURI = remoteURI;
         this.summary = DatasetFactory.empty();
+        return this;
+    }
+
+    public Summary setPattern(String patternAsString) {
+        this.patternForGraphs = Pattern.compile(patternAsString);
         return this;
     }
 
@@ -130,7 +140,21 @@ public class Summary {
         Op getGraphsQuery = Algebra.compile(QueryFactory.create("SELECT DISTINCT ?g { GRAPH ?g {?s ?p ?o}}"));
         List<Binding> bindings = querySummary(getGraphsQuery);
         log.info("Took {} ms to get graphs.", (System.currentTimeMillis() - start));
-        this.graphs = bindings.stream().map(b -> b.get(Var.alloc("g")).getURI()).collect(Collectors.toSet());
+        this.graphs = bindings.stream().map(b -> {
+                    if (Objects.nonNull(patternForGraphs)) {
+                        String graphUriAsString = b.get(Var.alloc("g")).getURI();
+                        Matcher matcher = patternForGraphs.matcher(graphUriAsString);
+                        if (matcher.matches()) { // return only graphs that match the pattern
+                            return b.get(Var.alloc("g")).getURI();
+                        } else {
+                            return null;
+                        }
+                    } else { // otherwise return everything
+                        return b.get(Var.alloc("g")).getURI();
+                    }
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         return this.graphs;
     }
 
@@ -147,6 +171,7 @@ public class Summary {
         //        OpAsQueryMore.asQuery(queryAsOp) : // otherwise we add a service clause in front
         //        OpAsQueryMore.asQuery(new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true));
         if (Objects.nonNull(remoteURI)) {
+            queryAsOp = ReturningOpVisitorRouter.visit(new Quad2Pattern(), queryAsOp);
             queryAsOp = new OpService(NodeFactory.createURI(remoteURI), queryAsOp, false);
         }
 

@@ -18,6 +18,9 @@ public class ReturningOpVisitor<T> {
 
     public T visit(OpTriple triple) {throw new UnsupportedOperationException("OpTriple");}
     public T visit(OpQuad quad) {throw new UnsupportedOperationException("OpQuad");}
+    public T visit(OpGraph graph) {throw new UnsupportedOperationException("OpGraph");}
+    public T visit(OpQuadBlock block) {throw new UnsupportedOperationException("OpQuadBlock");}
+    public T visit(OpQuadPattern quads) {throw new UnsupportedOperationException("OpQuadPattern");}
     public T visit(OpBGP bgp) {throw new UnsupportedOperationException("OpBGP");}
     public T visit(OpSequence sequence) {throw new UnsupportedOperationException("OpSequence");}
     public T visit(OpTable table) {throw new UnsupportedOperationException("OpTable");}
@@ -32,4 +35,6 @@ public class ReturningOpVisitor<T> {
     public T visit(OpOrder orderBy)  {throw new UnsupportedOperationException("OpOrder");}
     public T visit(OpProject project) {throw new UnsupportedOperationException("OpProject");}
     public T visit(OpGroup groupBy) {throw new UnsupportedOperationException("OpGroup");}
+
+    public T visit(OpExtend extend) {throw new UnsupportedOperationException("OpExtend");}
 }

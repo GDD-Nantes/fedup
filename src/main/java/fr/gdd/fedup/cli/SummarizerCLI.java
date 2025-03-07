@@ -86,8 +86,6 @@ public class SummarizerCLI {
     public String filterRegex = ".*"; // by default allows everything
 
     public static void main(String[] args) throws ParseException {
-        // http://www.w3.org/2002/07/owl#…
-
         SummarizerCLI options = new SummarizerCLI();
         try {
             new picocli.CommandLine(options).parseArgs(args);

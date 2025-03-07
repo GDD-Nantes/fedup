@@ -30,4 +30,8 @@ public class OpCloningUtil {
     public static OpConditional clone(OpConditional lj, Op left, Op right) {
         return new OpConditional(left, right);
     }
+
+    public static OpGraph clone(OpGraph graph, Op subop) {
+        return new OpGraph(graph.getNode(), subop);
+    }
 }

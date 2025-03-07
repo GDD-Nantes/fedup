@@ -43,6 +43,11 @@ public class ReturningOpBaseVisitor extends ReturningOpVisitor<Op> {
     }
 
     @Override
+    public Op visit(OpGraph graph) {
+        return OpCloningUtil.clone(graph, ReturningOpVisitorRouter.visit(this, graph.getSubOp()));
+    }
+
+    @Override
     public Op visit(OpSequence sequence) {
         return OpCloningUtil.clone(sequence, this.visit(sequence.getElements()));
     }
