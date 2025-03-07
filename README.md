@@ -55,9 +55,9 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 > of remote SPARQL endpoint:
 > ```sh
 > java -jar target/summarizer.jar \
-    --input=http://localhost:5555/sparql \
-    --output=http://localhost:8080/sparql \
-    --filter="^http://www.vendor.*|^http://www.rating.*"
+>    --input=http://localhost:5555/sparql \
+>    --output=http://localhost:8080/sparql \
+>    --filter="^http://www.vendor.*|^http://www.rating.*"
 > ```
 > Running this summarizer command allowed us to build *from* Virtuoso's
 > FedShop200 endpoint *to* a Virtuoso summary database. The `--filter` 
