@@ -16,16 +16,32 @@ cd fedup
 mvn clean package
 ```
 
-```sh
-java -jar target/fedup-server.jar
-
-# usage: fedup-server [options] --sumaries <path>
-# -e,--engine <arg>      The federation engine in charge of executing (default: Jena; FedX).
-# -h,--help              print this message
-# -m,--modify <arg>      Lambda expression to apply to graphs in summaries in order to call actual endpoints.
-# -p,--port <arg>        The port of this FedUP server (default: 3330).
-# -s,--summaries <arg>   Path(s) to TDB2 dataset summary(ies).
-# -x,--export            The federated query plan is exported within HTTP responses (default: false).
+```
+Usage: fedup-server [-xh] [-p=3330] -s=path/to/tdb2|http://output/endpoint[,path/to/tdb2|http:
+                    //output/endpoint...] [-s=path/to/tdb2|http://output/endpoint[,path/to/tdb2|http:
+                    //output/endpoint...]]... -e=Jena|FedX [-m=λ-expr] [--filter=regex]
+Federation engine as a server for SPARQL query processing.
+  -p, --port=3330          The port of this FedUP server. Default: 3330
+  -s, --summaries=path/to/tdb2|http://output/endpoint[,path/to/tdb2|http://output/endpoint...]
+                           Path to the summary datasets. Each path is either local and targets an
+                             Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting
+                             the summary.
+  -e, --engine=Jena|FedX   The federation engine in charge of the executing the SPARQL query with
+                             SERVICE clauses. When the engine is set to None, the query is not
+                             executed, but the source selection is still performed: this can
+                             facilitate debugging. Default: Jena
+  -x, --export             From a SPARQL query, FedUP creates a federated query with additional
+                             SERVICE clauses. This option exports the federated query plan within the
+                             HTTP response. In the JSON response, besides the results bindings, FedUP
+                             adds "FedUP_Exported" as a plain text query.
+  -m, --modify=λ-expr      Java lambda expression to apply to graphs in summaries in order to call
+                             actual endpoints. Therefore, even if the sources of summarized triples
+                             diverge from the actual serving endpoint, this bridges the difference.
+                             Default: (e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.
+                             substring(0, e.length() - 1))
+      --filter=regex       The summary may contain more graphs than necessary. This allows filtering,
+                             to keep only the graphs that are of interest. Default: .*
+  -h, --help               Display this help message.
 ```
 
 ```sh
@@ -40,14 +56,24 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 > java -jar target/summarizer.jar
 > </pre>
 > <pre>
-> Usage: summarizer -i=[path/to/tdb2 | http://input/endpoint] -o=[path/to/tdb2 | http://output/endpoint] [-u=<$USERNAME>] [-p=<$PASSWORD>] [--hash=0] [--filter=.*]
+> Usage: summarizer [-hV] -i=path/to/tdb2|http://input/endpoint -o=path/to/tdb2|http://output/endpoint
+>                   [-u=$USERNAME] [-p=$PASSWORD] [--hash=integer] [--filter=regex]
 > Creates the summary for FedUP.
->  -i, --input=[path/to/tdb2 | http://input/endpoint] Set the dataset to summarize.
->  -o, --output=[path/to/tdb2 | http://output/endpoint] Set the output summary dataset.
->  -u, --username=<$USERNAME> (Not tested) The username for the summary database if needed.
->  -p, --password=<$PASSWORD> (Not tested) The password for the summary database if needed.
->      --hash=0  The modulo value of the hash that summarizes (default: 0).
->      --filter=.*  The regular expression to filter out read graphs.
+>   -h, --help                 Show this help message and exit.
+>   -V, --version              Print version information and exit.
+>   -i, --input=path/to/tdb2|http://input/endpoint
+>                              Path to the summary dataset. The path is either local and targets an
+>                                Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting
+>                                the quads.
+>   -o, --output=path/to/tdb2|http://output/endpoint
+>                              Path to the summary dataset. The path is either local and targets an
+>                                Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting
+>                                the summary being built.
+>   -u, --username=$USERNAME   (Not tested) The username for the summary database if needed.
+>   -p, --password=$PASSWORD   (Not tested) The password for the summary database if needed.
+>       --hash=integer         The modulo value of the hash that summarizes. Default: 0
+>       --filter=regex         The summary may contain more graphs than necessary. This allows
+>                                filtering, to keep only the graphs that are of interest. Default: .*
 > </pre>
 > In <code>0.0.2</code>, for better interoperability, the summarizer also allows ingesting from
 > any kind of remote SPARQL endpoint (although slower than
@@ -76,17 +102,30 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 > java -jar target/fedup.jar
 > </pre>
 > <pre>
-> Usage: fedup [-xh] [-q=<SPARQL>] [-f=<path/to/query>] [-s=<path/to/TDB2>] [-e=None | Jena | FedX] [-m=(e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0, e.length() - 1))] [--filter=.*]
+> Usage: fedup [-xh] [-s= path/to/tdb2|http://endpoint/sparql ] [-e=Jena|FedX] [-m= λ-expr ]
+>             [--filter= regex ] (-q= SPARQL  | -f= /to/query )
 > Federation engine for SPARQL query processing.
->  -q, --query=<SPARQL>   The SPARQL query to execute.
->  -f, --file=<path/to/query>   The file containing the SPARQL query to execute.
->  -s, --summary=<path/to/TDB2>   Path to the TDB2 dataset summary.
->  -e, --engine=None | Jena | FedX   The federation engine in charge of executing (default: None).
->  -x, --explain          Prints the source selection plan (default: false).
->  -m, --modify=(e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.substring(0, e.length() - 1))
->                      Lambda expression to apply to graphs in summaries in order to call actual endpoints.
->      --filter=.*     The regular expression to filter out read endpoints.
->  -h, --help          Display this help message.
+>   -q, --query=SPARQL       The SPARQL query to execute.
+>   -f, --file=/to/query     The file containing the SPARQL query to execute.
+>   -s, --summary=path/to/tdb2 | http://endpoint/sparql
+>                            Path to the summary dataset. The path is either local and targets an
+>                              Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting
+>                              the summary.
+>   -e, --engine=Jena|FedX   The federation engine in charge of the executing the SPARQL query with
+>                              SERVICE clauses. When the engine is set to None, the query is not
+>                              executed, but the source selection is still performed: this can
+>                              facilitate debugging. Default: None
+>   -x, --explain            Prints some details about execution times; and the source selection plan,
+>                              i.e., the logical plan with SERVICE clauses designating the chosen
+>                              sources.
+>   -m, --modify=<λ-expr>    Java lambda expression to apply to graphs in summaries in order to call
+>                              actual endpoints. Therefore, even if the sources of summarized triples
+>                              diverge from the actual serving endpoint, this bridges the difference.
+>                              Default: (e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.
+>                              substring(0, e.length() - 1))
+>       --filter=regex       The summary may contain more graphs than necessary. This allows filtering,
+>                              to keep only the graphs that are of interest. Default: .*
+>   -h, --help               Display this help message.
 >  </pre>
 > </details>
 
