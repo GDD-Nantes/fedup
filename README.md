@@ -43,10 +43,17 @@ Federation engine as a server for SPARQL query processing.
                              to keep only the graphs that are of interest. Default: .*
   -h, --help               Display this help message.
 ```
-
+As a usage example, we ran a [federated e-shop application](https://github.com/GDD-Nantes/fediscount-website)
+using FedUP to redirect the query execution to the shops and review sites. In this emulation, a Virtuoso endpoint
+running on `http://localhost:5555` hosts the data of the 200 endpoints (hence the default λ-expression of `-m`), we emulates 3 
+federations of different membership sizes with 3 local TDB2 summaries (hence `--summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0`),
+the query execution is performed by `--engine=FedX` as it is more efficient than Jena for federated querying, and `--export`
+allows client-side visualization of the SERVICE SPARQL query:
 ```sh
-# As an example, from the Fediscount use case that comprises 3 summaries
-java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 --engine=FedX --export
+java -jar target/fedup-server.jar \
+    --summaries=./fedshop100-h0,./fedshop20-h0,./fedshop200-h0 \
+    --engine=FedX \
+    --export
 ```
 
 > [!NOTE]
@@ -118,7 +125,7 @@ java -jar target/fedup-server.jar --summaries=./fedshop100-h0,./fedshop20-h0,./f
 >   -x, --explain            Prints some details about execution times; and the source selection plan,
 >                              i.e., the logical plan with SERVICE clauses designating the chosen
 >                              sources.
->   -m, --modify=<λ-expr>    Java lambda expression to apply to graphs in summaries in order to call
+>   -m, --modify=λ-expr      Java lambda expression to apply to graphs in summaries in order to call
 >                              actual endpoints. Therefore, even if the sources of summarized triples
 >                              diverge from the actual serving endpoint, this bridges the difference.
 >                              Default: (e) -> "http://localhost:5555/sparql?default-graph-uri="+(e.
