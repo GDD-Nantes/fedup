@@ -15,7 +15,6 @@ import org.apache.jena.query.ARQ;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.riot.rowset.RowSetWriterRegistry;
-import org.apache.jena.sparql.engine.main.QC;
 import picocli.CommandLine;
 
 import java.net.URI;
@@ -32,11 +31,12 @@ import java.util.function.Function;
  */
 @picocli.CommandLine.Command(
         name = "fedup-server",
-        version = "0.0.2",
+        version = "0.1.0",
         description = "Federation engine as a server for SPARQL query processing.",
         usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
         sortOptions = false,
-        sortSynopsis = false
+        sortSynopsis = false,
+        mixinStandardHelpOptions = true
 )
 public class FedUPServerCLI {
 
@@ -44,7 +44,7 @@ public class FedUPServerCLI {
             order = 2,
             names = {"-p", "--port"},
             paramLabel = "3330",
-            description = "The port of this FedUP server.")
+            description = "The port of this FedUP server. Default: ${DEFAULT-VALUE}")
     int port = 3330;
 
     @picocli.CommandLine.Option(
@@ -52,37 +52,51 @@ public class FedUPServerCLI {
             names = {"-s", "--summaries"},
             split = ",",
             required = true,
-            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
-            description = "Path to the summary dataset(s).")
+            paramLabel = "path/to/tdb2|http://output/endpoint",
+            description =  """
+                    Path to the summary datasets. Each path is either local and targets an \
+                    Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting the \
+                    summary.""")
     List<String> summaryPaths;
 
     @picocli.CommandLine.Option(
             order = 4,
             required = true,
             names = {"-e", "--engine"},
-            paramLabel = "None | Jena | FedX",
-            description = "The federation engine in charge of executing (default: None).")
-    String engine;
+            paramLabel = "Jena|FedX",
+            description = """
+                    The federation engine in charge of the executing the SPARQL query with SERVICE clauses. \
+                    When the engine is set to None, the query is not executed, but the source selection is still \
+                    performed: this can facilitate debugging. Default: ${DEFAULT-VALUE}""")
+    String engine = "Jena";
 
     @picocli.CommandLine.Option(
             order = 4,
             names = {"-x", "--export"},
-            paramLabel = "false",
-            description = "The federated query plan is exported within HTTP responses.")
+            description = """
+                    From a SPARQL query, FedUP creates a federated query with additional SERVICE clauses. \
+                    This option exports the federated query plan within the HTTP response. In the JSON response, \
+                    besides the results bindings, FedUP adds "FedUP_Exported" as a plain text query.""")
     Boolean export = false;
 
     @picocli.CommandLine.Option(
             order = 6,
             names = {"-m", "--modify"},
-            paramLabel = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))",
-            description = "Lambda expression to apply to graphs in summaries in order to call actual endpoints.")
+            paramLabel = "λ-expr",
+            description = """
+                    Java lambda expression to apply to graphs in summaries in order to call actual endpoints. \
+                    Therefore, even if the \
+                    sources of summarized triples diverge from the actual serving endpoint, \
+                    this bridges the difference. Default: ${DEFAULT-VALUE}""")
     String modifyEndpoints = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))";
 
     @picocli.CommandLine.Option(
             order = 7,
             names = {"--filter"},
-            paramLabel = ".*",
-            description = "The regular expression to filter out read endpoints.")
+            paramLabel = "regex",
+            description = """
+                The summary may contain more graphs than necessary. This allows filtering, to keep only the graphs \
+                that are of interest. Default: ${DEFAULT-VALUE}""")
     public String filterRegex = ".*"; // by default allows everything
 
     @picocli.CommandLine.Option(

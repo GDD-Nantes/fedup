@@ -28,33 +28,42 @@ import java.util.function.Function;
  */
 @picocli.CommandLine.Command(
         name = "fedup",
-        version = "0.0.2",
+        version = "0.1.0",
         description = "Federation engine for SPARQL query processing.",
         usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
         sortOptions = false,
-        sortSynopsis = false
+        sortSynopsis = false,
+        mixinStandardHelpOptions = true
 )
 public class FedUPCLI {
 
-    @picocli.CommandLine.Option(
-            order = 2,
-            names = {"-q", "--query"},
-            paramLabel = "<SPARQL>",
-            description = "The SPARQL query to execute.")
-    String queryAsString;
+    static class ExclusiveQuery {
+        @picocli.CommandLine.Option(
+                order = 2,
+                names = {"-q", "--query"},
+                paramLabel = "SPARQL",
+                description = "The SPARQL query to execute.")
+        String queryAsString;
 
-    @picocli.CommandLine.Option(
-            order = 2,
-            names = {"-f", "--file"},
-            paramLabel = "<path/to/query>",
-            description = "The file containing the SPARQL query to execute.")
-    String queryFile;
+        @picocli.CommandLine.Option(
+                order = 2,
+                names = {"-f", "--file"},
+                paramLabel = "path/to/query",
+                description = "The file containing the SPARQL query to execute.")
+        String queryFile;
+    }
+
+    @CommandLine.ArgGroup(multiplicity = "1")
+    ExclusiveQuery exclusiveQuery;
 
     @picocli.CommandLine.Option(
             order = 3,
             names = {"-s", "--summary"},
-            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
-            description = "Path to the summary dataset.")
+            paramLabel = "path/to/tdb2|http://endpoint/sparql",
+            description = """
+                    Path to the summary dataset. The path is either local and targets an \
+                    Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting the \
+                    summary.""")
     String summaryPath;
 
     // options.addOption("t", "type", true, "The summary type (example: ModuloOnSuffix(1)).");
@@ -62,29 +71,40 @@ public class FedUPCLI {
     @picocli.CommandLine.Option(
             order = 4,
             names = {"-e", "--engine"},
-            paramLabel = "None | Jena | FedX",
-            description = "The federation engine in charge of executing (default: None).")
-    String engine;
+            paramLabel = "Jena|FedX",
+            description = """
+                    The federation engine in charge of the executing the SPARQL query with SERVICE clauses. \
+                    When the engine is set to None, the query is not executed, but the source selection is still \
+                    performed: this can facilitate debugging. Default: ${DEFAULT-VALUE}""")
+    String engine = "None";
 
     @picocli.CommandLine.Option(
             order = 5,
             names = {"-x", "--explain"},
-            description = "Prints the source selection plan (default: false).")
-    Boolean explain;
+            description = """
+                    Prints some details about execution times; and the source selection plan, \
+                    i.e., the logical plan with SERVICE clauses designating the chosen sources.""")
+    Boolean explain = false;
 
 
     @picocli.CommandLine.Option(
             order = 6,
             names = {"-m", "--modify"},
-            paramLabel = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))",
-            description = "Lambda expression to apply to graphs in summaries in order to call actual endpoints.")
+            paramLabel = "λ-expr",
+            description = """
+                    Java lambda expression to apply to graphs in summaries in order to call actual endpoints. \
+                    Therefore, even if the \
+                    sources of summarized triples diverge from the actual serving endpoint, \
+                    this bridges the difference. Default: ${DEFAULT-VALUE}""")
     String modifyEndpoints = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))";
 
     @picocli.CommandLine.Option(
             order = 7,
             names = {"--filter"},
-            paramLabel = ".*",
-            description = "The regular expression to filter out read endpoints.")
+            paramLabel = "regex",
+            description = """
+                The summary may contain more graphs than necessary. This allows filtering, to keep only the graphs \
+                that are of interest. Default: ${DEFAULT-VALUE}""")
     public String filterRegex = ".*"; // by default allows everything
 
     @picocli.CommandLine.Option(
@@ -110,16 +130,10 @@ public class FedUPCLI {
             System.exit(CommandLine.ExitCode.OK);
         }
 
-        if ((Objects.isNull(options.queryAsString) && Objects.isNull(options.queryFile)) ||
-                (Objects.isNull(options.summaryPath))) {
-            picocli.CommandLine.usage(options, System.out);
-            System.exit(CommandLine.ExitCode.USAGE);
-        }
-
-        if (Objects.nonNull(options.queryFile)) {
-            Path queryPath = Path.of(options.queryFile);
+        if (Objects.nonNull(options.exclusiveQuery.queryFile)) {
+            Path queryPath = Path.of(options.exclusiveQuery.queryFile);
             try {
-                options.queryAsString = Files.readString(queryPath);
+                options.exclusiveQuery.queryAsString = Files.readString(queryPath);
             } catch (IOException e) {
                 System.out.println("Error: could not read " + queryPath.toString() + ".");
                 System.exit(CommandLine.ExitCode.SOFTWARE);
@@ -127,7 +141,7 @@ public class FedUPCLI {
         }
 
         if (options.explain) {
-            System.err.println(options.queryAsString);
+            System.err.println(options.exclusiveQuery.queryAsString);
         }
 
         // important to initialize these two now or else they might not be
@@ -165,7 +179,7 @@ public class FedUPCLI {
         }
 
         long parseStart  =System.currentTimeMillis();
-        Op query = Algebra.compile(QueryFactory.create(options.queryAsString));
+        Op query = Algebra.compile(QueryFactory.create(options.exclusiveQuery.queryAsString));
         long parseElapsed = System.currentTimeMillis() - parseStart;
 
         if (options.explain) {

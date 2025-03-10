@@ -33,56 +33,65 @@ import java.util.regex.Pattern;
  */
 @picocli.CommandLine.Command(
         name = "summarizer",
-        version = "0.0.2",
+        version = "0.1.0",
         description = "Creates the summary for FedUP.",
         usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
         sortOptions = false,
-        sortSynopsis = false
+        sortSynopsis = false,
+        mixinStandardHelpOptions = true
 )
 public class SummarizerCLI {
 
     @picocli.CommandLine.Option(
             order = 2,
             names = {"-i", "--input"},
-            paramLabel = "<path/to/tdb2 | http://input/endpoint>",
+            paramLabel = "path/to/tdb2|http://input/endpoint",
             required = true,
-            description = "Set the dataset to summarize.")
+            description =  """
+                    Path to the summary dataset. The path is either local and targets an \
+                    Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting the \
+                    quads.""")
     public String input;
 
     @picocli.CommandLine.Option(
             order = 2,
             names = {"-o", "--output"},
-            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
+            paramLabel = "path/to/tdb2|http://output/endpoint" ,
             required = true,
-            description = "Set the output summary dataset.")
+            description = """
+                    Path to the summary dataset. The path is either local and targets an \
+                    Apache Jena's TDB2 dataset folder; or a remote SPARQL endpoint hosting the \
+                    summary being built.""")
     public String output;
 
     @picocli.CommandLine.Option(
             order = 3,
             names = {"-u", "--username"},
-            paramLabel = "<$USERNAME>",
+            paramLabel = "$USERNAME",
             description = "(Not tested) The username for the summary database if needed.")
     public String username;
 
     @picocli.CommandLine.Option(
             order = 3,
             names = {"-p", "--password"},
-            paramLabel = "<$PASSWORD>",
+            paramLabel = "$PASSWORD",
             description = "(Not tested) The password for the summary database if needed.")
     public String password;
 
     @picocli.CommandLine.Option(
             order = 4,
             names = {"--hash"},
-            paramLabel = "0",
-            description = "The modulo value of the hash that summarizes (default: 0).")
+            paramLabel = "integer",
+            description = "The modulo value of the hash that summarizes. Default: ${DEFAULT-VALUE}")
     public int hash = 0;
 
     @picocli.CommandLine.Option(
             order = 5,
             names = {"--filter"},
-            paramLabel = ".*",
-            description = "The regular expression to filter out read graphs.")
+            paramLabel = "regex",
+            description =  """
+                The summary may contain more graphs than necessary. This allows filtering, to keep only the graphs \
+                that are of interest. Default: ${DEFAULT-VALUE}""")
     public String filterRegex = ".*"; // by default allows everything
 
     public static void main(String[] args) throws ParseException {
