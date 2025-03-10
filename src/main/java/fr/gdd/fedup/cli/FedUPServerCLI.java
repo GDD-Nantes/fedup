@@ -5,7 +5,8 @@ import fr.gdd.fedup.fuseki.FedUPEngine;
 import fr.gdd.fedup.fuseki.FedUPPlanAndNormalJSON;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.dboe.base.file.Location;
@@ -14,11 +15,13 @@ import org.apache.jena.query.ARQ;
 import org.apache.jena.riot.resultset.ResultSetLang;
 import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.riot.rowset.RowSetWriterRegistry;
-import org.apache.jena.sparql.mgt.Explain;
+import org.apache.jena.sparql.engine.main.QC;
+import picocli.CommandLine;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -27,88 +30,159 @@ import java.util.function.Function;
  * FedUP server that runs on top of Apache Jena Fuseki. All options available are
  * printed with the `--help` command.
  */
+@picocli.CommandLine.Command(
+        name = "fedup-server",
+        version = "0.0.2",
+        description = "Federation engine as a server for SPARQL query processing.",
+        usageHelpAutoWidth = true, // adapt to the screen size instead of new line on 80 chars
+        sortOptions = false,
+        sortSynopsis = false
+)
 public class FedUPServerCLI {
 
+    @picocli.CommandLine.Option(
+            order = 2,
+            names = {"-p", "--port"},
+            paramLabel = "3330",
+            description = "The port of this FedUP server.")
+    int port = 3330;
+
+    @picocli.CommandLine.Option(
+            order = 3,
+            names = {"-s", "--summaries"},
+            split = ",",
+            required = true,
+            paramLabel = "<path/to/tdb2 | http://output/endpoint>",
+            description = "Path to the summary dataset(s).")
+    List<String> summaryPaths;
+
+    @picocli.CommandLine.Option(
+            order = 4,
+            required = true,
+            names = {"-e", "--engine"},
+            paramLabel = "None | Jena | FedX",
+            description = "The federation engine in charge of executing (default: None).")
+    String engine;
+
+    @picocli.CommandLine.Option(
+            order = 4,
+            names = {"-x", "--export"},
+            paramLabel = "false",
+            description = "The federated query plan is exported within HTTP responses.")
+    Boolean export = false;
+
+    @picocli.CommandLine.Option(
+            order = 6,
+            names = {"-m", "--modify"},
+            paramLabel = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))",
+            description = "Lambda expression to apply to graphs in summaries in order to call actual endpoints.")
+    String modifyEndpoints = "(e) -> \"http://localhost:5555/sparql?default-graph-uri=\"+(e.substring(0, e.length() - 1))";
+
+    @picocli.CommandLine.Option(
+            order = 7,
+            names = {"--filter"},
+            paramLabel = ".*",
+            description = "The regular expression to filter out read endpoints.")
+    public String filterRegex = ".*"; // by default allows everything
+
+    @picocli.CommandLine.Option(
+            order = Integer.MAX_VALUE, // last
+            names = {"-h", "--help"},
+            usageHelp = true,
+            description = "Display this help message.")
+    boolean usageHelpRequested;
+
     public static void main(String[] args) throws ParseException {
-        Options options = new Options();
+        FedUPServerCLI options = new FedUPServerCLI();
+        try {
+            new picocli.CommandLine(options).parseArgs(args);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            picocli.CommandLine.usage(options, System.out);
+            System.exit(picocli.CommandLine.ExitCode.USAGE);
+        }
 
-        options.addOption(new Option("h", "help", false,
-                "print this message"));
-
-        Option summariesOpt = new Option("s", "summaries", true,
-                "Path(s) to TDB2 dataset summary(ies).");
-        summariesOpt.setArgs(Option.UNLIMITED_VALUES);
-        summariesOpt.setValueSeparator(',');
-        options.addOption(summariesOpt);
-
-        // options.addOption("t", "type", true, "The summary type (example: ModuloOnSuffix(1)).");
-        options.addOption("e", "engine", true,
-                "The federation engine in charge of executing (default: Jena; FedX).");
-        options.addOption("x", "export", false,
-                "The federated query plan is exported within HTTP responses (default: false).");
-        options.addOption("p", "port", true,
-                "The port of this FedUP server (default: 3330).");
-        options.addOption("m", "modify", true,
-                "Lambda expression to apply to graphs in summaries in order to call actual endpoints.");
-
-
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = parser.parse(options, args);
-        
-        if (cmd.hasOption("help") || cmd.getOptions().length==0) {
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp("fedup [options] --sumaries <path>", options);
-            return;
+        if (options.usageHelpRequested) {
+            picocli.CommandLine.usage(options, System.out);
+            System.exit(CommandLine.ExitCode.OK);
         }
 
         // TODO create a fedup factory
-        // TODO parse the arg
-        // TODO or encode it within the dataset by default.
-        ModuloOnSuffix strategy = new ModuloOnSuffix(1);
+        //      parse the arg
+        //      or encode it within the dataset by default.
+        // ModuloOnSuffix strategy = new ModuloOnSuffix(1);
 
         List<Pair<String, Summary>> summaries = new ArrayList<>();
-        for (Path path: Arrays.stream(cmd.getOptionValues('s')).map(Path::of).toList()) {
-            Summary s = new Summary(strategy, Location.create(path));
-            // Export the results in the HTTP response?
-            s.getSummary().getContext().set(FedUPConstants.EXPORT_PLANS, cmd.hasOption("x"));
-            // Which engine use once the sources are assigned?
-            if (cmd.hasOption("e")) {
-                s.getSummary().getContext().set(FedUPConstants.EXECUTION_ENGINE, cmd.getOptionValue("e"));
+        for (String pathOrUri : options.summaryPaths) {
+            Summary summary;
+            if (Path.of(pathOrUri).toFile().isDirectory()) {
+                summary = new Summary(new ModuloOnSuffix(1), Location.create(Path.of(pathOrUri)));
             } else {
-                s.getSummary().getContext().set(FedUPConstants.EXECUTION_ENGINE, FedUPConstants.APACHE_JENA);
+                summary = new Summary(new ModuloOnSuffix(1));
+                summary.setRemote(pathOrUri); // TODO check if actually an URI
             }
-            s.getSummary().getContext().set(ARQ.optimization, false);
-            summaries.add(new ImmutablePair<>(path.getFileName().toString(), s));
-            if (cmd.hasOption("m")) {
+            summary.setPattern(options.filterRegex);
+
+            // Export the results in the HTTP response?
+            summary.getSummary().getContext().set(FedUPConstants.EXPORT_PLANS, options.export);
+            // Which engine use once the sources are assigned?
+            switch (options.engine) {
+                case "FedX","fedx" -> summary.getSummary().getContext().set(FedUPConstants.EXECUTION_ENGINE, FedUPConstants.FEDX);
+                default -> summary.getSummary().getContext().set(FedUPConstants.EXECUTION_ENGINE, FedUPConstants.APACHE_JENA);
+            }
+
+            summary.getSummary().getContext().set(ARQ.optimization, false); // make sure no default opti
+            String summaryName;
+            try {
+                // if uri, name is
+                URI uri = new URI(pathOrUri);
+                summaryName = uri.getAuthority().replace(":", "_").replace(".", "_");
+            } catch (NullPointerException | URISyntaxException e) {
+                if (Path.of(pathOrUri).toFile().isDirectory()) {
+                    summaryName = Path.of(pathOrUri).getFileName().toString();
+                } else if (Path.of(pathOrUri).toFile().isFile()) {
+                    summaryName = FilenameUtils.getBaseName(pathOrUri);
+                } else {
+                    System.err.println("Cannot open the summary file: " + pathOrUri);
+                    System.exit(picocli.CommandLine.ExitCode.USAGE);
+                    return;
+                }
+            }
+            summaries.add(new ImmutablePair<>(summaryName, summary));
+            if (Objects.nonNull(options.modifyEndpoints) && !options.modifyEndpoints.isEmpty()) {
                 // When graphs in summaries differ from actual endpoints, it's useful to
                 // be able to change them at runtime, without re-ingesting the summary.
                 Function<String, String> lambda = InMemoryLambdaJavaFileObject.getLambda("ModifyEndpoints",
-                        cmd.getOptionValue("m"), "String");
+                        options.modifyEndpoints, "String");
                 if (Objects.isNull(lambda)) {
-                    throw new UnsupportedOperationException("The lambda expression does not seem valid.");
+                    System.err.println("The lambda expression does not seem valid.");
+                    System.exit(picocli.CommandLine.ExitCode.USAGE);
                 }
-                s.getSummary().getContext().set(FedUPConstants.MODIFY_ENDPOINTS, lambda);
+                summary.getSummary().getContext().set(FedUPConstants.MODIFY_ENDPOINTS, lambda);
             }
         }
 
-        ARQ.setExecutionLogging(Explain.InfoLevel.ALL);  // TODO explain level as argument
-        int port = cmd.hasOption("p") ? Integer.parseInt(cmd.getOptionValue("p")) : 3330; // On which port?
         FedUPEngine.register();
         ResultSetLang.init();
         ResultSetReaderRegistry.init();
         RowSetWriterRegistry.register(ResultSetLang.RS_JSON, FedUPPlanAndNormalJSON.factory);
 
         var builder = FusekiServer.create()
-                .port(port)
-                .enableCors(true, "")
+                .port(options.port)
+                .enableCors(true, null)
                 .verbose(true);
 
         for (Pair<String, Summary> nameAndSummary : summaries) {
-            System.out.println("Summary available: " + nameAndSummary.getLeft());
             builder.add(nameAndSummary.getLeft(), nameAndSummary.getRight().getSummary());
+            nameAndSummary.getRight().getSummary().getContext().set(FedUPConstants.SUMMARY, nameAndSummary.getRight());
         }
 
-        builder.build().start();
+        FusekiServer server = builder.build().start();
+        System.out.println("The summaries are available at:");
+        for (Pair<String, Summary> nameAndSummary : summaries) {
+            System.out.printf("\t- http://localhost:%s/%s/sparql%n", server.getPort(), nameAndSummary.getLeft());
+        }
+
     }
 
 }

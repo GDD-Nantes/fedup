@@ -1,9 +1,12 @@
 package fr.gdd.fedup.fuseki;
 
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
+import fr.gdd.fedup.transforms.Quad2Pattern;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.atlas.json.io.JSWriter;
 import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.util.Context;
 
@@ -24,7 +27,8 @@ public  class FedUPPlanWriter {
         writer.println(" : ");
 
         // byte[] serialized = SerializationUtils.serialize();
-        String encoded = Base64.encode(OpAsQueryMore.asQuery(fedQPLPlan).toString().getBytes());
+        fedQPLPlan = ReturningOpVisitorRouter.visit(new Quad2Pattern(), fedQPLPlan);
+        String encoded = OpAsQuery.asQuery(fedQPLPlan).toString();// Base64.encode(OpAsQuery.asQuery(fedQPLPlan).toString().getBytes());
         writer.println(JSWriter.outputQuotedString(encoded));
     }
 }

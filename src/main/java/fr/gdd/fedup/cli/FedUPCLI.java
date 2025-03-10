@@ -101,16 +101,19 @@ public class FedUPCLI {
         try {
             new picocli.CommandLine(options).parseArgs(args);
         } catch (Exception e) {
+            System.err.println(e.getMessage());
             picocli.CommandLine.usage(options, System.out);
             System.exit(picocli.CommandLine.ExitCode.USAGE);
         }
-
-        if (options.usageHelpRequested ||
-                (Objects.isNull(options.queryAsString) && Objects.isNull(options.queryFile)) ||
-                (Objects.isNull(options.summaryPath))
-        ) {
+        if (options.usageHelpRequested) {
             picocli.CommandLine.usage(options, System.out);
-            System.exit(picocli.CommandLine.ExitCode.USAGE);
+            System.exit(CommandLine.ExitCode.OK);
+        }
+
+        if ((Objects.isNull(options.queryAsString) && Objects.isNull(options.queryFile)) ||
+                (Objects.isNull(options.summaryPath))) {
+            picocli.CommandLine.usage(options, System.out);
+            System.exit(CommandLine.ExitCode.USAGE);
         }
 
         if (Objects.nonNull(options.queryFile)) {
