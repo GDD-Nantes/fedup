@@ -4,10 +4,8 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.Quad2Pattern;
 import org.apache.jena.atlas.io.IndentedWriter;
 import org.apache.jena.atlas.json.io.JSWriter;
-import org.apache.jena.ext.xerces.impl.dv.util.Base64;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
-import org.apache.jena.sparql.algebra.OpAsQueryMore;
 import org.apache.jena.sparql.util.Context;
 
 import java.util.Objects;

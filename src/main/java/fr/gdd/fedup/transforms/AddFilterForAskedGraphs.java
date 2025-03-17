@@ -1,14 +1,14 @@
 package fr.gdd.fedup.transforms;
 
+import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.op.OpFilter;
 import org.apache.jena.sparql.algebra.op.OpQuad;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sparql.expr.E_LogicalOr;
-import org.apache.jena.sparql.expr.Expr;
-import org.apache.jena.sparql.expr.ExprList;
+import org.apache.jena.sparql.expr.*;
+import org.apache.jena.sparql.expr.nodevalue.NodeValueNode;
 import org.apache.jena.sparql.util.ExprUtils;
 
 import java.util.HashSet;
@@ -35,13 +35,13 @@ public class AddFilterForAskedGraphs extends TransformCopy {
             return opQuad; // do nothing john snow
         }
 
-        OpFilter op = (OpFilter) prepareFilter(valuesAndOrder.triple2Endpoints.get(triple), opQuad, g);
+        OpFilter op = (OpFilter) prepareFilterWithIn(valuesAndOrder.triple2Endpoints.get(triple), opQuad, g);
         askFilters.add(op.getExprs());
         return op;
     }
 
     public static Op prepareFilter(List<String> endpoints, Op op, Var graph) {
-        // TODO, what if endpoints is empty ?
+        // TODO, what if endpoints is empty ? Is everything allowed or nothing ?
         List<Expr> exprs = endpoints.stream().map(e -> ExprUtils.parse(String.format("%s = <%s>", graph, e))).toList();
         Expr expr = switch (exprs.size()) {
             case 1 -> exprs.getFirst();
@@ -57,5 +57,16 @@ public class AddFilterForAskedGraphs extends TransformCopy {
         };
 
         return OpFilter.filterBy(new ExprList(expr), op);
+    }
+
+    /**
+     * @param endpoints The list of graph names.
+     * @param op The subOp.
+     * @param graph The graph variable.
+     * @return An OpFilter stating that the variable must be one of the values in endpoints, e.g., it
+     *         produces FILTER (?g IN (<http://e1>, <http://e1> … )
+     */
+    public static Op prepareFilterWithIn(List<String> endpoints, Op op, Var graph) {
+        return OpFilter.filter(new E_OneOf(new ExprVar(graph), ExprList.create(endpoints.stream().map(e -> NodeValueNode.makeNode(NodeFactory.createURI(e)).getExpr()).toList())), op);
     }
 }

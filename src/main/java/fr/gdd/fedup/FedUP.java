@@ -7,6 +7,7 @@ import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.transforms.Quad2Pattern;
 import fr.gdd.fedup.transforms.RemoveSequences;
 import fr.gdd.fedup.transforms.ToSourceSelectionTransforms;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -18,7 +19,10 @@ import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.ResourceFactory;
-import org.apache.jena.sparql.algebra.*;
+import org.apache.jena.sparql.algebra.Algebra;
+import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpTable;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.core.Var;
@@ -200,7 +204,8 @@ public class FedUP {
         // TODO it splits the exprList, but we want actual split.
         asSPARQL = ReturningOpVisitorRouter.visit(new FilterPushDownVisitor(), asSPARQL);
 
-        String asSERVICE = OpAsQueryMore.asQuery(asSPARQL).toString();
+        asSPARQL = ReturningOpVisitorRouter.visit(new Quad2Pattern(), asSPARQL);
+        String asSERVICE = OpAsQuery.asQuery(asSPARQL).toString();
 
         log.info("Built the following query:\n{}", asSERVICE);
         return asSERVICE;

@@ -101,6 +101,7 @@ public class TupleQueryResult2QueryIterator implements QueryIterator {
         BindingBuilder builder = BindingFactory.builder();
         for (String name : origin.getBindingNames()) {
             org.eclipse.rdf4j.query.Binding value = origin.getBinding(name);
+            // TODO unuglify
             Node valueAsNode = null;
             if (value.getValue().isBNode()) {
                 valueAsNode = NodeFactory.createBlankNode(value.getValue().stringValue());
@@ -108,13 +109,13 @@ public class TupleQueryResult2QueryIterator implements QueryIterator {
                 valueAsNode = NodeFactory.createURI(value.getValue().stringValue());
             } else if (value.getValue().isLiteral()) {
                 if (value.getValue().toString().contains(XSDDatatype.XSDinteger.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDinteger);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDinteger);
                 } else if (value.getValue().toString().contains(XSDDatatype.XSDdouble.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdouble);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDdouble);
                 } else if (value.getValue().toString().contains(XSDDatatype.XSDdateTime.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdateTime);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDdateTime);
                 } else {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue());
+                    valueAsNode = NodeFactory.createLiteralString(value.getValue().stringValue());
                 }
             } else if (value.getValue().isResource() || value.getValue().isTriple()) {
                 throw new UnsupportedOperationException("RDF4J to Jena Bindings with a resource or a triple.");

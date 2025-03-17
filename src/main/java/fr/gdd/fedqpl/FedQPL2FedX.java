@@ -4,9 +4,10 @@ import fr.gdd.fedqpl.operators.Mj;
 import fr.gdd.fedqpl.operators.Mu;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
+import fr.gdd.fedup.transforms.Quad2Pattern;
 import org.apache.jena.graph.*;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpAsQueryMore;
+import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.util.ExprUtils;
 import org.eclipse.rdf4j.model.util.Values;
@@ -70,7 +71,7 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     public TupleExpr visit(OpSequence sequence) {
         return switch (sequence.getElements().size()) {
             case 0 -> new EmptySet();
-            case 1 -> ReturningOpVisitorRouter.visit(this, sequence.getElements().get(0));
+            case 1 -> ReturningOpVisitorRouter.visit(this, sequence.getElements().getFirst());
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = sequence.getElements().iterator();
@@ -88,9 +89,11 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     public TupleExpr visit(OpService req) {
         Var serviceUri = new Var(getAnonName(), Values.iri(req.getService().getURI()), true, true);
 
+        Op service = ReturningOpVisitorRouter.visit(new Quad2Pattern(), req.getSubOp());
+
         return new Service(serviceUri,
                 ReturningOpVisitorRouter.visit(this, req.getSubOp()),
-                OpAsQueryMore.asQuery(req.getSubOp()).toString(),
+                OpAsQuery.asQuery(service).toString(),
                 Map.of(), // no prefix, already injected in URIs
                 "", // baseURI
                 SILENT);
@@ -100,7 +103,7 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     public TupleExpr visit(Mu mu) {
         return switch (mu.getElements().size()) {
             case 0 -> new EmptySet();
-            case 1 -> ReturningOpVisitorRouter.visit(this, mu.getElements().iterator().next());
+            case 1 -> ReturningOpVisitorRouter.visit(this, mu.getElements().getFirst());
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = mu.getElements().iterator();
@@ -118,7 +121,7 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
     public TupleExpr visit(Mj mj) {
         return switch (mj.getElements().size()) {
             case 0 -> new EmptySet();
-            case 1 -> ReturningOpVisitorRouter.visit(this, mj.getElements().iterator().next());
+            case 1 -> ReturningOpVisitorRouter.visit(this, mj.getElements().getFirst());
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = mj.getElements().iterator();

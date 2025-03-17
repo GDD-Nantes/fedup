@@ -1,7 +1,9 @@
 package fr.gdd.fedup;
 
+import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.transforms.Quad2Pattern;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -9,9 +11,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.dboe.base.file.Location;
 import org.apache.jena.query.*;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.OpAsQueryMore;
+import org.apache.jena.sparql.algebra.OpAsQuery;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.eclipse.rdf4j.federated.FedX;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
@@ -352,7 +353,8 @@ public class FedShopTest {
         long elapsed = -1;
         MultiSet<Binding> serviceResults = new HashMultiSet<>();
 
-        Query q = OpAsQueryMore.asQuery(serviceQuery);
+        serviceQuery = ReturningOpVisitorRouter.visit(new Quad2Pattern(), serviceQuery);
+        Query q = OpAsQuery.asQuery(serviceQuery);
         try (QueryExecution qe =  QueryExecutionFactory.create(q, DatasetFactory.empty())) {
             long current = System.currentTimeMillis();
             ResultSet results = qe.execSelect();

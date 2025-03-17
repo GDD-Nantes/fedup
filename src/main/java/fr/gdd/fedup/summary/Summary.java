@@ -172,6 +172,8 @@ public class Summary {
         //        OpAsQueryMore.asQuery(new OpService(NodeFactory.createURI(remoteURI), queryAsOp, true));
         if (Objects.nonNull(remoteURI)) {
             queryAsOp = ReturningOpVisitorRouter.visit(new Quad2Pattern(), queryAsOp);
+            // Querying the Virtuoso endpoint with large filter expression leads to error 400
+            // so instead, we create a FILTER (?g IN (…))
             queryAsOp = new OpService(NodeFactory.createURI(remoteURI), queryAsOp, false);
         }
 
