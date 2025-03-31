@@ -3,6 +3,7 @@ package fr.gdd.fedup;
 import fr.gdd.fedqpl.FedQPL2FedX;
 import fr.gdd.fedqpl.FedQPL2SPARQL;
 import fr.gdd.fedqpl.SA2FedQPL;
+import fr.gdd.fedqpl.SAAsKG;
 import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
@@ -15,10 +16,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ReadWrite;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
@@ -31,7 +28,6 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.util.Context;
-import org.apache.jena.tdb2.TDB2Factory;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
@@ -239,41 +235,22 @@ public class FedUP {
                 }
         );
 
-        List<Map<Var, String>> assignments2 = assignments;
-        // replacing found endpoints by their updated version
-        if (Objects.nonNull(this.modifierOfEndpoints)) {
-            assignments2 = assignments2.stream()
-                    .map(a -> a.entrySet().stream()
-                            .map(e -> Map.entry(e.getKey(), modifierOfEndpoints.apply(e.getValue())))
-                            .collect(Collectors.toMap(Map.Entry<Var, String>::getKey, Map.Entry<Var, String>::getValue)))
-                    .toList();
-        }
+        List<Map<Var, String>> assignments2 = Objects.isNull(this.modifierOfEndpoints) ? assignments:
+                assignments.stream() // if there is a modifier, replacing found endpoints by their updated version
+                        .map(a -> a.entrySet().stream()
+                                .map(e -> Map.entry(e.getKey(), modifierOfEndpoints.apply(e.getValue())))
+                                .collect(Collectors.toMap(Map.Entry<Var, String>::getKey, Map.Entry<Var, String>::getValue)))
+                        .toList();
 
-        // log.info("Removing duplicates and inclusions in logical plan…");
-        // assignments2 = removeInclusions(assignments2); // TODO double check if it can be improved
         log.debug("Assignments comprising {} elements:\n{}", assignments2.size(), assignments2.stream().map(Object::toString).collect(Collectors.joining("\n")));
 
-        // TODO in dedicated class
-        // TODO built using a CONSTRUCT query
-        Dataset assignmentsAsGraph = TDB2Factory.createDataset();
-        assignmentsAsGraph.begin(ReadWrite.WRITE);
-        Model defaultModel = ModelFactory.createDefaultModel();
-        Integer rowNb = 0;
-        for (Map<Var, String> assignment : assignments2) {
-            rowNb += 1;
-            for (Map.Entry<Var, String> var2source : assignment.entrySet()) {
-                assignmentsAsGraph.getNamedModel(var2source.getValue()).add(
-                        ResourceFactory.createResource(var2source.getKey().getVarName()),
-                        ResourceFactory.createProperty("row"),
-                        String.valueOf(rowNb));
-            }
-        }
-        assignmentsAsGraph.setDefaultModel(defaultModel);
-        assignmentsAsGraph.commit();
-        assignmentsAsGraph.end();
+        // we build a dedicated knowledge graph to query it with any Op
+        // but of course, it's slower than a hashmap to retrieve results which is
+        // often enough for most cases. TODO create a faster way to query when the Op is simple
+        SAAsKG saAsKG = new SAAsKG(tsst.tqt, assignments2);
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, assignmentsAsGraph);
+        Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
 
         log.info("Optimizing the resulting FedQPL plan…");
         FedQPLOptimizer optimizer = new FedQPLOptimizer()

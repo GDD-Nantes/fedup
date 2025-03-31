@@ -178,7 +178,7 @@ public class FedUPCLI {
             fedup.modifyEndpoints(lambda);
         }
 
-        long parseStart  =System.currentTimeMillis();
+        long parseStart = System.currentTimeMillis();
         Op query = Algebra.compile(QueryFactory.create(options.exclusiveQuery.queryAsString));
         long parseElapsed = System.currentTimeMillis() - parseStart;
 
@@ -186,14 +186,22 @@ public class FedUPCLI {
             System.err.printf("Took %s ms to parse the query.%n", parseElapsed);
         }
 
-        long sourceSelectionStart = System.currentTimeMillis();
-        Pair<TupleExpr, Op> both = fedup.queryJenaToBothFedXAndJena(query);
-        long sourceAssignmentElapsed = System.currentTimeMillis() - sourceSelectionStart;
+        long sourceAssignmentStart = System.currentTimeMillis();
+        Op jenaSourceSelectionPlan = null;
+        TupleExpr fedXSourceSelectionPlan = null;
+        switch (options.engine) {
+            case "FedX", "fedx" -> {
+                Pair<TupleExpr, Op> both = fedup.queryJenaToBothFedXAndJena(query);
+                fedXSourceSelectionPlan = both.getLeft();
+                jenaSourceSelectionPlan = both.getRight();
+            }
+            default -> jenaSourceSelectionPlan = fedup.queryJenaToJena(query);
+        };
+        long sourceAssignmentElapsed = System.currentTimeMillis() - sourceAssignmentStart;
 
         if (options.explain) {
-            Op queryWithSources = both.getRight();
-            if (Objects.nonNull(queryWithSources)) {
-                System.err.println(OpAsQuery.asQuery(queryWithSources).toString());
+            if (Objects.nonNull(jenaSourceSelectionPlan)) {
+                System.err.println(OpAsQuery.asQuery(jenaSourceSelectionPlan).toString());
             }
             System.err.printf("Took %s ms to perform the source assignment.%n", sourceAssignmentElapsed);
         }
@@ -205,8 +213,8 @@ public class FedUPCLI {
 
         long executionStart = System.currentTimeMillis();
         QueryIterator results = switch (options.engine) {
-            case "Jena", "jena" -> fedup.executeWithJena(both.getRight());
-            case "FedX", "fedx" -> fedup.executeWithFedX(both.getLeft());
+            case "Jena", "jena" -> fedup.executeWithJena(jenaSourceSelectionPlan);
+            case "FedX", "fedx" -> fedup.executeWithFedX(fedXSourceSelectionPlan);
             default -> null; // nothing
         };
 

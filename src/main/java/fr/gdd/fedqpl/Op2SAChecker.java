@@ -35,6 +35,7 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
                 NodeFactory.createURI("row"),
                 Var.alloc("row")
                 ));
+        // return new OpTriple(Triple.create(g, NodeFactory.createURI(g.getVarName()), Var.alloc("row")));
     }
 
     @Override
@@ -42,11 +43,13 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
         Set<Var> gs = toQuads.findVars(bgp);
         OpSequence sequence = OpSequence.create();
         for (Var g : gs) {
-            sequence.add(new OpQuad(Quad.create(g,
-                    NodeFactory.createURI(g.getVarName()),
-                    NodeFactory.createURI("row"),
-                    Var.alloc("row")
-            )));
+            sequence.add(
+                    // new OpTriple(Triple.create(g, NodeFactory.createURI(g.getVarName()), Var.alloc("row")
+                    new OpQuad(Quad.create(g,
+                            NodeFactory.createURI(g.getVarName()),
+                            NodeFactory.createURI("row"),
+                            Var.alloc("row")
+                    )));
         }
 
         return sequence;

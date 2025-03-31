@@ -74,6 +74,7 @@ class FedUPTest {
                 }""";
         FedUP fedup = new FedUP(summary, dataset);
         String result = fedup.query(queryAsString, endpoints);
+        log.debug("Service query: {}", result);
         // assertEquals("SELECT*WHERE{}", result.replace("\n", "").replace(" ", ""));
     }
 

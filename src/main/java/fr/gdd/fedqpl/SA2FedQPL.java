@@ -7,17 +7,10 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
-import org.apache.commons.collections4.multiset.HashMultiSet;
-import org.apache.jena.query.Dataset;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
-import org.apache.jena.sparql.engine.Plan;
-import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
-import org.apache.jena.sparql.engine.binding.BindingRoot;
-import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.engine.main.VarFinder;
 import org.apache.jena.sparql.expr.ExprList;
 
@@ -33,8 +26,8 @@ import java.util.*;
  */
 public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
-    public static Op build(Op query, ToQuadsTransform tqt, Dataset assignmentsDataset){
-        SA2FedQPL builder = new SA2FedQPL(tqt, assignmentsDataset);
+    public static Op build(Op query, ToQuadsTransform tqt, SAAsKG assignmentsAsKG){
+        SA2FedQPL builder = new SA2FedQPL(tqt, assignmentsAsKG);
         List<Op> subExps = ReturningOpVisitorRouter.visit(builder, query);
         Mu rootUnion = new Mu(subExps.stream().toList());
 
@@ -47,15 +40,15 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     /* *************************************************************** */
 
-    ToQuadsTransform toQuads;
-    Dataset assignmentsDataset;
+    final ToQuadsTransform toQuads;
+    final SAAsKG assignmentsAsKG;
 
     OpProject topMostProjection = null;
 
     public static boolean SILENT = true;
 
-    public SA2FedQPL(ToQuadsTransform tqt, Dataset assignmentsDataset) {
-        this.assignmentsDataset = assignmentsDataset;
+    public SA2FedQPL(ToQuadsTransform tqt, SAAsKG assignmentsAsKG) {
+        this.assignmentsAsKG = assignmentsAsKG;
         this.toQuads = tqt;
     }
 
@@ -200,53 +193,11 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
     /* *************************************************************** */
 
     public MultiSet<Binding> sols(Op op) {
-        MultiSet<Binding> bindings = new HashMultiSet<>();
-        boolean inTxn = this.assignmentsDataset.isInTransaction();
-        if (!inTxn) this.assignmentsDataset.begin(ReadWrite.READ);
-
-        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(this.toQuads), op);
-
-        Plan plan = QueryEngineMain.getFactory().create(checking,
-                assignmentsDataset.asDatasetGraph(),
-                BindingRoot.create(),
-                assignmentsDataset.getContext().copy());
-
-        QueryIterator iterator = plan.iterator();
-
-        while (iterator.hasNext()) {
-            bindings.add(iterator.next());
-        }
-
-        if (!inTxn) {
-            this.assignmentsDataset.commit();
-            this.assignmentsDataset.end();
-        }
-
-        return bindings;
+        return assignmentsAsKG.sols(op);
     }
 
-
     public boolean ask(Op op) {
-        boolean inTxn = this.assignmentsDataset.isInTransaction();
-        if (!inTxn) this.assignmentsDataset.begin(ReadWrite.READ);
-
-        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(this.toQuads), op);
-
-        Plan plan = QueryEngineMain.getFactory().create(checking,
-                assignmentsDataset.asDatasetGraph(),
-                BindingRoot.create(),
-                assignmentsDataset.getContext().copy());
-
-        QueryIterator iterator = plan.iterator();
-
-        boolean result = iterator.hasNext();
-
-        if (!inTxn) {
-            this.assignmentsDataset.commit();
-            this.assignmentsDataset.end();
-        }
-
-        return result;
+        return assignmentsAsKG.ask(op);
     }
 
     /* ************************************************************* */
