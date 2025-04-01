@@ -49,7 +49,11 @@ public class ReturningOpBaseVisitor extends ReturningOpVisitor<Op> {
 
     @Override
     public Op visit(OpSequence sequence) {
-        return OpCloningUtil.clone(sequence, this.visit(sequence.getElements()));
+        OpSequence newSequence = OpSequence.create();
+        for (Op subop : sequence.getElements()) {
+            newSequence.add(ReturningOpVisitorRouter.visit(this, subop));
+        }
+        return newSequence;
     }
 
     @Override
@@ -116,5 +120,10 @@ public class ReturningOpBaseVisitor extends ReturningOpVisitor<Op> {
      */
     public List<Op> visit(List<Op> children) {
         return children.stream().map(c -> ReturningOpVisitorRouter.visit(this, c)).toList();
+    }
+
+    @Override
+    public Op visit(OpExtend extend) {
+        return OpCloningUtil.clone(extend, ReturningOpVisitorRouter.visit(this, extend.getSubOp()));
     }
 }

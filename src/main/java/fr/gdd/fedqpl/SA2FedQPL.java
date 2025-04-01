@@ -20,7 +20,7 @@ import java.util.*;
  * A source assignments is a list of sources that are expected to provide
  * actual results. By itself, it is not sufficient to provide correct and
  * complete results of the query.
- *
+ * *
  * Along with the original query plan, this visitor converts the source assignments
  * into a FedQPL expression that encodes the federated query to perform.
  */
@@ -32,7 +32,7 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         Mu rootUnion = new Mu(subExps.stream().toList());
 
         if (Objects.isNull(builder.topMostProjection)) {
-            return OpCloningUtil.clone(builder.createOpProjectWithAllVariables(query), rootUnion);
+            return OpCloningUtil.clone(createOpProjectWithAllVariables(query), rootUnion);
         } else {
             return rootUnion;
         }
@@ -40,8 +40,8 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     /* *************************************************************** */
 
-    final ToQuadsTransform toQuads;
-    final SAAsKG assignmentsAsKG;
+    protected final ToQuadsTransform toQuads;
+    protected final SAAsKG assignmentsAsKG;
 
     OpProject topMostProjection = null;
 
@@ -102,9 +102,9 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         List<Op> lefts = new HashSet<>(ReturningOpVisitorRouter.visit(this, join.getLeft())).stream().toList();
         List<Op> rights = new HashSet<>(ReturningOpVisitorRouter.visit(this, join.getRight())).stream().toList();
 
-        for (Op left : lefts) { // for each mandatory part
+        for (Op left : lefts) {
             for (Op right : rights) {
-                if (this.ask(OpJoin.create(left, right))) {
+                if (this.ask(OpJoin.create(left, right))) { // actually joins
                     results.add(new Mj(List.of(left, right)));
                 }
             }
@@ -124,20 +124,16 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
         for (Op left : lefts) { // for each mandatory part
             Mu mu = new Mu();
 
-            for (Op right : rights) {
+            for (Op right : rights) { // examine the optional part
                 if (this.ask(OpJoin.create(left, right))) {
                     mu.addChild(right);
                 }
             }
 
-            if (mu.getElements().isEmpty()) {
-                results.add(left); // nothing in OPT
-            } else if (mu.getElements().size() == 1) {
-                OpLeftJoin leftJoin = OpCloningUtil.clone(lj, left, mu.get(0));
-                results.add(leftJoin);
-            } else {
-                OpLeftJoin leftJoin = OpCloningUtil.clone(lj, left, mu);
-                results.add(leftJoin);
+            switch (mu.getElements().size()) { // simplify when possible
+                case 0 -> results.add(left); // nothing in OPT
+                case 1 -> results.add(OpCloningUtil.clone(lj, left, mu.get(0))); // only 1 child
+                default -> results.add(OpCloningUtil.clone(lj, left, mu));
             }
         }
 

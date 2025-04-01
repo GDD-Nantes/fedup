@@ -34,6 +34,7 @@ public class ReturningOpVisitorRouter {
             case OpProject o -> t.visit(o);
             case OpGroup o -> t.visit(o);
             case OpGraph o -> t.visit(o);
+            case OpExtend o -> t.visit(o);
             default -> throw new UnsupportedOperationException(op.toString());
         };
     }

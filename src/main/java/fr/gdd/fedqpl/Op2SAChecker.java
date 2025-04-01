@@ -64,7 +64,7 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
     public Op visit(Mu mu) {
         return switch (mu.getElements().size()) {
             case 0 -> OpNull.create();
-            case 1 -> ReturningOpVisitorRouter.visit(this, mu.getElements().iterator().next());
+            case 1 -> ReturningOpVisitorRouter.visit(this, mu.getElements().getFirst());
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = mu.getElements().iterator();
@@ -82,7 +82,7 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
     public Op visit(Mj mj) {
         return switch (mj.getElements().size()) {
             case 0 -> OpNull.create();
-            case 1 -> ReturningOpVisitorRouter.visit(this, mj.getElements().iterator().next());
+            case 1 -> ReturningOpVisitorRouter.visit(this, mj.getElements().getFirst());
             default -> {
                 // as nested joins
                 Iterator<Op> ops = mj.getElements().iterator();
@@ -98,6 +98,8 @@ public class Op2SAChecker extends ReturningOpBaseVisitor {
 
     @Override
     public Op visit(OpFilter filter) {
+        // ignore filters
         return ReturningOpVisitorRouter.visit(this, filter.getSubOp());
     }
+
 }

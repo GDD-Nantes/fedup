@@ -47,7 +47,7 @@ import java.util.List;
 public class FedShopTest {
 
     private static final Logger log = LoggerFactory.getLogger(FedShopTest.class);
-    public static Integer PRINTRESULTTHRESHOLD = 10;
+    public static Integer PRINTRESULTTHRESHOLD = 50;
 
     public static FedUP fedup = new FedUP(new Summary(new ModuloOnSuffix(1),
             Location.create("./temp/fedup-h0" )))
@@ -198,7 +198,7 @@ public class FedShopTest {
     @Disabled
     @Test
     public void small_try_to_benchmark_fedshop_on_multiple_executors() {
-        doItAll(Q07F);
+        doItAllWithByPassAndPrint(Q07F, "q07f");
     }
 
     @Disabled
@@ -223,7 +223,7 @@ public class FedShopTest {
     @Disabled
     @Test
     public void run_on_q05j() {
-        doItAllWithByPassAndPrint(Q11A, "Q");
+        doItAllWithByPassAndPrint(Q05J, "Q");
     }
 
     @Disabled
@@ -309,13 +309,14 @@ public class FedShopTest {
         long current = System.currentTimeMillis();
         TupleExpr toExecute = fedup.queryToFedX(query);
         long ssFedX = System.currentTimeMillis() - current;
+        // long fedxTime = -1;
         long fedxTime = measuredExecuteWithFedXWithBypassParser(toExecute);
 
         current = System.currentTimeMillis();
         // Op toExecuteJena = fedup.queryToJena(query);
         long ssJena = -1; // System.currentTimeMillis() - current;
         long jenaTime = -1;
-        //long jenaTime = measuredExecuteWithJenaWithBypassParser(toExecuteJena);
+        // long jenaTime = measuredExecuteWithJenaWithBypassParser(toExecuteJena);
 
         System.out.printf("%s %s %s %s %s%n", shortname, ssFedX, ssJena, jenaTime, fedxTime);
     }

@@ -23,6 +23,7 @@ import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,6 +112,18 @@ public class FedXTest {
         //               Var (name=animal, value=http://auth/dog)
         //               StatementSource (id=sparql_localhost:3334_graphB_sparql, type=REMOTE)
         //               BoundFilters (animal=http://auth/dog)
+    }
+
+    @Disabled
+    @Test
+    public void values_with_fedx() {
+        executeWithFedX("""
+                SELECT DISTINCT *  WHERE  {
+                   VALUES (?g1 ?g2) { (<http://localhost:5555/sparql?default-graph-uri=http://www.vendor29.fr> <http://localhost:5555/sparql?default-graph-uri=http://www.vendor29.fr>) }
+                   SERVICE ?g1 { SELECT * WHERE {?s ?p ?o} LIMIT 10 }
+                   SERVICE ?g2 { SELECT * WHERE {?s ?p ?o} LIMIT 10 }
+                }
+                """);
     }
 
     /* ***************************************************************** */

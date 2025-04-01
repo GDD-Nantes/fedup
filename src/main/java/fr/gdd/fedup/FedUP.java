@@ -1,9 +1,6 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.FedQPL2FedX;
-import fr.gdd.fedqpl.FedQPL2SPARQL;
-import fr.gdd.fedqpl.SA2FedQPL;
-import fr.gdd.fedqpl.SAAsKG;
+import fr.gdd.fedqpl.*;
 import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
@@ -250,7 +247,8 @@ public class FedUP {
         SAAsKG saAsKG = new SAAsKG(tsst.tqt, assignments2);
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
+        // Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
+        Op asFedQPL = SA2FedQPLFactorized.build(queryAsOp, tsst.tqt, saAsKG);
 
         log.info("Optimizing the resulting FedQPL plan…");
         FedQPLOptimizer optimizer = new FedQPLOptimizer()

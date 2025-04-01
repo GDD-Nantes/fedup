@@ -34,4 +34,6 @@ public class OpCloningUtil {
     public static OpGraph clone(OpGraph graph, Op subop) {
         return new OpGraph(graph.getNode(), subop);
     }
+
+    public static OpExtend clone(OpExtend extend, Op subOp) { return (OpExtend) extend.copy(subOp); }
 }

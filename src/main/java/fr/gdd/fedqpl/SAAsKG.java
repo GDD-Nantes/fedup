@@ -4,6 +4,7 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
+import org.apache.jena.query.ARQ;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.rdf.model.ResourceFactory;
@@ -53,7 +54,7 @@ public class SAAsKG {
                 ));
             }
         }
-        model2statements.forEach((k, v) -> {dataset.getNamedModel(k).add(v);});
+        model2statements.forEach((k, v) -> dataset.getNamedModel(k).add(v));
         dataset.commit();
         dataset.end();
     }
