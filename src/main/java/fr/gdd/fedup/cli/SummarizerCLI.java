@@ -18,8 +18,10 @@ import org.apache.jena.update.UpdateRequest;
 import picocli.CommandLine;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -108,10 +110,13 @@ public class SummarizerCLI {
 
         if (Objects.nonNull(options.password) && Objects.nonNull(options.username)) {
             try {
-                URI remoteSummary = new URI(options.output);
+                URI remoteSummary = getRemoteURIOrThrow(options.output);
                 AuthEnv.get().registerUsernamePassword(remoteSummary, options.username, options.password);
             } catch (URISyntaxException e) {
                 System.err.println("Error with login/password info for the remote summary.");
+                System.exit(CommandLine.ExitCode.USAGE);
+            } catch (MalformedURLException e) {
+                System.err.println("Error with the remote summary URL.");
                 System.exit(CommandLine.ExitCode.USAGE);
             }
         }
@@ -166,7 +171,7 @@ public class SummarizerCLI {
         List<Quad> quads2summarize = triples.stream().map(t -> Quad.create(NodeFactory.createURI(graph), t)).toList();
 
         try {
-            URI outputURI = new URI(pathOrUri);
+            URI ignored = getRemoteURIOrThrow(pathOrUri); // only makes sure it's url or file.
 
             Set<Quad> summarized = summary.toAdd(quads2summarize.iterator());
             UpdateModify updateModify = new UpdateModify();
@@ -182,7 +187,7 @@ public class SummarizerCLI {
                 conn.update(updateRequest);
             }
             return summarized.size();
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | MalformedURLException e) {
             // otherwise, we try to create a local TDB2 database
             return summary.add(quads2summarize.iterator());
         }
@@ -190,12 +195,24 @@ public class SummarizerCLI {
 
     /* ***************************************************************************** */
 
+    /**
+     * @param uriAsString The path to check
+     * @return The URI if it is a remote address or throw an exception if it's a file.
+     */
+    public static URI getRemoteURIOrThrow(String uriAsString) throws URISyntaxException, MalformedURLException {
+        URI remoteSummary = new URI(uriAsString);
+        if (Objects.isNull(remoteSummary.getScheme()) || remoteSummary.getScheme().equals("file")) {
+            throw new MalformedURLException();
+        }
+        URL ignored = remoteSummary.toURL();
+        return remoteSummary;
+    }
+
     public static Set<String> getGraphs (String pathOrUri) throws IOException {
         try {
-            // We try as a URI
-            URI inputURI = new URI(pathOrUri);
+            URI inputURI = getRemoteURIOrThrow(pathOrUri);
             return getGraphsFromService(inputURI);
-        } catch (URISyntaxException e) {
+        } catch (URISyntaxException | MalformedURLException e) {
             // otherwise it should be a TDB2
             Path inputAsPath = Path.of(pathOrUri);
             if (!inputAsPath.toFile().isDirectory()) {
