@@ -13,9 +13,6 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.tdb2.TDB2Factory;
-import org.apache.jena.tdb2.sys.TDBInternal;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,57 +33,45 @@ class FedUPTest {
 
     private static final Logger log = LoggerFactory.getLogger(FedUPTest.class);
 
-    static InMemorySummaryFactory imsf;
-    static Dataset dataset;
-    static Summary summary;
-    static Set<String> endpoints = Set.of("https://graphA.org", "https://graphB.org");
-
-    @BeforeAll
-    public static void initialize_dataset() {
-        imsf = new InMemorySummaryFactory();
-        dataset = imsf.getPetsDataset();
-        summary = imsf.getSimplePetsSummary();
-    }
-
-    @AfterAll
-    public static void drop_dataset() {
-        TDBInternal.expel(dataset.asDatasetGraph());
-        TDBInternal.expel(summary.getSummary().asDatasetGraph());
-    }
-
     @Test
     public void a_query_that_returns_nothing_should_generate_an_empty_sparql_query () {
-        String queryAsString = """
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        final String queryAsString = """
                 SELECT * WHERE {
                     ?s <http://something/that/doesnot/exist> ?o .
                     ?s <http://auth/named> <http://auth/Alice>
                 }""";
-        FedUP fedup = new FedUP(summary, dataset);
-        String result = fedup.query(queryAsString, endpoints);
+        final FedUP fedup = new FedUP(pets.getSimplePetsSummary(), pets.getPetsDataset());
+        final String result = fedup.query(queryAsString, Set.of("https://graphA.org", "https://graphB.org"));
         assertEquals("SELECT*WHERE{}", result.replace("\n", "").replace(" ", ""));
+        pets.close();
     }
 
     @Test
     public void a_query_with_only_one_tp () {
-        String queryAsString = """
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        final String queryAsString = """
                 SELECT * WHERE {
                     ?s <http://something/that/doesnot/exist> ?o .
                 }""";
-        FedUP fedup = new FedUP(summary, dataset);
-        String result = fedup.query(queryAsString, endpoints);
+        final FedUP fedup = new FedUP(pets.getSimplePetsSummary(), pets.getPetsDataset());
+        final String result = fedup.query(queryAsString, Set.of("https://graphA.org", "https://graphB.org"));
         log.debug("Service query: {}", result);
-        // assertEquals("SELECT*WHERE{}", result.replace("\n", "").replace(" ", ""));
+        assertEquals("SELECT*WHERE{}", result.replace("\n", "").replace(" ", ""));
+        pets.close();
     }
 
     @Test
     public void simple_query_with_two_endpoints () {
         // Alice is a constant, so it gets actually checked using an ASK
         // and since only graphA has it, it means tp#1@A&B, and tp#2@A.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     ?s <http://auth/named> ?o .
                     ?s <http://auth/named> <http://auth/Alice>
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
@@ -98,30 +83,35 @@ class FedUPTest {
         // Mu { @1 Lj @1, @1 Lj @2, @2 Lj @2, @2 Lj @1 }
         // Among others, Bob does not own a pet, which is true in @1 Lj @1 and
         // @1 Lj @2, therefore, the prefix is repeated which leads to wrong results.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT ?person ?animal WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL {
                         ?person <http://auth/owns> ?animal
                     }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void every_person_with_its_OPTIONAL_animal_and_its_number () {
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT ?person ?animal ?nb WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL { ?person <http://auth/owns> ?animal }
                     OPTIONAL { ?person <http://auth/nbPets> ?nb }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void every_person_with_its_OPTIONAL_animal_and_its_number_when_the_animal_exists () {
         // Slightly different query than before. The OPTIONAL is nested inside the
         // OPTIONAL animal.
-       checkQueryWithActualEndpoints("""
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     <http://auth/person> <http://auth/named> ?person .
                     OPTIONAL {
@@ -130,27 +120,32 @@ class FedUPTest {
                             ?person <http://auth/nbPets> ?nb
                         }
                    }
-                }""");
+                }""", pets);
+       pets.close();
     }
 
     @Test
     public void retrieve_all_people_and_all_animals_with_a_union () {
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT ?person ?any ?animal WHERE {
                     {<http://auth/person> <http://auth/named> ?person .}
                     UNION { ?any <http://auth/owns> ?animal }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void retrieve_triples_from_disjoint_sources () {
         // Alice -> cat @A
         // David -> dog @B
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     {<http://auth/Alice> <http://auth/owns> ?cat .}
                     UNION { <http://auth/David> <http://auth/owns> ?dog }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
@@ -158,11 +153,13 @@ class FedUPTest {
         // should only get Alice -> cat or David -> dog, but with ORDER BY
         // should only get Alice -> cat since "dog" is after "cat" in
         // lexicographical order.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     ?people <http://auth/owns> ?animal
                 } ORDER BY ?animal LIMIT 1
-                """);
+                """, pets);
+        pets.close();
     }
 
     @Test
@@ -172,31 +169,37 @@ class FedUPTest {
         // TODO replace data structure so we can see the order
         // TODO of arrival of results.
         // TODO OR get next by next in the execution function
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT ?people WHERE {
                     ?people <http://auth/owns> ?animal
                 } ORDER BY ?animal
-                """);
+                """, pets);
+        pets.close();
     }
 
     @Test
     public void query_with_twice_the_same_data () {
         // twice the same data
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     UNION { ?people <http://auth/owns> ?animal }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void query_with_a_distinct_to_remove_duplicates () {
         // twice the same data but the distinct removes duplicates
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     UNION { ?people <http://auth/owns> ?animal }
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
@@ -204,31 +207,37 @@ class FedUPTest {
         // remove one of the solution, keeping David and his dog.
         // however, endpointA still appears in the logical plan since
         // FedUP removes filter to operate.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     FILTER ( ?animal = <http://auth/dog> )
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void query_with_a_filter_clause_that_is_useless () {
         // remove all solution as ?meow is undefined. But it
         // still needs to be pushed down in both branches.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     FILTER ( ?meow = <http://auth/dog> )
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void query_with_a_conjunctive_filter_clause_should_be_split () {
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal }
                     FILTER ( ?meow = <http://auth/dog> && ?animal = <http://auth/dog>)
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
@@ -236,21 +245,23 @@ class FedUPTest {
         // remove one of the solution, keeping David and his dog.
         // however, endpointA still appears in the logical plan since
         // FedUP removes filter to operate.
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
         checkQueryWithActualEndpoints("""
                 SELECT DISTINCT * WHERE {
                     { ?people <http://auth/owns> ?animal .
                       ?people  <http://auth/nbPets> ?nb
                     }
                     FILTER ( ?meow = <http://auth/dog> && ?animal = <http://auth/dog>)
-                }""");
+                }""", pets);
+        pets.close();
     }
 
     @Test
     public void tricky_query_with_two_optionals() {
-        Dataset dataset = TDB2Factory.createDataset();
+        final Dataset dataset = TDB2Factory.createDataset();
         dataset.begin(ReadWrite.WRITE);
 
-        List<String> statements = Arrays.asList(
+        List<String> statements = List.of(
                 "<http://auth/Alice> <http://something/owns> <http://auth/dog>."
         );
 
@@ -299,10 +310,10 @@ class FedUPTest {
      * if everything is ok.
      * @param queryAsString The normal query to execute (not the service one).
      */
-    public static void checkQueryWithActualEndpoints(String queryAsString) {
+    public static MultiSet<Binding> checkQueryWithActualEndpoints(String queryAsString, InMemorySummaryFactory imsf) {
         // before, had to replace manually (see below), now we have a convenience function
         // `modifyEndpoints` to do that instead.
-        FedUP fedup = new FedUP(summary, dataset)
+        FedUP fedup = new FedUP(imsf.getSimplePetsSummary(), imsf.getPetsDataset())
                 .shouldNotFactorize()
                 .modifyEndpoints(e ->
                         e.contains("graphA") ?
@@ -310,7 +321,7 @@ class FedUPTest {
                                 "http://localhost:3334/graphB/sparql"
                 );
 
-        String result = fedup.query(queryAsString, endpoints);
+        String result = fedup.query(queryAsString,  Set.of("https://graphA.org", "https://graphB.org"));
 
         // In the summary, they are placeholder, so we replace the value by the proper
         // In reality, the summary would have ingested the actual uri, so no problem.
@@ -319,9 +330,11 @@ class FedUPTest {
         // result = result.replace("https://graphA.org", endpointA)
         //         .replace("https://graphB.org", endpointB);
 
-        List<FusekiServer> servers = startServers();
-        log.debug("Results are {}", equalExecutionResults(queryAsString, result, dataset));
+        List<FusekiServer> servers = startServers(imsf);
+        var results = equalExecutionResults(queryAsString, result, imsf.getPetsDataset());
+        log.debug("Results are {}", results);
         stopServers(servers);
+        return results;
     }
 
     /* ********************************************************************** */
@@ -364,25 +377,22 @@ class FedUPTest {
 
     /* ***************************************************************** */
 
-    public static List<FusekiServer> startServers() {
+    public static List<FusekiServer> startServers(InMemorySummaryFactory imsf) {
         // create the server
         FusekiServer serverA = FusekiServer.create()
                 .port(3333)
                 .add("graphA", imsf.getGraph("https://graphA.org"))
                 .build();
-
         FusekiServer serverB = FusekiServer.create()
                 .port(3334)
                 .add("graphB", imsf.getGraph("https://graphB.org"))
                 .build();
-
         serverA.start();
         serverB.start();
-
         return List.of(serverA, serverB);
     }
 
     public static void stopServers(List<FusekiServer> servers) {
-        servers.forEach(s -> s.stop());
+        servers.forEach(FusekiServer::stop);
     }
 }

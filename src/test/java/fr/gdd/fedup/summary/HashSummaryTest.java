@@ -51,6 +51,7 @@ class HashSummaryTest {
 
         assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());
         hgs.getSummary().end();
+        qe.close();
     }
 
     /* ******************************************************************* */
@@ -84,6 +85,7 @@ class HashSummaryTest {
 
         assertEquals(1, hgs.getSummary().getNamedModel(graphURI.getURI()).size());
         hgs.getSummary().end();
+        qe.close();
     }
 
 }

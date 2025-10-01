@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ToSourceSelectionTransformsTest {
 
-    Logger log = LoggerFactory.getLogger(ToSourceSelectionTransformsTest.class);
+    private final static Logger log = LoggerFactory.getLogger(ToSourceSelectionTransformsTest.class);
 
     static Dataset dataset;
     static Summary summary;

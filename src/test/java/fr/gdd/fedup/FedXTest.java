@@ -1,18 +1,15 @@
 package fr.gdd.fedup;
 
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
-import fr.gdd.fedup.summary.Summary;
 import org.apache.commons.collections4.MultiSet;
 import org.apache.commons.collections4.multiset.HashMultiSet;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.core.Var;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 import org.apache.jena.sparql.engine.binding.BindingFactory;
-import org.apache.jena.tdb2.sys.TDBInternal;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
@@ -21,8 +18,6 @@ import org.eclipse.rdf4j.query.Binding;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.TupleQuery;
 import org.eclipse.rdf4j.query.TupleQueryResult;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,26 +32,10 @@ import java.util.List;
  */
 public class FedXTest {
 
-    Logger log = LoggerFactory.getLogger(FedXTest.class);
+    private final static Logger log = LoggerFactory.getLogger(FedXTest.class);
 
-    static Dataset dataset;
-    static Summary summary;
     static List<String> graphs = List.of("https://graphA.org", "https://graphB.org");
     static List<String> endpoints = List.of("http://localhost:3333/graphA/sparql", "http://localhost:3334/graphB/sparql");
-
-
-    @BeforeAll
-    public static void initialize_dataset() {
-        InMemorySummaryFactory imsf = new InMemorySummaryFactory();
-        dataset = imsf.getPetsDataset();
-        summary = imsf.getSimplePetsSummary();
-    }
-
-    @AfterAll
-    public static void drop_dataset() {
-        TDBInternal.expel(dataset.asDatasetGraph());
-        TDBInternal.expel(summary.getSummary().asDatasetGraph());
-    }
 
     @Test
     public void fedup_to_fedx_with_optional() {
@@ -90,8 +69,7 @@ public class FedXTest {
                           { ?people  <http://auth/owns>  ?animal}
                       }
                     FILTER ( ?animal = <http://auth/dog> )
-                  }
-                  """);
+                  }""");
         // QueryRoot
         //   Distinct
         //      Projection
@@ -113,18 +91,34 @@ public class FedXTest {
         //               BoundFilters (animal=http://auth/dog)
     }
 
-    /* ***************************************************************** */
+    /* ********************************** UTILS *************************************** */
 
-    public void executeFedUPThenFedX(String queryAsString) {
-        FedUP fedup = new FedUP(summary, dataset).shouldNotFactorize();
+    /**
+     * Starts an Apache Fuseki endpoint with the summary and dataset to execute a
+     * SPARQL query.
+     * @param queryAsString The SPARQL query to execute.
+     * @param imsf The summary and dataset of graphs emulating a federation.
+     */
+    public void executeFedUPThenFedX(String queryAsString, InMemorySummaryFactory imsf) {
+        final FedUP fedup = new FedUP(imsf.getSimplePetsSummary(), imsf.getPetsDataset()).shouldNotFactorize();
         String result = fedup.query(queryAsString, new HashSet<>(graphs));
         // so we need to replace
         result = result.replace(graphs.get(0), endpoints.get(0))
                 .replace(graphs.get(1), endpoints.get(1));
 
-        List<FusekiServer> servers = FedUPTest.startServers();
+        List<FusekiServer> servers = FedUPTest.startServers(imsf);
         executeWithFedX(result);
         FedUPTest.stopServers(servers);
+    }
+
+    /**
+     * Starts an Apache Fuseki endpoint with a pet dataset with 2 graphs.
+     * @param queryAsString The SPARQL query to execute on the pet dataset.
+     */
+    public void executeFedUPThenFedX(String queryAsString) {
+        final InMemorySummaryFactory imsf = new InMemorySummaryFactory();
+        executeFedUPThenFedX(queryAsString, imsf);
+        imsf.close();
     }
 
 
@@ -173,13 +167,13 @@ public class FedXTest {
                 valueAsNode = NodeFactory.createURI(value.getValue().stringValue());
             } else if (value.getValue().isLiteral()) {
                 if (value.getValue().toString().contains(XSDDatatype.XSDinteger.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDinteger);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDinteger);
                 } else if (value.getValue().toString().contains(XSDDatatype.XSDdouble.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdouble);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDdouble);
                 } else if (value.getValue().toString().contains(XSDDatatype.XSDdateTime.getURI())) {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue(), XSDDatatype.XSDdateTime);
+                    valueAsNode = NodeFactory.createLiteralDT(value.getValue().stringValue(), XSDDatatype.XSDdateTime);
                 } else {
-                    valueAsNode = NodeFactory.createLiteral(value.getValue().stringValue());
+                    valueAsNode = NodeFactory.createLiteralString(value.getValue().stringValue());
                 }
             } else if (value.getValue().isResource() || value.getValue().isTriple()) {
                 throw new UnsupportedOperationException("RDF4J to Jena Bindings with a resource or a triple.");

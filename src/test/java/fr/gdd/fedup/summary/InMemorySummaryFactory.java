@@ -7,6 +7,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.tdb2.sys.TDBInternal;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -18,13 +19,14 @@ import java.util.Objects;
 /**
  * A simple in memory summary to help with testing.
  */
-public class InMemorySummaryFactory {
+public class InMemorySummaryFactory implements AutoCloseable {
 
     Dataset petsDataset;
     Summary simplePetsSummary;
 
     /**
-     * /!\ must call summary first (TODO) remove this requirement
+     * @return A dataset comprising triples about pets and ownership distributed
+     *         in two graphs.
      */
     public Dataset getPetsDataset() {
         if (Objects.isNull(petsDataset)) {
@@ -33,6 +35,9 @@ public class InMemorySummaryFactory {
         return petsDataset;
     }
 
+    /**
+     * @return The summary dataset of the dataset about pets.
+     */
     public Summary getSimplePetsSummary() {
         if (Objects.nonNull(simplePetsSummary)) {
             return simplePetsSummary;
@@ -95,5 +100,21 @@ public class InMemorySummaryFactory {
         petsDataset.commit();
         petsDataset.close();
         return dataset;
+    }
+
+    @Override
+    public void close() {
+        if (Objects.nonNull(petsDataset)) {
+            if (petsDataset.isInTransaction()) petsDataset.commit();
+            petsDataset.close();
+            TDBInternal.expel(petsDataset.asDatasetGraph());
+            petsDataset = null;
+        }
+        if (Objects.nonNull(simplePetsSummary)) {
+            if (simplePetsSummary.getSummary().isInTransaction()) simplePetsSummary.getSummary().commit();
+            simplePetsSummary.getSummary().close();
+            TDBInternal.expel(simplePetsSummary.getSummary().asDatasetGraph());
+            simplePetsSummary = null;
+        }
     }
 }

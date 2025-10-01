@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class FedQPL2SPARQLTest {
 
-    Logger log = LoggerFactory.getLogger(FedQPL2SPARQLTest.class);
+    private static final Logger log = LoggerFactory.getLogger(FedQPL2SPARQLTest.class);
 
     @Test
     public void simple_req_writes_as_a_service() {

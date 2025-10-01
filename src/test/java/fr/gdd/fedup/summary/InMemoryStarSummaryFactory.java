@@ -19,10 +19,10 @@ import java.util.Objects;
  */
 public class InMemoryStarSummaryFactory {
 
-    static Dataset petsDataset;
+    Dataset petsDataset;
     // TODO the corresponding summary
 
-    public static Dataset getPetsDataset() {
+    public Dataset getPetsDataset() {
         if (Objects.nonNull(petsDataset)) {
             return petsDataset;
         }

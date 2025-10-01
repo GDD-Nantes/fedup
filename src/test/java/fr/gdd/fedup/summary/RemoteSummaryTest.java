@@ -19,7 +19,7 @@ public class RemoteSummaryTest {
     @Disabled
     @Test
     public void try_out_an_identity_remote_virtuoso() {
-        Summary s = new Summary(new TransformCopy());
+        final Summary s = new Summary(new TransformCopy());
         s.setRemote(VIRTUOSO_ENDPOINT_URL);
         Set<String> graphs = s.getGraphs();
         log.debug("Got {} graphs.", graphs.size());

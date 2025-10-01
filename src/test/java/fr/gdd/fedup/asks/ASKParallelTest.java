@@ -5,7 +5,6 @@ import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.NodeFactory;
 import org.apache.jena.graph.Triple;
-import org.apache.jena.query.Dataset;
 import org.apache.jena.sparql.core.Var;
 import org.junit.jupiter.api.Test;
 
@@ -19,14 +18,13 @@ class ASKParallelTest {
 
     @Test
     public void testing_asks_on_one_graph_as_endpoint() {
-        Dataset dataset = new InMemorySummaryFactory().getPetsDataset();
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        final String graphA = "https://graphA.org";
+        final String graphB = "https://graphB.org";
+        final ASKParallel pa = new ASKParallel(Set.of(graphA));
+        pa.setDataset(pets.getPetsDataset());
 
-        String graphA = "https://graphA.org";
-        String graphB = "https://graphB.org";
-        ASKParallel pa = new ASKParallel(Set.of(graphA));
-        pa.setDataset(dataset);
-
-        Triple triple = Triple.create(Var.alloc("s"),
+        final Triple triple = Triple.create(Var.alloc("s"),
                 NodeFactory.createURI("http://auth/named"),
                 NodeFactory.createURI("http://auth/Alice"));
 
@@ -34,58 +32,57 @@ class ASKParallelTest {
 
         assertTrue(pa.get(graphA, triple));
         assertFalse(pa.get(graphB, triple));
+        pets.close();
     }
 
     @Test
     public void testing_asks_on_two_local_endpoints() {
-        Dataset dataset = new InMemorySummaryFactory().getPetsDataset();
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        final String graphA = "https://graphA.org";
+        final String graphB = "https://graphB.org";
+        final ASKParallel pa = new ASKParallel(Set.of(graphA, graphB));
+        pa.setDataset(pets.getPetsDataset());
 
-        String graphA = "https://graphA.org";
-        String graphB = "https://graphB.org";
-        ASKParallel pa = new ASKParallel(Set.of(graphA, graphB));
-        pa.setDataset(dataset);
+        final Node s = Var.alloc("s");
+        final Node p = NodeFactory.createURI("http://auth/named");
+        final Node o = NodeFactory.createURI("http://auth/Alice");
 
-        Node s = Var.alloc("s");
-        Node p = NodeFactory.createURI("http://auth/named");
-        Node o = NodeFactory.createURI("http://auth/Alice");
-
-        Triple triple = Triple.create(s, p, o);
+        final Triple triple = Triple.create(s, p, o);
         pa.execute(List.of(triple));
 
         assertTrue(pa.get(graphA, triple));
         assertFalse(pa.get(graphB, triple));
 
-        Node s2 = Var.alloc("s");
-        Node p2 = NodeFactory.createURI("http://auth/named");
-        Node o2 = NodeFactory.createURI("http://auth/Carol");
-        Triple triple2 = Triple.create(s2, p2, o2);
+        final Node s2 = Var.alloc("s");
+        final Node p2 = NodeFactory.createURI("http://auth/named");
+        final Node o2 = NodeFactory.createURI("http://auth/Carol");
+        final Triple triple2 = Triple.create(s2, p2, o2);
 
         pa.execute(List.of(triple2));
         assertTrue(pa.get(graphA, triple));
         assertFalse(pa.get(graphB, triple));
         assertFalse(pa.get(graphA, triple2));
         assertTrue(pa.get(graphB, triple2));
+        pets.close();
     }
 
     @Test
     public void test_on_remote_endpoints() {
-        InMemorySummaryFactory imsf = new InMemorySummaryFactory();
-        Node s = Var.alloc("s");
-        Node p = NodeFactory.createURI("http://auth/named");
-        Node o = NodeFactory.createURI("http://auth/Alice");
-        Triple triple = Triple.create(s, p, o);
+        final InMemorySummaryFactory pets = new InMemorySummaryFactory();
+        final Node s = Var.alloc("s");
+        final Node p = NodeFactory.createURI("http://auth/named");
+        final Node o = NodeFactory.createURI("http://auth/Alice");
+        final Triple triple = Triple.create(s, p, o);
 
         // create the server
         FusekiServer serverA = FusekiServer.create()
                 .port(3333)
-                .add("graphA", imsf.getGraph("https://graphA.org"))
+                .add("graphA", pets.getGraph("https://graphA.org"))
                 .build();
-
         FusekiServer serverB = FusekiServer.create()
                 .port(3334)
-                .add("graphB", imsf.getGraph("https://graphB.org"))
+                .add("graphB", pets.getGraph("https://graphB.org"))
                 .build();
-
         String endpointA = "http://localhost:3333/graphA/sparql";
         String endpointB = "http://localhost:3334/graphB/sparql";
 
@@ -107,6 +104,7 @@ class ASKParallelTest {
 
         serverA.stop();
         serverB.stop();
+        pets.close();
     }
 
 }
