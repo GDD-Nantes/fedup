@@ -1,5 +1,7 @@
 package fr.gdd.fedqpl;
 
+import fr.gdd.fedqpl.visitors.ReturningArgsOpVisitor;
+import fr.gdd.fedqpl.visitors.ReturningArgsOpVisitorRouter;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
@@ -72,7 +74,7 @@ public class SAAsKG {
         boolean inTxn = dataset.isInTransaction();
         if (!inTxn) dataset.begin(ReadWrite.READ);
 
-        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(tqt), op);
+        Op checking = ReturningArgsOpVisitorRouter.visit(new Op2SAChecker(tqt), op, null);
 
         // previously was using QueryEngineMain but was way slower than QueryEngineTDB
         Plan plan = QueryEngineTDB.getFactory().create(checking,
@@ -102,7 +104,7 @@ public class SAAsKG {
         boolean inTxn = dataset.isInTransaction();
         if (!inTxn) dataset.begin(ReadWrite.READ);
 
-        Op checking = ReturningOpVisitorRouter.visit(new Op2SAChecker(tqt), op);
+        Op checking = ReturningArgsOpVisitorRouter.visit(new Op2SAChecker(tqt), op, null);
 
         Plan plan = QueryEngineTDB.getFactory().create(checking,
                 dataset.asDatasetGraph(),
