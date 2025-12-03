@@ -227,7 +227,9 @@ public class SummarizerCLI {
         try {
             // We try as a URI
             URI inputURI = new URI(pathOrUri);
-            return getSPOFromServiceGraph(inputURI, graph);
+            List<Triple> triples = getSPOFromServiceGraph(inputURI, graph);
+            if (Objects.isNull(triples)) throw new URISyntaxException("", "");
+            return triples;
         } catch (URISyntaxException e) {
             // otherwise it should be a TDB2
             Path inputAsPath = Path.of(pathOrUri); // would throw before
@@ -240,13 +242,18 @@ public class SummarizerCLI {
 
     public static Set<String> getGraphsFromTDB2 (Dataset dataset) {
         dataset.begin(ReadWrite.READ);
+
         Iterator<Node> graphs = dataset.asDatasetGraph().listGraphNodes();
-        dataset.end();
+
         Set<String> results = new HashSet<>();
         while (graphs.hasNext()) {
             Node graphNode = graphs.next();
+            System.out.println(graphNode.getURI());
             results.add(graphNode.getURI());
         }
+
+        dataset.end();
+
         return results;
     }
 
