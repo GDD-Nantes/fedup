@@ -75,6 +75,16 @@ public class ReturningOpBaseVisitor extends ReturningOpVisitor<Op> {
     }
 
     @Override
+    public Op visit(OpExtend extend) {
+        return OpCloningUtil.clone(extend, ReturningOpVisitorRouter.visit(this, extend.getSubOp()));
+    }
+
+    @Override
+    public Op visit(OpAssign assign) {
+        return OpCloningUtil.clone(assign, ReturningOpVisitorRouter.visit(this, assign.getSubOp()));
+    }
+
+    @Override
     public Op visit(OpUnion union) {
        return new OpUnion(ReturningOpVisitorRouter.visit(this, union.getLeft()), ReturningOpVisitorRouter.visit(this, union.getRight()));
     }

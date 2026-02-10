@@ -37,4 +37,5 @@ public class ReturningOpVisitor<T> {
     public T visit(OpGroup groupBy) {throw new UnsupportedOperationException("OpGroup");}
 
     public T visit(OpExtend extend) {throw new UnsupportedOperationException("OpExtend");}
+    public T visit(OpAssign assign) {throw new UnsupportedOperationException("OpAssign");}
 }

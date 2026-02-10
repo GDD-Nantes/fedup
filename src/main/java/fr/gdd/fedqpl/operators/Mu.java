@@ -5,6 +5,9 @@ import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpVisitor;
 import org.apache.jena.sparql.algebra.Transform;
 import org.apache.jena.sparql.algebra.op.OpN;
+import org.apache.jena.sparql.algebra.walker.ApplyTransformVisitor;
+import org.apache.jena.sparql.algebra.walker.WalkerVisitor;
+import org.apache.jena.sparql.engine.iterator.QueryIterLateral;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
 import java.util.List;
@@ -59,12 +62,21 @@ public class Mu extends OpN {
 
     @Override
     public void visit(OpVisitor opVisitor) {
-        throw new UnsupportedOperationException();
+        if( opVisitor instanceof WalkerVisitor walkerVisitor ) {
+            walkerVisitor.visitN(this);
+        }
+        else if (opVisitor instanceof ApplyTransformVisitor applyTransformVisitor ) {
+            applyTransformVisitor.visitN(this);
+        }
+        else throw new UnsupportedOperationException();
     }
 
     @Override
     public Op apply(Transform transform, List<Op> elts) {
-        throw new UnsupportedOperationException();
+        if(transform instanceof QueryIterLateral.TransformInject transformInject ) {
+            return new Mu(elts);
+        }
+        else throw new UnsupportedOperationException();
     }
 
     @Override

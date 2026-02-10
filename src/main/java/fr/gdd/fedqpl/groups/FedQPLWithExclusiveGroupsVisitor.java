@@ -85,6 +85,14 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
         return new Mj(mjChildren);
     }
 
+    public Op visit(OpJoin join) {
+        return ReturningOpVisitorRouter.visit(this, new Mj(List.of(join.getLeft(), join.getRight())));
+    }
+
+    public Op visit(OpUnion union) {
+        return ReturningOpVisitorRouter.visit(this, new Mu(List.of(union.getLeft(), union.getRight())));
+    }
+
     @Override
     public Op visit(OpConditional lj) {
         // check if left and right should be one big `Req` then merge

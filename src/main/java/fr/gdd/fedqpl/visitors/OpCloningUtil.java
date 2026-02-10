@@ -15,6 +15,8 @@ public class OpCloningUtil {
     public static OpOrder clone (OpOrder orderBy, Op subOp) {return new OpOrder(subOp, orderBy.getConditions());}
     public static OpProject clone (OpProject project, Op subOp) {return new OpProject(subOp, project.getVars());}
     public static OpFilter clone(OpFilter filter, Op subOp) {return OpFilter.filterDirect(filter.getExprs(), subOp);}
+    public static OpExtend clone(OpExtend extend, Op subOp) {return OpExtend.create(subOp,extend.getVarExprList());}
+    public static OpAssign clone(OpAssign assign, Op subOp) {return OpAssign.create(subOp,assign.getVarExprList());}
     public static OpGroup clone(OpGroup group, Op subOp) {return new OpGroup(subOp, group.getGroupVars(), group.getAggregators());}
     public static OpUnion clone(OpUnion union, Op left, Op right) {return new OpUnion(left, right);}
     public static OpJoin clone(OpJoin join, Op left, Op right) {return (OpJoin) OpJoin.create(left, right);}
