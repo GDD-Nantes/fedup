@@ -12,13 +12,17 @@ import org.apache.jena.riot.resultset.ResultSetReaderRegistry;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import picocli.CommandLine;
 
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -108,6 +112,38 @@ public class FedUPCLI {
     public String filterRegex = ".*"; // by default allows everything
 
     @picocli.CommandLine.Option(
+            order = 8,
+            names = {"-p", "--print"},
+            paramLabel = "path/to/file",
+            description = """
+                    Prints the output SPARQL query to the specified file.""")
+    public String printSparql;
+
+    @picocli.CommandLine.Option(
+            order = 9,
+            names = {"--id"},
+            paramLabel = "fedup-id",
+            description = """
+                    Used to indicate that no modification should be applied to literals and URIs inside the source selection query.""")
+    public Boolean id = false;
+
+    @picocli.CommandLine.Option(
+            order = 10,
+            names = {"--values"},
+            paramLabel = "values",
+            description = """
+                    Used to indicate that results should be output as VALUES SERVICE queries as much as possible""")
+    public Boolean factorize = false;
+
+    @picocli.CommandLine.Option(
+            order = 11,
+            names = {"--no-uoj"},
+            paramLabel = "no-uoj",
+            description = """
+                    Used with --values to indicate that the plan should be directly computed as VALUES SERVIES, instead of developped as a union over join plan and factorized later.""")
+    public Boolean no_uoj = false;
+
+    @picocli.CommandLine.Option(
             order = Integer.MAX_VALUE, // last
             names = {"-h", "--help"},
             usageHelp = true,
@@ -153,15 +189,17 @@ public class FedUPCLI {
         // TODO, no necessarily modulo on suffix…
         Summary summary;
         if (Path.of(options.summaryPath).toFile().isDirectory()) {
-            summary = new Summary(new ModuloOnSuffix(1), Location.create(Path.of(options.summaryPath)));
+            summary = new Summary(options.id ? new TransformCopy() : new ModuloOnSuffix(1), Location.create(Path.of(options.summaryPath)));
         } else {
-            summary = new Summary(new ModuloOnSuffix(1));
+            summary = new Summary(options.id ? new TransformCopy() : new ModuloOnSuffix(1));
             summary.setRemote(options.summaryPath); // TODO check if actually an URI
         }
         summary.setPattern(options.filterRegex);
 
         long startTimeGraphs = System.currentTimeMillis();
         FedUP fedup = new FedUP(summary);
+        fedup.shouldFactorize(options.factorize);
+        fedup.shouldTryWithValuesFirst(options.no_uoj);
         long elapsedTimeGraphs = System.currentTimeMillis() - startTimeGraphs;
         if (options.explain) {
             // because graphs are lazily initialized in fedup.
@@ -204,6 +242,17 @@ public class FedUPCLI {
                 System.err.println(OpAsQuery.asQuery(jenaSourceSelectionPlan).toString());
             }
             System.err.printf("Took %s ms to perform the source assignment.%n", sourceAssignmentElapsed);
+        }
+
+        if (Objects.nonNull(options.printSparql)) {
+            if (Objects.nonNull(jenaSourceSelectionPlan)) {
+                try {
+                    Path file = Paths.get(options.printSparql);
+                    Files.write(file, Collections.singleton(OpAsQuery.asQuery(jenaSourceSelectionPlan).toString()), StandardCharsets.UTF_8);
+                } catch (Exception e) {
+                    System.err.printf("Something went wrong while trying to write to %s", options.printSparql);
+                }
+            }
         }
 
         if (Objects.isNull(options.engine)) {

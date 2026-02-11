@@ -48,7 +48,8 @@ public class IM4LabelSummaryFactory implements AutoCloseable {
 
         List<String> statements = Arrays.asList(
                 "<http://graphA/Alice> <http://auth/type> <http://auth/person>. ",
-                "<http://graphA/Alice> <http://auth/label> \"Alice\". "
+                "<http://graphA/Alice> <http://auth/label> \"Alice\". ",
+                "<http://graphA/Alice> <http://auth/age> \"25\"."
         );
 
         InputStream statementsStream = new ByteArrayInputStream(String.join("\n", statements).getBytes());

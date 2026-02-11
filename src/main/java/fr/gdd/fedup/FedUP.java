@@ -1,9 +1,6 @@
 package fr.gdd.fedup;
 
-import fr.gdd.fedqpl.FedQPL2FedX;
-import fr.gdd.fedqpl.FedQPL2SPARQL;
-import fr.gdd.fedqpl.SA2FedQPL;
-import fr.gdd.fedqpl.SAAsKG;
+import fr.gdd.fedqpl.*;
 import fr.gdd.fedqpl.groups.*;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.adapters.TupleQueryResult2QueryIterator;
@@ -28,9 +25,11 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
 import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.util.Context;
+import org.apache.jena.system.Txn;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
+import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
 import org.eclipse.rdf4j.query.algebra.EmptySet;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
@@ -62,6 +61,7 @@ public class FedUP {
     boolean shouldFactorize = false;
     // If we want to execute it on FedX
     FedXRepository fedx = null; // lazy
+    boolean tryWithValuesFirst = false;
 
 
     // mostly for testing purposes when there are no real endpoints to query.
@@ -104,6 +104,11 @@ public class FedUP {
         return this;
     }
 
+    public FedUP shouldFactorize(boolean shouldFactorize) {
+        this.shouldFactorize = shouldFactorize;
+        return this;
+    }
+
     public FedUP shouldFactorize() {
         this.shouldFactorize = true;
         return this;
@@ -111,6 +116,21 @@ public class FedUP {
 
     public FedUP shouldNotFactorize() {
         this.shouldFactorize = false;
+        return this;
+    }
+
+    public FedUP shouldTryWithValuesFirst(boolean tryWithValuesFirst) {
+        this.tryWithValuesFirst = tryWithValuesFirst;
+        return this;
+    }
+
+    public FedUP shouldTryWithValuesFirst() {
+        this.tryWithValuesFirst = true;
+        return this;
+    }
+
+    public FedUP shouldNotTryWithValuesFirst() {
+        this.tryWithValuesFirst = false;
         return this;
     }
 
@@ -167,7 +187,7 @@ public class FedUP {
         Op asFedQPL = queryToFedQPL(queryAsOp, endpoints);
         log.info("Building the SPARQL SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
-        log.info("Built the following query:\n{}", asSPARQL);
+//        log.info("Built the following query:\n{}", asSPARQL);
         return asSPARQL;
     }
 
@@ -250,16 +270,30 @@ public class FedUP {
         SAAsKG saAsKG = new SAAsKG(tsst.tqt, assignments2);
 
         log.info("Building the FedQPL query…");
-        Op asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
+        Op asFedQPL;
+        FedQPLOptimizer optimizer;
+        try {
+            if(!(shouldFactorize && tryWithValuesFirst)) throw new UnsupportedOperationException();
 
-        log.info("Optimizing the resulting FedQPL plan…");
-        FedQPLOptimizer optimizer = new FedQPLOptimizer()
-                .register(new FedQPLSimplifyVisitor()) // TODO configurable
-                .register(new FedQPLWithExclusiveGroupsVisitor());
+                asFedQPL = SA2FedQPLWithValues.build(queryAsOp, tsst.tqt, saAsKG);
 
-        if (shouldFactorize) {
-            optimizer.register(new FactorizeUnionsOfReqsVisitor())
-                    .register(new FactorizeUnionsOfLeftJoinsVisitor());
+                log.info("Optimizing the resulting FedQPL plan…");
+                optimizer = new FedQPLOptimizer()
+                        .register(new FedQPLSimplifyVisitor())
+                        .register(new ValuesServiceFedQPLWithExclusiveGroupsVisitor());
+
+        } catch (UnsupportedOperationException uoe){
+            asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
+
+            log.info("Optimizing the resulting FedQPL plan…");
+            optimizer = new FedQPLOptimizer()
+                    .register(new FedQPLSimplifyVisitor()) // TODO configurable
+                    .register(new FedQPLWithExclusiveGroupsVisitor());
+
+            if (shouldFactorize) {
+                optimizer.register(new FactorizeUnionsOfReqsVisitor())
+                        .register(new FactorizeUnionsOfLeftJoinsVisitor());
+            }
         }
 
         try { // instead of try catch, include the cases in optimizers
@@ -296,9 +330,12 @@ public class FedUP {
     }
 
     public QueryIterator executeWithFedX(TupleExpr queryAsFedX) {
+        // initialize
+        var connection = getFedX().getConnection();
+
         // then run the query
         log.info("Running the query using FedX…");
-        return new TupleQueryResult2QueryIterator(getFedX().getConnection(), queryAsFedX);
+        return new TupleQueryResult2QueryIterator(connection, queryAsFedX);
     }
 
     public QueryIterator executeWithJena(Op queryAsJena) {
