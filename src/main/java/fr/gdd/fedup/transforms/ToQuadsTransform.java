@@ -45,7 +45,13 @@ public class ToQuadsTransform extends TransformCopy {
     }
 
     public Var findVar(OpTriple opTriple) {
-        return triple2var.get(opTriple.getTriple()).stream().filter(e -> e.getLeft() == opTriple).map(Pair::getRight).findFirst().orElse(null);
+        // .filter(e -> e.getLeft() == opTriple, null)
+        // has been changed to :
+        // .filter(e -> e.getLeft().equalTo(opTriple, null))
+        // TODO : make sure this is ok. It's unclear why it was like that, but it caused some triples not to be matched with
+        // TODO : their corresponding var in the map because the saved and tested opTriple weren't exactly the same instance,
+        // TODO : even though they had equal subject predicate and object.
+        return triple2var.get(opTriple.getTriple()).stream().filter(e -> e.getLeft().equalTo(opTriple, null)).map(Pair::getRight).findFirst().orElse(null);
     }
 
     public Set<Var> findVars(OpBGP opBGP) {
