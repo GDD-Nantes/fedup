@@ -9,10 +9,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -34,7 +31,23 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
 
         // builds new nested unions
         List<OpService> newGroups = new ArrayList<>();
-        for (Node uri : groups.keySet()) {
+        // Ensures groups are always iterated over in the same order.
+        // In other words : the key / node value doesn't determine in which order the groups are processed,
+        // but rather the groups themselves.
+        // This doesn't change much, but it helps keeping ValuesServiceFedQPLWithExclusiveGroupsVisitor consistent.
+        List<Map.Entry> entriesSortedByGroup = groups.entrySet()
+                .stream()
+                .sorted(Comparator.comparing(
+                        entry ->
+                                entry.getValue().stream()
+                                        .map(opService -> opService.getSubOp())
+                                        .collect(Collectors.toList())
+                                        .toString()
+                ))
+                .collect(Collectors.toUnmodifiableList());
+
+        for (Map.Entry<Node, List<OpService>> entry : entriesSortedByGroup) {
+            Node uri = entry.getKey();
             if (groups.get(uri).size() <= 1) {
                 newGroups.add(groups.get(uri).getFirst());
             } else {
@@ -65,7 +78,25 @@ public class FedQPLWithExclusiveGroupsVisitor extends ReturningOpBaseVisitor {
 
         // builds new joins
         List<OpService> newGroups = new ArrayList<>();
-        for (Node uri : groups.keySet()) {
+        // Ensures groups are always iterated over in the same order.
+        // In other words : the key / node value doesn't determine in which order the groups are processed,
+        // but rather the groups themselves.
+        // This doesn't change much, but it helps keeping ValuesServiceFedQPLWithExclusiveGroupsVisitor consistent.
+        List<Map.Entry> entriesSortedByGroup = groups.entrySet()
+                .stream()
+                .sorted(Comparator.comparing(
+                        entry ->
+                                entry.getValue().stream()
+                                        .map(opService -> opService.getSubOp())
+                                        .collect(Collectors.toList())
+                                        .toString()
+                ))
+                .collect(Collectors.toUnmodifiableList());
+
+
+
+        for (Map.Entry<Node, List<OpService>> entry : entriesSortedByGroup) {
+            Node uri = entry.getKey();
             if (groups.get(uri).size() <= 1) {
                 newGroups.add(groups.get(uri).getFirst());
             } else {
