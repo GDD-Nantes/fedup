@@ -5,6 +5,8 @@ import fr.gdd.fedqpl.operators.Mu;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 
+import java.util.Objects;
+
 /**
  * Route the visitor to the proper one depending on the type of the `Op`
  * since it's not implemented in each `Op` itself. This probably lose some
@@ -34,7 +36,7 @@ public class ReturningArgsOpVisitorRouter {
             case OpOrder o -> t.visit(o, args);
             case OpProject o -> t.visit(o, args);
             case OpGroup o -> t.visit(o, args);
-            default -> throw new UnsupportedOperationException(op + "\nWith args: " + args.toString());
+            default -> throw new UnsupportedOperationException(op + "\nWith args: " + (Objects.isNull(args) ? "null" : args.toString()));
         };
     }
 }

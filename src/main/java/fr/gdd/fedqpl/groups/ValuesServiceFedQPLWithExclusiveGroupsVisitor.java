@@ -1,6 +1,7 @@
 package fr.gdd.fedqpl.groups;
 
 import fr.gdd.fedqpl.operators.Mu;
+import fr.gdd.fedqpl.visitors.ReturningArgsOpBaseVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpBaseVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import org.apache.jena.graph.Node;
@@ -14,6 +15,7 @@ import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingBuilder;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * Create exclusive groups when they are close from each other. It pushes
@@ -26,9 +28,11 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
     public static boolean SILENT = true;
 
     private FedQPLWithExclusiveGroupsVisitor exclusiveGroupsVisitor = new FedQPLWithExclusiveGroupsVisitor();
+    private Integer counter = 0;
 
     @Override
     public Op visit(OpUnion opUnion) {
+
         return OpUnion.create(
                 ReturningOpVisitorRouter.visit(this, opUnion.getLeft()),
                 ReturningOpVisitorRouter.visit(this, opUnion.getRight())
@@ -57,12 +61,10 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
 
         Op query = seq.getElements().get(1);
 
-//      One decomposition -> des groupes de variables, et les bindings qui ont ces variables là
-//      Each decomposition is associated with :
-//        - new variables
-//        - bindings with these variables
         Map<Op, List<Binding>> decompositions2values = new HashMap<>();
 
+
+        Integer max = 0;
         Iterator<Binding> rows = table.getTable().rows();
         while(rows.hasNext()) {
             Binding binding = rows.next();
@@ -73,9 +75,10 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
             Op grouped = ReturningOpVisitorRouter.visit(exclusiveGroupsVisitor, instantiated);
 
             DecompositionVisitor decompositionVisitor = new DecompositionVisitor();
+            Integer counterBefore = counter;
             Op decomposed = ReturningOpVisitorRouter.visit(decompositionVisitor, grouped);
-
-            Map<OpService, Node> group2source = decompositionVisitor.group2source;
+            max = Math.max(max, counter);
+            counter = counterBefore;
 
             if(!decompositions2values.containsKey(decomposed)) {
                 decompositions2values.put(decomposed, new ArrayList<>());
@@ -83,12 +86,15 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
 
             BindingBuilder builder = BindingBuilder.create();
 
+            Map<OpService, Node> group2source = decompositionVisitor.group2source;
             for(Map.Entry<OpService, Node> serviceToSource : group2source.entrySet()) {
                 builder.add((Var) serviceToSource.getKey().getService(), serviceToSource.getValue());
             }
 
             decompositions2values.get(decomposed).add(builder.build());
         }
+
+        counter = max;
 
         List<Op> roots = new ArrayList<>();
 
@@ -110,7 +116,6 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
 
     private class DecompositionVisitor extends ReturningOpBaseVisitor {
         private Map<OpService, Node> group2source = new HashMap<>();
-        private Integer counter = 0;
 
         public Op visit(OpService opService) {
             OpService unboundService = new OpService(Var.alloc("__groupvar" + counter++),opService.getSubOp(), opService.getSilent());
@@ -126,13 +131,6 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
         }
         public Op visit(OpExtend opExtend) {
             if(opExtend.getSubOp() instanceof OpService opService) {
-
-//                if(opExtend.getVarExprList().getExprs().values().stream()
-//                        .filter(expr -> expr instanceof Node_URI)
-//                        .filter(uri -> ((Node_URI) uri).hasURI(opService.getService().getURI()))
-//                        .findFirst()
-//                        .isPresent()) {
-
                 // if the extend op is over a service whose URI is bound, then we remove the extend op, it's superfluous
                 if(opService.getService().isURI()){
                     return ReturningOpVisitorRouter.visit(this, opExtend.getSubOp());

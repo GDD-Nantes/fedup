@@ -5,9 +5,11 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
 
+import java.security.Provider;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Registers all optimizers of FedQPL expression and run them sequentially and loopingly
@@ -15,7 +17,7 @@ import java.util.Objects;
  */
 public class FedQPLOptimizer {
 
-    List<ReturningOpBaseVisitor> optimizers = new ArrayList<>();
+    List<Supplier<ReturningOpBaseVisitor>> optimizers = new ArrayList<>();
     public Integer timeout = Integer.MAX_VALUE;
 
     public FedQPLOptimizer () {}
@@ -26,7 +28,19 @@ public class FedQPLOptimizer {
     }
 
     public FedQPLOptimizer register(ReturningOpBaseVisitor optimizer) {
-        this.optimizers.add(optimizer);
+        this.optimizers.add(new Supplier<ReturningOpBaseVisitor>() {
+            String name = optimizer.getClass().getSimpleName();
+
+            @Override
+            public ReturningOpBaseVisitor get() {
+                return optimizer;
+            }
+        });
+        return this;
+    }
+
+    public FedQPLOptimizer register(Supplier<ReturningOpBaseVisitor> optimizerSupplier) {
+        this.optimizers.add(optimizerSupplier);
         return this;
     }
 
@@ -37,13 +51,13 @@ public class FedQPLOptimizer {
                 (Objects.isNull(before) ||
                 !before.equalTo(asFedQPL, new NodeIsomorphismMap()))) { // should converge or timeout
             before = asFedQPL;
-            for (ReturningOpBaseVisitor optimizer : optimizers) {
+            for (Supplier<ReturningOpBaseVisitor> optimizerSupplier : optimizers) {
                 Op beforeEach = null;
                 while (System.currentTimeMillis() < deadline &&
                         (Objects.isNull(beforeEach) ||
                         !beforeEach.equalTo(asFedQPL, new NodeIsomorphismMap()))) { // should converge or timeout
                     beforeEach = asFedQPL;
-                    asFedQPL = ReturningOpVisitorRouter.visit(optimizer, asFedQPL);
+                    asFedQPL = ReturningOpVisitorRouter.visit(optimizerSupplier.get(), asFedQPL);
                 }
             }
         }

@@ -6,6 +6,7 @@ import fr.gdd.fedup.FedUP;
 import fr.gdd.fedup.summary.IM4LabelSummaryFactory;
 import fr.gdd.fedup.summary.InMemorySummaryFactory;
 import fr.gdd.fedup.summary.Summary;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -53,6 +54,9 @@ public class SA2FedQPLWithValuesTest {
         //     [VALUES]
         //     [SERVICES]
         // }
+
+        System.out.println(assigned);
+
         AtomicReference<OpSequence> sequence = new AtomicReference<>();
         Assertions.assertDoesNotThrow(() -> sequence.set(((OpSequence)((OpProject) assigned).getSubOp())));
         Assertions.assertInstanceOf(OpTable.class, sequence.get().get(0));
@@ -80,26 +84,29 @@ public class SA2FedQPLWithValuesTest {
                 """;
 
         String expected = """
-                SELECT * WHERE {
-                    {VALUES (?__groupvar0 ?__groupvar1) {(<https://graphA.org> UNDEF) (UNDEF <https://graphB.org>)}
-                    SERVICE ?__groupvar0 {
-                        <http://auth/person> <http://auth/named> ?someone.
-                        ?someone  <http://auth/owns>  <http://auth/cat>.
-                    }}
+                SELECT  ?someone WHERE {
+                    {
+                        VALUES ?__groupvar0 { <https://graphA.org> }
+                        SERVICE SILENT ?__groupvar0 {
+                            <http://auth/person> <http://auth/named> ?someone .
+                            ?someone <http://auth/owns> <http://auth/cat>
+                        }
+                    }
                     UNION
-                    {SERVICE ?__groupvar1 {
-                        <http://auth/person> <http://auth/named> ?someone.
-                        ?someone  <http://auth/owns>  <http://auth/dog>.
-                    }}
+                    {
+                        VALUES ?__groupvar1 { <https://graphB.org> }
+                        SERVICE SILENT ?__groupvar1 {
+                            <http://auth/person> <http://auth/named> ?someone .
+                            ?someone <http://auth/owns> <http://auth/dog>
+                        }
+                    }
                 }
                 """;
 
         Op query = Algebra.compile(QueryFactory.create(queryAsString));
         Op assigned = fedup.queryJenaToJena(query);
 
-        System.out.println(OpAsQuery.asQuery(assigned));
-
-        assertEquals(OpAsQuery.asQuery(assigned), QueryFactory.create(expected));
+        assertEquals(QueryFactory.create(OpAsQuery.asQuery(assigned).toString()), QueryFactory.create(expected));
     }
 
     @Test
@@ -139,7 +146,6 @@ public class SA2FedQPLWithValuesTest {
 
         TestUtils.TestEqualOp equalityVisitor = new TestUtils.TestEqualOp();
         assertTrue(ReturningArgsOpVisitorRouter.visit(equalityVisitor, result, resultForceJoin));
-//        Assertions.assertEquals(result, resultForceJoin);
 
         factory.close();
     }
@@ -166,7 +172,7 @@ public class SA2FedQPLWithValuesTest {
         System.out.println(result);
 
         Pattern pattern = Pattern.compile("service");
-        Assertions.assertEquals(2, pattern.matcher(result.toString()).results().count());
+        Assertions.assertEquals(1, pattern.matcher(result.toString()).results().count());
 
 
         factory.close();

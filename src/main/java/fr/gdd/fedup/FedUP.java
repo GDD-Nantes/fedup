@@ -284,7 +284,7 @@ public class FedUP {
             log.info("Optimizing the resulting FedQPL plan…");
             optimizer = new FedQPLOptimizer()
                     .register(new FedQPLSimplifyVisitor())
-                    .register(new ValuesServiceFedQPLWithExclusiveGroupsVisitor());
+                    .register(() -> new ValuesServiceFedQPLWithExclusiveGroupsVisitor());
 
         } catch (UnsupportedOperationException uoe){
             asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
