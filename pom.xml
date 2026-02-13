@@ -21,6 +21,7 @@
 		<rdf4j.version>5.1.2</rdf4j.version>
 		<picocli.version>4.7.6</picocli.version>
 		<jena.version>5.5.0</jena.version>
+		<hefquin.version>0.0.8</hefquin.version>
 	</properties>
 
 	<dependencies>
@@ -74,6 +75,12 @@
 			<artifactId>junit-jupiter-api</artifactId>
 			<version>${junit.version}</version>
 			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>se.liu.research.hefquin</groupId>
+			<artifactId>hefquin-engine</artifactId>
+			<version>0.0.8</version>
 		</dependency>
 	</dependencies>
 

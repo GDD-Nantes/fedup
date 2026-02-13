@@ -264,6 +264,7 @@ public class FedUPCLI {
         QueryIterator results = switch (options.engine) {
             case "Jena", "jena" -> fedup.executeWithJena(jenaSourceSelectionPlan);
             case "FedX", "fedx" -> fedup.executeWithFedX(fedXSourceSelectionPlan);
+            case "HeFQUIN", "hefquin" -> fedup.executeWithHeFQUIN(jenaSourceSelectionPlan);
             default -> null; // nothing
         };
 

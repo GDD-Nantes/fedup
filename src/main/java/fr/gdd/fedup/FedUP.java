@@ -12,6 +12,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
@@ -20,16 +21,17 @@ import org.apache.jena.sparql.algebra.Transformer;
 import org.apache.jena.sparql.algebra.op.OpTable;
 import org.apache.jena.sparql.algebra.optimize.TransformFilterConjunction;
 import org.apache.jena.sparql.core.Var;
+import org.apache.jena.sparql.engine.ExecutionContext;
 import org.apache.jena.sparql.engine.QueryIterator;
 import org.apache.jena.sparql.engine.binding.Binding;
 import org.apache.jena.sparql.engine.binding.BindingRoot;
+import org.apache.jena.sparql.engine.iterator.QueryIterNullIterator;
+import org.apache.jena.sparql.engine.iterator.QueryIteratorResultSet;
 import org.apache.jena.sparql.engine.main.QueryEngineMain;
 import org.apache.jena.sparql.util.Context;
-import org.apache.jena.system.Txn;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
-import org.eclipse.rdf4j.federated.repository.FedXRepositoryConnection;
 import org.eclipse.rdf4j.query.algebra.EmptySet;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
@@ -37,6 +39,8 @@ import org.eclipse.rdf4j.query.resultio.sparqljson.SPARQLResultsJSONParserFactor
 import org.eclipse.rdf4j.query.resultio.sparqlxml.SPARQLResultsXMLParserFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.liu.ida.hefquin.engine.HeFQUINEngine;
+import se.liu.ida.hefquin.engine.HeFQUINEngineBuilder;
 
 import java.util.*;
 import java.util.function.Function;
@@ -275,12 +279,12 @@ public class FedUP {
         try {
             if(!(shouldFactorize && tryWithValuesFirst)) throw new UnsupportedOperationException();
 
-                asFedQPL = SA2FedQPLWithValues.build(queryAsOp, tsst.tqt, saAsKG);
+            asFedQPL = SA2FedQPLWithValues.build(queryAsOp, tsst.tqt, saAsKG);
 
-                log.info("Optimizing the resulting FedQPL plan…");
-                optimizer = new FedQPLOptimizer()
-                        .register(new FedQPLSimplifyVisitor())
-                        .register(new ValuesServiceFedQPLWithExclusiveGroupsVisitor());
+            log.info("Optimizing the resulting FedQPL plan…");
+            optimizer = new FedQPLOptimizer()
+                    .register(new FedQPLSimplifyVisitor())
+                    .register(new ValuesServiceFedQPLWithExclusiveGroupsVisitor());
 
         } catch (UnsupportedOperationException uoe){
             asFedQPL = SA2FedQPL.build(queryAsOp, tsst.tqt, saAsKG);
@@ -344,6 +348,20 @@ public class FedUP {
         return engine.eval(queryAsJena, DatasetFactory.empty().asDatasetGraph(), BindingRoot.create(), new Context());
     }
 
+    public QueryIterator executeWithHeFQUIN(Op queryAsJena) {
+        HeFQUINEngine engine = new HeFQUINEngineBuilder()
+                .withFederationCatalog("fedshop2000.ttl")
+                .build();
+
+        Query query = OpAsQuery.asQuery(queryAsJena);
+
+        log.info("Running the query using HeFQUIN…");
+        try {
+            return new QueryIteratorResultSet(engine.executeSelectQuery(query).getResultSet());
+        } catch (Exception e) {
+            return new QueryIterNullIterator(ExecutionContext.create(Context.emptyContext()));
+        }
+    }
 
     /* **************************************************************** */
 
