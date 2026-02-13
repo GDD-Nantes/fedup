@@ -6,11 +6,12 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.jena.query.TxnType;
 import org.apache.jena.sparql.algebra.Op;
-import org.apache.jena.sparql.algebra.Table;
 import org.apache.jena.sparql.algebra.TableFactory;
 import org.apache.jena.sparql.algebra.op.*;
+import org.apache.jena.sparql.algebra.table.TableBuilder;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Substitute;
 import org.apache.jena.sparql.core.Var;
@@ -21,6 +22,8 @@ import org.apache.jena.sparql.expr.ExprList;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static fr.gdd.fedqpl.SA2FedQPLWithValues.VisitorRecord;
 
 /**
  * A source assignments is a list of sources that are expected to provide
@@ -49,15 +52,24 @@ public class SA2FedQPLWithValues extends ReturningOpVisitor<VisitorRecord> {
         Op queryWithServices = queryAndSourceCombinations.withServices;
         List<Binding> sourceCombinations = queryAndSourceCombinations.bindings;
 
-        Table table = TableFactory.create();
-        sourceCombinations.stream().forEach(table::addBinding);
-        OpTable opTable = OpTable.create(table);
+        Op valuesServiceQuery = createValuesServiceQuery(queryWithServices, sourceCombinations);
 
         if (Objects.isNull(builder.topMostProjection)) {
-            return OpCloningUtil.clone(builder.createOpProjectWithAllVariables(query), OpSequence.create(opTable, queryWithServices));
+            return OpCloningUtil.clone(builder.createOpProjectWithAllVariables(query), valuesServiceQuery);
         } else {
-            return OpSequence.create(opTable, queryWithServices);
+            return valuesServiceQuery;
         }
+    }
+
+    public static Op createValuesServiceQuery(Op serviceQuery, List<Binding> bindings) {
+        if(bindings.isEmpty()) return OpTable.empty();
+        if(bindings.size() == 1 && bindings.getFirst().isEmpty()) return serviceQuery;
+
+        TableBuilder tableBuilder = TableFactory.builder();
+        bindings.stream().forEach(tableBuilder::addRow);
+        OpTable opTable = OpTable.create(tableBuilder.build());
+
+        return OpSequence.create(opTable, serviceQuery);
     }
 
     /* *************************************************************** */
@@ -84,7 +96,8 @@ public class SA2FedQPLWithValues extends ReturningOpVisitor<VisitorRecord> {
                 new ArrayList<>(
                     bindings.uniqueSet().stream()
                         .map(b -> BindingBuilder.create().add(g, b.get(g)).build())
-                        .collect(Collectors.toList())));
+                        .collect(Collectors.toList())),
+                Set.of(g));
     }
 
     @Override
@@ -116,22 +129,28 @@ public class SA2FedQPLWithValues extends ReturningOpVisitor<VisitorRecord> {
                                 bb.add(g, b.get(g));
                             }
                             return bb.build();
-                    }).collect(Collectors.toList())));
+                    }).collect(Collectors.toList())),
+                vars);
     }
 
     @Override
     public VisitorRecord visit(OpUnion union) {
         // nothing to register in `fedQPL2PartialAssignment`
         // since everything is already set on visit of left and right
-        List<Binding> results = new ArrayList<>();
         VisitorRecord left = ReturningOpVisitorRouter.visit(this, union.getLeft());
         VisitorRecord right = ReturningOpVisitorRouter.visit(this, union.getRight());
-        results.addAll(left.bindings);
-        results.addAll(right.bindings);
+
+        Set<Var> varsSeen = SetUtils.union(left.varsSeen, right.varsSeen);
+
+        Op leftBranch = createValuesServiceQuery(left.withServices, left.bindings);
+        Op rightBranch = createValuesServiceQuery(right.withServices, right.bindings);
+
         return new VisitorRecord(
-                OpUnion.create(left.withServices, right.withServices),
+                OpUnion.create(leftBranch, rightBranch),
                 OpUnion.create(left.withGraphs, right.withGraphs),
-                results);
+                List.of(Binding.builder().build()),
+                varsSeen
+        );
     }
 
     @Override
@@ -157,7 +176,9 @@ public class SA2FedQPLWithValues extends ReturningOpVisitor<VisitorRecord> {
         return new VisitorRecord(
                 OpJoin.create(left.withServices, right.withServices),
                 OpJoin.create(left.withGraphs, right.withGraphs),
-                results);
+                results,
+                SetUtils.union(left.varsSeen, right.varsSeen)
+        );
     }
 
     @Override
@@ -247,17 +268,19 @@ public class SA2FedQPLWithValues extends ReturningOpVisitor<VisitorRecord> {
             allVariables.addAll(vars.getOpt());
             allVariables.addAll(vars.getFilterOnly());
             return new OpProject(null, allVariables.stream().toList());
-        }
     }
 
-    class VisitorRecord {
+    public static class VisitorRecord {
         Op withServices;
         Op withGraphs;
         List<Binding> bindings;
+        Set<Var> varsSeen = new HashSet<>();
 
-        public VisitorRecord(Op withServices, Op withGraphs, List<Binding> bindings) {
+        public VisitorRecord(Op withServices, Op withGraphs, List<Binding> bindings, Set<Var> varsSeen) {
             this.withServices = withServices;
             this.withGraphs = withGraphs;
             this.bindings = bindings;
+            this.varsSeen = varsSeen;
         }
     }
+}

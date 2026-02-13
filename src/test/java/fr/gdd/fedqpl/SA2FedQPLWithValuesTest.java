@@ -4,9 +4,13 @@ import fr.gdd.fedqpl.visitors.ReturningArgsOpVisitorRouter;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.FedUP;
 import fr.gdd.fedup.summary.IM4LabelSummaryFactory;
+import fr.gdd.fedup.summary.InMemorySummaryFactory;
+import fr.gdd.fedup.summary.Summary;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.sparql.algebra.Algebra;
 import org.apache.jena.sparql.algebra.Op;
+import org.apache.jena.sparql.algebra.OpAsQuery;
+import org.apache.jena.sparql.algebra.TransformCopy;
 import org.apache.jena.sparql.algebra.op.OpProject;
 import org.apache.jena.sparql.algebra.op.OpSequence;
 import org.apache.jena.sparql.algebra.op.OpService;
@@ -18,6 +22,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SA2FedQPLWithValuesTest {
 
@@ -52,7 +59,47 @@ public class SA2FedQPLWithValuesTest {
         Assertions.assertInstanceOf(OpService.class, sequence.get().get(1));
 
         // There are two (or more !) source combinations
-        Assertions.assertTrue(((OpTable)((OpSequence)((OpProject) assigned).getSubOp()).get(0)).getTable().size() >= 2);
+        assertTrue(((OpTable)((OpSequence)((OpProject) assigned).getSubOp()).get(0)).getTable().size() >= 2);
+    }
+
+    @Test
+    public void test_union(){
+        InMemorySummaryFactory factory = new InMemorySummaryFactory();
+        FedUP fedup = new FedUP(new Summary(new TransformCopy(), factory.getPetsDataset()), factory.getPetsDataset());
+        fedup.shouldFactorize();
+        fedup.shouldTryWithValuesFirst();
+
+        String queryAsString = """
+                SELECT * WHERE {
+                    {<http://auth/person> <http://auth/named> ?someone.
+                     ?someone  <http://auth/owns>  <http://auth/cat>.}
+                    UNION
+                    {<http://auth/person> <http://auth/named> ?someone.
+                    ?someone  <http://auth/owns>  <http://auth/dog>.}
+                }
+                """;
+
+        String expected = """
+                SELECT * WHERE {
+                    {VALUES (?__groupvar0 ?__groupvar1) {(<https://graphA.org> UNDEF) (UNDEF <https://graphB.org>)}
+                    SERVICE ?__groupvar0 {
+                        <http://auth/person> <http://auth/named> ?someone.
+                        ?someone  <http://auth/owns>  <http://auth/cat>.
+                    }}
+                    UNION
+                    {SERVICE ?__groupvar1 {
+                        <http://auth/person> <http://auth/named> ?someone.
+                        ?someone  <http://auth/owns>  <http://auth/dog>.
+                    }}
+                }
+                """;
+
+        Op query = Algebra.compile(QueryFactory.create(queryAsString));
+        Op assigned = fedup.queryJenaToJena(query);
+
+        System.out.println(OpAsQuery.asQuery(assigned));
+
+        assertEquals(OpAsQuery.asQuery(assigned), QueryFactory.create(expected));
     }
 
     @Test
@@ -91,7 +138,7 @@ public class SA2FedQPLWithValuesTest {
         log.debug("result: {}", resultForceJoin);
 
         TestUtils.TestEqualOp equalityVisitor = new TestUtils.TestEqualOp();
-        Assertions.assertTrue(ReturningArgsOpVisitorRouter.visit(equalityVisitor, result, resultForceJoin));
+        assertTrue(ReturningArgsOpVisitorRouter.visit(equalityVisitor, result, resultForceJoin));
 //        Assertions.assertEquals(result, resultForceJoin);
 
         factory.close();

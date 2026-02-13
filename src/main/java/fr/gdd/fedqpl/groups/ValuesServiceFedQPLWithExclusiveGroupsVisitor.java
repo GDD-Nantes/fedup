@@ -28,6 +28,14 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
     private FedQPLWithExclusiveGroupsVisitor exclusiveGroupsVisitor = new FedQPLWithExclusiveGroupsVisitor();
 
     @Override
+    public Op visit(OpUnion opUnion) {
+        return OpUnion.create(
+                ReturningOpVisitorRouter.visit(this, opUnion.getLeft()),
+                ReturningOpVisitorRouter.visit(this, opUnion.getRight())
+        );
+    }
+
+    @Override
     public Op visit(OpSequence op) {
         try {
             return applyExclusiveGroups(op);
@@ -47,7 +55,6 @@ public class ValuesServiceFedQPLWithExclusiveGroupsVisitor extends ReturningOpBa
             throw new UnsupportedOperationException("Can't optimize sequence whose first op is not a table");
         }
 
-//        OpTable values = (OpTable) seq.getElements().getFirst();
         Op query = seq.getElements().get(1);
 
 //      One decomposition -> des groupes de variables, et les bindings qui ont ces variables là
