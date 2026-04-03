@@ -7,6 +7,7 @@ import fr.gdd.fedqpl.visitors.ReturningOpVisitor;
 import fr.gdd.fedqpl.visitors.ReturningOpVisitorRouter;
 import fr.gdd.fedup.transforms.ToQuadsTransform;
 import org.apache.commons.collections4.MultiSet;
+import org.apache.jena.query.TxnType;
 import org.apache.jena.sparql.algebra.Op;
 import org.apache.jena.sparql.algebra.op.*;
 import org.apache.jena.sparql.core.Var;
@@ -28,7 +29,9 @@ public class SA2FedQPL extends ReturningOpVisitor<List<Op>> {
 
     public static Op build(Op query, ToQuadsTransform tqt, SAAsKG assignmentsAsKG){
         SA2FedQPL builder = new SA2FedQPL(tqt, assignmentsAsKG);
+        assignmentsAsKG.dataset.begin(TxnType.READ);
         List<Op> subExps = ReturningOpVisitorRouter.visit(builder, query);
+        assignmentsAsKG.dataset.end();
         Mu rootUnion = new Mu(subExps.stream().toList());
 
         if (Objects.isNull(builder.topMostProjection)) {
