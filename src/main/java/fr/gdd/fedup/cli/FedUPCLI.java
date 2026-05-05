@@ -3,6 +3,7 @@ package fr.gdd.fedup.cli;
 import fr.gdd.fedup.FedUP;
 import fr.gdd.fedup.summary.ModuloOnSuffix;
 import fr.gdd.fedup.summary.Summary;
+import fr.gdd.fedup.summary.TruncateOnSuffix;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jena.dboe.base.file.Location;

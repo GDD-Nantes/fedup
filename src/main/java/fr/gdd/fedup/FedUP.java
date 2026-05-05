@@ -31,11 +31,14 @@ import org.apache.jena.sparql.util.Context;
 import org.eclipse.rdf4j.federated.FedXConfig;
 import org.eclipse.rdf4j.federated.FedXFactory;
 import org.eclipse.rdf4j.federated.repository.FedXRepository;
+import org.eclipse.rdf4j.http.client.SPARQLProtocolSession;
 import org.eclipse.rdf4j.query.algebra.EmptySet;
 import org.eclipse.rdf4j.query.algebra.TupleExpr;
 import org.eclipse.rdf4j.query.resultio.TupleQueryResultParserRegistry;
 import org.eclipse.rdf4j.query.resultio.sparqljson.SPARQLResultsJSONParserFactory;
 import org.eclipse.rdf4j.query.resultio.sparqlxml.SPARQLResultsXMLParserFactory;
+import org.eclipse.rdf4j.repository.sail.SailRepository;
+import org.eclipse.rdf4j.repository.sail.SailRepositoryConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,6 +147,7 @@ public class FedUP {
 
         log.info("Building the Jena SERVICE query…");
         Op asSPARQL = ReturningOpVisitorRouter.visit(new FedQPL2SPARQL(), asFedQPL);
+
         log.info("Building the FedX SERVICE query…");
         TupleExpr asFedX = ReturningOpVisitorRouter.visit(new FedQPL2FedX(), asFedQPL);
         return new ImmutablePair<>(asFedX, asSPARQL);
@@ -264,6 +268,7 @@ public class FedUP {
 
         try { // instead of try catch, include the cases in optimizers
             asFedQPL = optimizer.optimize(asFedQPL);
+            asFedQPL = ReturningOpVisitorRouter.visit(new OrderMuByNumberOfReq(), asFedQPL);
         } catch (NullPointerException e) {
             return null;
         }

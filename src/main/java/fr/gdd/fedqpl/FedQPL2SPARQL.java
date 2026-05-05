@@ -27,12 +27,12 @@ public class FedQPL2SPARQL extends ReturningOpBaseVisitor {
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = mu.getElements().iterator();
-                Op left = ReturningOpVisitorRouter.visit(this, ops.next());
+                Op right = ReturningOpVisitorRouter.visit(this, ops.next());
                 while (ops.hasNext()) {
-                    Op right = ReturningOpVisitorRouter.visit(this, ops.next());
-                    left = OpUnion.create(left, right);
+                    Op left = ReturningOpVisitorRouter.visit(this, ops.next());
+                    right = OpUnion.create(left, right);
                 }
-                yield left;
+                yield right;
             }
         };
     }

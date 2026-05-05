@@ -110,6 +110,11 @@ public class TransformUnimplemented implements Transform {
         throw new UnsupportedOperationException();
     }
 
+//    @Override
+//    public Op transform(OpDiff opDiff, Op left, Op right) {
+//        return null;
+//    }
+
     @Override
     public Op transform(OpMinus opMinus, Op op, Op op1) {
         throw new UnsupportedOperationException();

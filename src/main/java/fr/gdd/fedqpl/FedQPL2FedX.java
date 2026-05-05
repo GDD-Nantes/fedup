@@ -107,12 +107,12 @@ public class FedQPL2FedX extends ReturningOpVisitor<TupleExpr> {
             default -> {
                 // wrote as nested unions
                 Iterator<Op> ops = mu.getElements().iterator();
-                TupleExpr left = ReturningOpVisitorRouter.visit(this, ops.next());
+                TupleExpr right = ReturningOpVisitorRouter.visit(this, ops.next());
                 while (ops.hasNext()) {
-                    TupleExpr right = ReturningOpVisitorRouter.visit(this, ops.next());
-                    left = new Union(left, right);
+                    TupleExpr left = ReturningOpVisitorRouter.visit(this, ops.next());
+                    right = new Union(left, right);
                 }
-                yield left;
+                yield right;
             }
         };
     }
